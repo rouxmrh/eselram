@@ -180,11 +180,7 @@ async function loadServices() {
 
 
     services =
-      (data.services || [])
-        .filter(
-          (service) =>
-            service.is_active === 1
-        );
+  data.services || [];
 
 
     if (
@@ -603,12 +599,7 @@ form.addEventListener(
         "Available times will appear after you choose a service and date.";
 
 
-      setTimeout(
-        closeBookingForm,
-        600
-      );
-
-
+     
     } catch (error) {
 
       showBookingError(
