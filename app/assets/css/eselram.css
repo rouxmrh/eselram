@@ -679,3 +679,138 @@ textarea:focus {
     white-space: nowrap;
   }
 }
+/* =======================================================
+   Bookings
+   ======================================================= */
+
+.es-bookings-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.es-bookings-toolbar h2 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+.es-bookings-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.es-bookings-filter-group input,
+.es-bookings-filter-group select {
+  margin-top: 0;
+}
+
+.es-bookings-filter-group input {
+  min-width: 250px;
+}
+
+.es-booking-divider {
+  height: 1px;
+  margin: 30px 0;
+  background: var(--es-border);
+}
+
+.es-booking-hint {
+  margin-top: -10px;
+  margin-bottom: 20px;
+  color: var(--es-muted);
+  font-size: 13px;
+}
+
+.es-bookings-list {
+  margin-top: 24px;
+}
+
+.es-booking-row {
+  display: grid;
+  grid-template-columns:
+    minmax(140px, 0.85fr)
+    minmax(220px, 1.8fr)
+    minmax(100px, 0.7fr)
+    auto;
+  gap: 24px;
+  align-items: center;
+
+  padding: 18px 0;
+  border-bottom: 1px solid var(--es-border);
+}
+
+.es-booking-date,
+.es-booking-customer,
+.es-booking-money {
+  display: grid;
+  gap: 3px;
+}
+
+.es-booking-date span,
+.es-booking-customer span,
+.es-booking-money small,
+.es-booking-customer small {
+  color: var(--es-muted);
+  font-size: 13px;
+}
+
+.es-booking-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 28px;
+  padding: 4px 10px;
+
+  border-radius: 999px;
+  background: #f1f3ef;
+
+  color: var(--es-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.es-booking-status-confirmed {
+  color: var(--es-success);
+}
+
+.es-booking-status-cancelled {
+  color: var(--es-error);
+}
+
+.es-booking-status-completed {
+  color: var(--es-text);
+}
+
+@media (max-width: 900px) {
+
+  .es-bookings-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .es-bookings-filter-group {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .es-bookings-filter-group input {
+    min-width: 0;
+  }
+
+  .es-booking-row {
+    grid-template-columns:
+      1fr 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+
+  .es-booking-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
