@@ -57,8 +57,8 @@ async function checkInstallation() {
 getStartedButton.addEventListener(
   "click",
   () => {
-    statusBox.textContent =
-      "Database connection confirmed. Business setup is next.";
+    window.location.href =
+      "/installer/business.html";
   }
 );
 
