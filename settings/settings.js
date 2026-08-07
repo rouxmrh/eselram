@@ -23,6 +23,11 @@ const brandingPanel =
     "tab-branding"
   );
 
+const hoursPanel =
+  document.getElementById(
+    "tab-hours"
+  );
+
 const placeholderPanel =
   document.getElementById(
     "tab-placeholder"
@@ -351,6 +356,7 @@ function showTab(tab) {
 
   businessPanel.hidden = true;
   brandingPanel.hidden = true;
+  hoursPanel.hidden = true;
   placeholderPanel.hidden = true;
 
 
@@ -372,11 +378,20 @@ function showTab(tab) {
   }
 
 
+  if (tab === "hours") {
+
+    hoursPanel.hidden = false;
+
+    loadWorkingHours();
+
+    return;
+  }
+
+
   placeholderPanel.hidden = false;
 
 
   const names = {
-    hours: "Working Hours",
     payments: "Payments",
     users: "Users",
     roles: "Roles",
@@ -390,6 +405,7 @@ function showTab(tab) {
     names[tab] ||
     "Coming next";
 }
+
 document
   .querySelectorAll(
     ".es-settings-tabs button"
@@ -566,6 +582,415 @@ brandingForm.addEventListener("submit", async (event) => {
     saveBrandingButton.disabled = false;
   }
 });
+
+
+/* =======================================================
+   Working hours settings
+   ======================================================= */
+
+const workingHoursForm =
+  document.getElementById(
+    "workingHoursForm"
+  );
+
+const workingHoursDays =
+  document.getElementById(
+    "workingHoursDays"
+  );
+
+const workingHoursStatus =
+  document.getElementById(
+    "workingHoursStatus"
+  );
+
+const saveWorkingHoursButton =
+  document.getElementById(
+    "saveWorkingHoursButton"
+  );
+
+const dayNames = {
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+  7: "Sunday"
+};
+
+
+function renderWorkingHours(days) {
+
+  workingHoursDays.innerHTML =
+    days
+      .map(
+        (day) => `
+          <div
+            class="es-hours-setting-row"
+            data-weekday="${day.weekday}"
+          >
+
+            <div class="es-hours-setting-day">
+              <strong>
+                ${dayNames[day.weekday]}
+              </strong>
+            </div>
+
+
+            <label class="es-check-option es-hours-open-toggle">
+
+              <input
+                type="checkbox"
+                class="settings-day-open"
+                ${day.is_open ? "checked" : ""}
+              >
+
+              Open
+
+            </label>
+
+
+            <input
+              type="time"
+              class="settings-open-time"
+              value="${day.open_time || "09:00"}"
+              ${day.is_open ? "" : "disabled"}
+            >
+
+
+            <span class="es-hours-separator">
+              to
+            </span>
+
+
+            <input
+              type="time"
+              class="settings-close-time"
+              value="${day.close_time || "17:00"}"
+              ${day.is_open ? "" : "disabled"}
+            >
+
+          </div>
+        `
+      )
+      .join("");
+
+
+  document
+    .querySelectorAll(
+      ".settings-day-open"
+    )
+    .forEach(
+      (checkbox) => {
+
+        checkbox.addEventListener(
+          "change",
+          (event) => {
+
+            const row =
+              event.target.closest(
+                ".es-hours-setting-row"
+              );
+
+            const openTime =
+              row.querySelector(
+                ".settings-open-time"
+              );
+
+            const closeTime =
+              row.querySelector(
+                ".settings-close-time"
+              );
+
+            openTime.disabled =
+              !event.target.checked;
+
+            closeTime.disabled =
+              !event.target.checked;
+          }
+        );
+      }
+    );
+}
+
+
+async function loadWorkingHours() {
+
+  try {
+
+    workingHoursStatus.hidden = true;
+
+
+    const response =
+      await fetch(
+        "/api/settings/hours",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    if (
+      response.status === 401
+    ) {
+
+      window.location.href =
+        "/auth/login.html";
+
+      return;
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load working hours."
+      );
+    }
+
+
+    renderWorkingHours(
+      data.hours || []
+    );
+
+
+    document
+      .getElementById(
+        "settingsBookingInterval"
+      )
+      .value =
+        String(
+          data.hours?.[0]
+            ?.booking_interval_minutes ||
+          30
+        );
+
+
+    document
+      .getElementById(
+        "settingsBufferBefore"
+      )
+      .value =
+        String(
+          data.booking_buffer_before_minutes ||
+          0
+        );
+
+
+    document
+      .getElementById(
+        "settingsBufferAfter"
+      )
+      .value =
+        String(
+          data.booking_buffer_after_minutes ||
+          0
+        );
+
+
+    document
+      .getElementById(
+        "settingsHoursTimezone"
+      )
+      .value =
+        data.timezone ||
+        "Europe/London";
+
+
+  } catch (error) {
+
+    workingHoursStatus.hidden =
+      false;
+
+    workingHoursStatus.className =
+      "es-status error";
+
+    workingHoursStatus.textContent =
+      error.message ||
+      "Unable to load working hours.";
+  }
+}
+
+
+function collectWorkingHours() {
+
+  return Array.from(
+    document.querySelectorAll(
+      ".es-hours-setting-row"
+    )
+  ).map(
+    (row) => {
+
+      const isOpen =
+        row.querySelector(
+          ".settings-day-open"
+        ).checked;
+
+
+      return {
+        weekday:
+          Number(
+            row.dataset.weekday
+          ),
+
+        is_open:
+          isOpen,
+
+        open_time:
+          isOpen
+            ? row.querySelector(
+                ".settings-open-time"
+              ).value
+            : null,
+
+        close_time:
+          isOpen
+            ? row.querySelector(
+                ".settings-close-time"
+              ).value
+            : null
+      };
+    }
+  );
+}
+
+
+workingHoursForm.addEventListener(
+  "submit",
+  async (event) => {
+
+    event.preventDefault();
+
+
+    workingHoursStatus.hidden =
+      false;
+
+    workingHoursStatus.className =
+      "es-status";
+
+    workingHoursStatus.textContent =
+      "Saving working hours…";
+
+    saveWorkingHoursButton.disabled =
+      true;
+
+
+    const payload = {
+
+      booking_interval_minutes:
+        Number(
+          document
+            .getElementById(
+              "settingsBookingInterval"
+            )
+            .value
+        ),
+
+      booking_buffer_before_minutes:
+        Number(
+          document
+            .getElementById(
+              "settingsBufferBefore"
+            )
+            .value
+        ),
+
+      booking_buffer_after_minutes:
+        Number(
+          document
+            .getElementById(
+              "settingsBufferAfter"
+            )
+            .value
+        ),
+
+      hours:
+        collectWorkingHours()
+    };
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/settings/hours",
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Accept:
+                "application/json"
+            },
+
+            body:
+              JSON.stringify(
+                payload
+              )
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (
+        !response.ok ||
+        !data.ok
+      ) {
+
+        throw new Error(
+          data.error ||
+          "Unable to save working hours."
+        );
+      }
+
+
+      workingHoursStatus.className =
+        "es-status success";
+
+      workingHoursStatus.textContent =
+        "Working hours saved.";
+
+
+      await loadWorkingHours();
+
+
+    } catch (error) {
+
+      workingHoursStatus.className =
+        "es-status error";
+
+      workingHoursStatus.textContent =
+        error.message ||
+        "Unable to save working hours.";
+
+
+    } finally {
+
+      saveWorkingHoursButton.disabled =
+        false;
+    }
+  }
+);
+
 
 loadTabFromHash();
 loadSettings();
