@@ -368,7 +368,7 @@ export async function onRequestGet({
             a.start_at,
             a.end_at,
             a.status,
-            a.notes,
+            a.customer_notes AS notes,
 
             c.id AS customer_id,
             c.first_name,
