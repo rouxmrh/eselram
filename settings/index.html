@@ -474,6 +474,128 @@
   </form>
 
 </div>
+
+          <div
+            id="tab-hours"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Working Hours
+                </p>
+
+                <h2>
+                  Availability & booking rules
+                </h2>
+
+                <p class="es-muted-copy">
+                  Set when clients can book and add buffers around appointments.
+                </p>
+              </div>
+
+            </div>
+
+
+            <form id="workingHoursForm">
+
+              <div
+                id="workingHoursDays"
+                class="es-hours-settings-list"
+              ></div>
+
+
+              <div class="es-settings-divider"></div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Booking interval
+
+                  <select id="settingsBookingInterval">
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Buffer before appointment
+
+                  <select id="settingsBufferBefore">
+                    <option value="0">No buffer</option>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Buffer after appointment
+
+                  <select id="settingsBufferAfter">
+                    <option value="0">No buffer</option>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Timezone
+
+                  <input
+                    id="settingsHoursTimezone"
+                    type="text"
+                    readonly
+                  >
+                </label>
+
+              </div>
+
+
+              <div
+                id="workingHoursStatus"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <button
+                id="saveWorkingHoursButton"
+                class="es-button"
+                type="submit"
+              >
+                Save working hours
+              </button>
+
+            </form>
+
+          </div>
+
           <div
             id="tab-placeholder"
             class="es-settings-panel"
