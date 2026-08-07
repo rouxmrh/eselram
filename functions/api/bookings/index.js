@@ -632,7 +632,7 @@ export async function onRequestPost({
           start_at,
           end_at,
           status,
-          notes
+          customer_notes
         )
 
         VALUES (
