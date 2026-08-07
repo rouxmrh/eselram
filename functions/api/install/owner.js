@@ -335,9 +335,7 @@ export async function onRequestPost({
   return Response.json(
     {
       ok: false,
-      error:
-        error?.message ||
-        "Unable to create the owner account."
+      error: "Unable to create the owner account."
     },
     {
       status: 500
