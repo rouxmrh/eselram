@@ -153,13 +153,13 @@ document
 
 serviceSelect.addEventListener(
   "change",
-  loadAvailability
+  () => loadAvailability()
 );
 
 
 bookingDate.addEventListener(
   "change",
-  loadAvailability
+  () => loadAvailability()
 );
 
 
