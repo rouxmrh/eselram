@@ -357,3 +357,46 @@ textarea:focus {
   font-size: 13px;
   line-height: 1.5;
 }
+/* =======================================================
+   Authentication
+   ======================================================= */
+
+.es-password-field {
+  position: relative;
+  margin-top: 8px;
+}
+
+.es-password-field input {
+  margin-top: 0;
+  padding-right: 72px;
+}
+
+.es-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+
+  transform:
+    translateY(-50%);
+
+  border: 0;
+  background: transparent;
+
+  color:
+    var(--es-primary);
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.es-password-help {
+  margin-top: -12px;
+  margin-bottom: 20px;
+
+  color:
+    var(--es-muted);
+
+  font-size: 12px;
+}
