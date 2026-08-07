@@ -191,3 +191,59 @@ textarea:focus {
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* =======================================================
+   Business hours
+   ======================================================= */
+
+.es-hours-row {
+  display: grid;
+  grid-template-columns: 120px 90px 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--es-border);
+}
+
+.es-hours-day {
+  font-size: 14px;
+}
+
+.es-hours-toggle {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.es-hours-toggle input {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+}
+
+.es-hours-row input[type="time"] {
+  margin-top: 0;
+}
+
+.es-hours-separator {
+  color: var(--es-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .es-hours-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .es-hours-day {
+    grid-column: 1 / 2;
+  }
+
+  .es-hours-toggle {
+    justify-self: end;
+  }
+
+  .es-hours-separator {
+    display: none;
+  }
+}
