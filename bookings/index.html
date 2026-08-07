@@ -1,1 +1,352 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Bookings | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/bookings/bookings.css"
+  >
+</head>
+
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
+
+    <aside class="es-sidebar">
+
+      <div class="es-sidebar-brand">
+        ESELRAM
+      </div>
+
+      <nav class="es-sidebar-nav">
+
+        <a href="/dashboard/">
+          Overview
+        </a>
+
+        <a
+          href="/bookings/"
+          class="active"
+        >
+          Bookings
+        </a>
+
+        <a href="/calendar/">
+          Calendar
+        </a>
+
+        <a href="/customers/">
+          Customers
+        </a>
+
+        <a href="/services/">
+          Services
+        </a>
+
+        <a href="/settings/#payments">
+          Payments
+        </a>
+
+        <a href="/settings/">
+          Settings
+        </a>
+
+      </nav>
+
+    </aside>
+
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+
+        <div>
+
+          <p class="es-eyebrow">
+            Appointments
+          </p>
+
+          <h1>
+            Bookings
+          </h1>
+
+          <p class="es-lead">
+            Create appointments and manage your upcoming schedule.
+          </p>
+
+        </div>
+
+        <button
+          id="newBookingButton"
+          class="es-button"
+          type="button"
+        >
+          New booking
+        </button>
+
+      </header>
+
+
+      <section
+        id="bookingFormPanel"
+        class="es-dashboard-panel"
+        hidden
+      >
+
+        <div class="es-panel-header">
+
+          <div>
+
+            <p class="es-eyebrow">
+              New booking
+            </p>
+
+            <h2>
+              Create appointment
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <form id="bookingForm">
+
+          <div class="es-form-grid">
+
+            <label>
+              Service
+
+              <select
+                id="serviceSelect"
+                required
+              >
+                <option value="">
+                  Loading services…
+                </option>
+              </select>
+
+            </label>
+
+
+            <label>
+              Date
+
+              <input
+                id="bookingDate"
+                type="date"
+                required
+              >
+            </label>
+
+          </div>
+
+
+          <label>
+            Available time
+
+            <select
+              id="timeSelect"
+              required
+              disabled
+            >
+              <option value="">
+                Choose a service and date first
+              </option>
+            </select>
+          </label>
+
+
+          <div
+            id="availabilityStatus"
+            class="es-booking-hint"
+          >
+            Available times will appear after you choose a service and date.
+          </div>
+
+
+          <div class="es-booking-divider"></div>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              First name
+
+              <input
+                id="firstName"
+                type="text"
+                autocomplete="given-name"
+                required
+              >
+            </label>
+
+
+            <label>
+              Last name
+
+              <input
+                id="lastName"
+                type="text"
+                autocomplete="family-name"
+                required
+              >
+            </label>
+
+          </div>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Email
+
+              <input
+                id="email"
+                type="email"
+                autocomplete="email"
+              >
+            </label>
+
+
+            <label>
+              Phone
+
+              <input
+                id="phone"
+                type="tel"
+                autocomplete="tel"
+              >
+            </label>
+
+          </div>
+
+
+          <label>
+            Customer notes
+
+            <textarea
+              id="notes"
+              placeholder="Optional notes for this appointment"
+            ></textarea>
+          </label>
+
+
+          <div
+            id="bookingStatus"
+            class="es-status"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+
+
+          <div class="es-form-actions">
+
+            <button
+              id="saveBookingButton"
+              class="es-button"
+              type="submit"
+            >
+              Create booking
+            </button>
+
+            <button
+              id="cancelBookingButton"
+              class="es-secondary-button"
+              type="button"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+      <section class="es-dashboard-panel">
+
+        <div class="es-bookings-toolbar">
+
+          <div>
+
+            <p class="es-eyebrow">
+              Schedule
+            </p>
+
+            <h2>
+              Upcoming bookings
+            </h2>
+
+          </div>
+
+
+          <div class="es-bookings-filter-group">
+
+            <input
+              id="bookingSearch"
+              type="search"
+              placeholder="Search customer or service"
+              aria-label="Search bookings"
+            >
+
+            <select
+              id="bookingStatusFilter"
+              aria-label="Filter by status"
+            >
+              <option value="all">
+                All statuses
+              </option>
+
+              <option value="confirmed">
+                Confirmed
+              </option>
+
+              <option value="completed">
+                Completed
+              </option>
+
+              <option value="cancelled">
+                Cancelled
+              </option>
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="bookingsList"
+          class="es-empty-state"
+        >
+          Loading bookings…
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="/bookings/bookings.js"></script>
+
+</body>
+</html>
 
