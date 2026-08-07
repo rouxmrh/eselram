@@ -18,6 +18,11 @@ const businessPanel =
     "tab-business"
   );
 
+const brandingPanel =
+  document.getElementById(
+    "tab-branding"
+  );
+
 const placeholderPanel =
   document.getElementById(
     "tab-placeholder"
@@ -344,27 +349,33 @@ function showTab(tab) {
     );
 
 
+  businessPanel.hidden = true;
+  brandingPanel.hidden = true;
+  placeholderPanel.hidden = true;
+
+
   if (tab === "business") {
 
-    businessPanel.hidden =
-      false;
-
-    placeholderPanel.hidden =
-      true;
+    businessPanel.hidden = false;
 
     return;
   }
 
 
-  businessPanel.hidden =
-    true;
+  if (tab === "branding") {
 
-  placeholderPanel.hidden =
-    false;
+    brandingPanel.hidden = false;
+
+    loadBrandingSettings();
+
+    return;
+  }
+
+
+  placeholderPanel.hidden = false;
 
 
   const names = {
-    branding: "Branding",
     hours: "Working Hours",
     payments: "Payments",
     users: "Users",
@@ -379,8 +390,6 @@ function showTab(tab) {
     names[tab] ||
     "Coming next";
 }
-
-
 document
   .querySelectorAll(
     ".es-settings-tabs button"
@@ -425,6 +434,138 @@ window.addEventListener(
   loadTabFromHash
 );
 
+
+
+/* =======================================================
+   Branding settings
+   ======================================================= */
+
+const brandingForm =
+  document.getElementById(
+    "brandingSettingsForm"
+  );
+
+const brandingStatus =
+  document.getElementById(
+    "brandingStatus"
+  );
+
+const saveBrandingButton =
+  document.getElementById(
+    "saveBrandingButton"
+  );
+
+const settingsPrimaryColour =
+  document.getElementById(
+    "settingsPrimaryColour"
+  );
+
+const settingsPrimaryColourText =
+  document.getElementById(
+    "settingsPrimaryColourText"
+  );
+
+const settingsAccentColour =
+  document.getElementById(
+    "settingsAccentColour"
+  );
+
+const settingsAccentColourText =
+  document.getElementById(
+    "settingsAccentColourText"
+  );
+
+function isValidHex(value) {
+  return /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+settingsPrimaryColour.addEventListener("input", () => {
+  settingsPrimaryColourText.value = settingsPrimaryColour.value;
+});
+
+settingsPrimaryColourText.addEventListener("input", () => {
+  const value = settingsPrimaryColourText.value.trim();
+  if (isValidHex(value)) settingsPrimaryColour.value = value;
+});
+
+settingsAccentColour.addEventListener("input", () => {
+  settingsAccentColourText.value = settingsAccentColour.value;
+});
+
+settingsAccentColourText.addEventListener("input", () => {
+  const value = settingsAccentColourText.value.trim();
+  if (isValidHex(value)) settingsAccentColour.value = value;
+});
+
+async function loadBrandingSettings() {
+  try {
+    const response = await fetch("/api/settings/branding", {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (response.status === 401) {
+      window.location.href = "/auth/login.html";
+      return;
+    }
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Unable to load branding settings.");
+    }
+    const branding = data.branding;
+    settingsPrimaryColour.value = branding.primary_colour;
+    settingsPrimaryColourText.value = branding.primary_colour;
+    settingsAccentColour.value = branding.accent_colour;
+    settingsAccentColourText.value = branding.accent_colour;
+    document.getElementById("settingsTheme").value = branding.theme;
+    document.getElementById("settingsTimeFormat").value = branding.time_format;
+    document.getElementById("settingsDateFormat").value = branding.date_format;
+  } catch (error) {
+    brandingStatus.hidden = false;
+    brandingStatus.className = "es-status error";
+    brandingStatus.textContent = error.message || "Unable to load branding settings.";
+  }
+}
+
+brandingForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const primaryColour = settingsPrimaryColourText.value.trim();
+  const accentColour = settingsAccentColourText.value.trim();
+  if (!isValidHex(primaryColour) || !isValidHex(accentColour)) {
+    brandingStatus.hidden = false;
+    brandingStatus.className = "es-status error";
+    brandingStatus.textContent = "Please enter valid 6-digit hex colours.";
+    return;
+  }
+  brandingStatus.hidden = false;
+  brandingStatus.className = "es-status";
+  brandingStatus.textContent = "Saving branding…";
+  saveBrandingButton.disabled = true;
+  const payload = {
+    primary_colour: primaryColour,
+    accent_colour: accentColour,
+    theme: document.getElementById("settingsTheme").value,
+    time_format: document.getElementById("settingsTimeFormat").value,
+    date_format: document.getElementById("settingsDateFormat").value
+  };
+  try {
+    const response = await fetch("/api/settings/branding", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Unable to save branding settings.");
+    }
+    brandingStatus.className = "es-status success";
+    brandingStatus.textContent = "Branding saved.";
+  } catch (error) {
+    brandingStatus.className = "es-status error";
+    brandingStatus.textContent = error.message || "Unable to save branding settings.";
+  } finally {
+    saveBrandingButton.disabled = false;
+  }
+});
 
 loadTabFromHash();
 loadSettings();
