@@ -325,25 +325,24 @@ export async function onRequestPost({
     );
 
 
-  } catch (error) {
+} catch (error) {
 
-    console.error(
-      "Owner installation failed:",
-      error
-    );
+  console.error(
+    "Owner installation failed:",
+    error
+  );
 
+  return Response.json(
+    {
+      ok: false,
+      error:
+        error?.message ||
+        "Unable to create the owner account."
+    },
+    {
+      status: 500
+    }
+  );
 
-    return Response.json(
-      {
-        ok: false,
-
-        error:
-          "Unable to create the owner account."
-      },
-      {
-        status: 500
-      }
-    );
-
-  }
+}
 }
