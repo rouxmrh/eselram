@@ -144,3 +144,46 @@ h1 {
     padding: 32px 24px;
   }
 }
+/* =======================================================
+   Forms
+   ======================================================= */
+
+form {
+  margin-top: 32px;
+}
+
+label {
+  display: block;
+  margin-bottom: 20px;
+  color: var(--es-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  background: #fff;
+  color: var(--es-text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+textarea {
+  min-height: 120px;
+  padding-top: 12px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--es-primary);
+  box-shadow: 0 0 0 3px rgba(54, 92, 80, 0.12);
+}
