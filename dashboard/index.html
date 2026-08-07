@@ -1,15 +1,8 @@
 <!doctype html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Dashboard | Eselram</title>
 
@@ -17,40 +10,164 @@
     rel="stylesheet"
     href="/app/assets/css/eselram.css"
   >
-
 </head>
 
-<body>
+<body class="es-dashboard-body">
 
-  <main class="es-page">
+  <div class="es-dashboard-layout">
 
-    <section class="es-card">
+    <aside class="es-sidebar">
 
-      <div class="es-brand">
+      <div class="es-sidebar-brand">
         ESELRAM
       </div>
 
-      <p class="es-eyebrow">
-        Setup Complete
-      </p>
+      <nav class="es-sidebar-nav">
 
-      <h1>
-        Welcome to Eselram.
-      </h1>
+        <a
+          href="/dashboard/"
+          class="active"
+        >
+          Overview
+        </a>
 
-      <p class="es-lead">
-        Your business is configured and
-        your owner account has been created.
-      </p>
+        <a href="#">
+          Bookings
+        </a>
 
-      <div class="es-status success">
-        The Eselram dashboard comes next.
+        <a href="#">
+          Calendar
+        </a>
+
+        <a href="#">
+          Customers
+        </a>
+
+        <a href="#">
+          Services
+        </a>
+
+        <a href="#">
+          Payments
+        </a>
+
+        <a href="#">
+          Settings
+        </a>
+
+      </nav>
+
+      <div class="es-sidebar-footer">
+
+        <div id="sidebarUser">
+          Loading…
+        </div>
+
+        <button
+          id="logoutButton"
+          class="es-logout-button"
+          type="button"
+        >
+          Sign out
+        </button>
+
       </div>
 
-    </section>
+    </aside>
 
-  </main>
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+
+        <div>
+          <p class="es-eyebrow">
+            Overview
+          </p>
+
+          <h1 id="businessName">
+            Loading…
+          </h1>
+        </div>
+
+        <div
+          id="headerUser"
+          class="es-header-user"
+        ></div>
+
+      </header>
+
+
+      <section
+        id="dashboardStatus"
+        class="es-status"
+        hidden
+      ></section>
+
+
+      <section class="es-stat-grid">
+
+        <article class="es-stat-card">
+          <span>Today's bookings</span>
+          <strong id="todayBookings">0</strong>
+        </article>
+
+        <article class="es-stat-card">
+          <span>Upcoming bookings</span>
+          <strong id="upcomingBookings">0</strong>
+        </article>
+
+        <article class="es-stat-card">
+          <span>Customers</span>
+          <strong id="customerCount">0</strong>
+        </article>
+
+        <article class="es-stat-card">
+          <span>Revenue</span>
+          <strong id="revenue">£0.00</strong>
+        </article>
+
+      </section>
+
+
+      <section class="es-dashboard-panel">
+
+        <div class="es-panel-header">
+
+          <div>
+            <p class="es-eyebrow">
+              Schedule
+            </p>
+
+            <h2>
+              Upcoming appointments
+            </h2>
+          </div>
+
+          <button
+            class="es-button"
+            type="button"
+            disabled
+          >
+            Create booking
+          </button>
+
+        </div>
+
+        <div
+          id="appointmentsList"
+          class="es-empty-state"
+        >
+          Loading appointments…
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="/dashboard/dashboard.js"></script>
 
 </body>
-
 </html>
