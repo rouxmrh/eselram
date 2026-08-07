@@ -8,6 +8,16 @@ const form =
     "bookingForm"
   );
 
+const bookingId =
+  document.getElementById(
+    "bookingId"
+  );
+
+const selectedCustomerId =
+  document.getElementById(
+    "selectedCustomerId"
+  );
+
 const serviceSelect =
   document.getElementById(
     "serviceSelect"
@@ -53,9 +63,46 @@ const bookingStatusFilter =
     "bookingStatusFilter"
   );
 
+const customerSearch =
+  document.getElementById(
+    "customerSearch"
+  );
+
+const customerSearchResults =
+  document.getElementById(
+    "customerSearchResults"
+  );
+
+const selectedCustomer =
+  document.getElementById(
+    "selectedCustomer"
+  );
+
+const selectedCustomerText =
+  document.getElementById(
+    "selectedCustomerText"
+  );
+
+const bookingDetailsDialog =
+  document.getElementById(
+    "bookingDetailsDialog"
+  );
+
+const bookingDetailContent =
+  document.getElementById(
+    "bookingDetailContent"
+  );
+
+const bookingDetailActions =
+  document.getElementById(
+    "bookingDetailActions"
+  );
+
 
 let services = [];
 let bookings = [];
+let currentDetailBookingId = null;
+let customerSearchTimer = null;
 
 
 /* =======================================================
@@ -68,7 +115,8 @@ document
   )
   .addEventListener(
     "click",
-    openBookingForm
+    () =>
+      openBookingForm()
   );
 
 
@@ -79,6 +127,27 @@ document
   .addEventListener(
     "click",
     closeBookingForm
+  );
+
+
+document
+  .getElementById(
+    "clearSelectedCustomer"
+  )
+  .addEventListener(
+    "click",
+    clearCustomerSelection
+  );
+
+
+document
+  .getElementById(
+    "closeBookingDialog"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      bookingDetailsDialog.close()
   );
 
 
@@ -106,10 +175,69 @@ bookingStatusFilter.addEventListener(
 );
 
 
+customerSearch.addEventListener(
+  "input",
+  () => {
+
+    clearTimeout(
+      customerSearchTimer
+    );
+
+
+    const query =
+      customerSearch
+        .value
+        .trim();
+
+
+    if (
+      query.length < 2
+    ) {
+
+      customerSearchResults.hidden =
+        true;
+
+      customerSearchResults.innerHTML =
+        "";
+
+      return;
+    }
+
+
+    customerSearchTimer =
+      setTimeout(
+        () =>
+          searchCustomers(
+            query
+          ),
+        250
+      );
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  (event) => {
+
+    if (
+      !event.target.closest(
+        ".es-customer-search-wrap"
+      )
+    ) {
+
+      customerSearchResults.hidden =
+        true;
+    }
+  }
+);
+
+
 function setMinimumDate() {
 
   const today =
     new Date();
+
 
   const yyyy =
     today.getFullYear();
@@ -123,6 +251,7 @@ function setMinimumDate() {
     String(
       today.getDate()
     ).padStart(2, "0");
+
 
   bookingDate.min =
     `${yyyy}-${mm}-${dd}`;
@@ -152,15 +281,9 @@ async function loadServices() {
       );
 
 
-    if (
-      response.status === 401
-    ) {
-
-      window.location.href =
-        "/auth/login.html";
-
-      return;
-    }
+    handleAuthentication(
+      response
+    );
 
 
     const data =
@@ -180,7 +303,8 @@ async function loadServices() {
 
 
     services =
-  data.services || [];
+      data.services ||
+      [];
 
 
     if (
@@ -189,7 +313,7 @@ async function loadServices() {
 
       serviceSelect.innerHTML = `
         <option value="">
-          No active services available
+          No services available
         </option>
       `;
 
@@ -250,10 +374,255 @@ async function loadServices() {
 
 
 /* =======================================================
+   Customers
+   ======================================================= */
+
+async function searchCustomers(
+  query
+) {
+
+  try {
+
+    const params =
+      new URLSearchParams({
+        customer_search:
+          query
+      });
+
+
+    const response =
+      await fetch(
+        `/api/bookings?${params.toString()}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to search customers."
+      );
+    }
+
+
+    const customers =
+      data.customers ||
+      [];
+
+
+    if (
+      customers.length === 0
+    ) {
+
+      customerSearchResults.innerHTML = `
+        <div class="es-customer-result">
+          <strong>
+            No customers found
+          </strong>
+
+          <span>
+            Continue below to create a new customer.
+          </span>
+        </div>
+      `;
+
+      customerSearchResults.hidden =
+        false;
+
+      return;
+    }
+
+
+    customerSearchResults.innerHTML =
+      customers
+        .map(
+          (customer) => `
+            <button
+              class="es-customer-result"
+              type="button"
+              data-customer-id="${escapeHtml(
+                customer.id
+              )}"
+            >
+              <strong>
+                ${escapeHtml(
+                  customer.first_name
+                )}
+                ${escapeHtml(
+                  customer.last_name
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  [
+                    customer.email,
+                    customer.phone
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                )}
+              </span>
+            </button>
+          `
+        )
+        .join("");
+
+
+    customerSearchResults
+      .querySelectorAll(
+        "[data-customer-id]"
+      )
+      .forEach(
+        (button) => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              const customer =
+                customers.find(
+                  (item) =>
+                    item.id ===
+                    button.dataset
+                      .customerId
+                );
+
+
+              if (customer) {
+
+                selectCustomer(
+                  customer
+                );
+              }
+            }
+          );
+        }
+      );
+
+
+    customerSearchResults.hidden =
+      false;
+
+
+  } catch (error) {
+
+    customerSearchResults.innerHTML = `
+      <div class="es-customer-result">
+        <strong>
+          Unable to search customers
+        </strong>
+      </div>
+    `;
+
+    customerSearchResults.hidden =
+      false;
+  }
+}
+
+
+function selectCustomer(
+  customer
+) {
+
+  selectedCustomerId.value =
+    customer.id;
+
+
+  document
+    .getElementById(
+      "firstName"
+    )
+    .value =
+      customer.first_name ||
+      "";
+
+
+  document
+    .getElementById(
+      "lastName"
+    )
+    .value =
+      customer.last_name ||
+      "";
+
+
+  document
+    .getElementById(
+      "email"
+    )
+    .value =
+      customer.email ||
+      "";
+
+
+  document
+    .getElementById(
+      "phone"
+    )
+    .value =
+      customer.phone ||
+      "";
+
+
+  selectedCustomerText.textContent =
+    `${customer.first_name} ${customer.last_name}`;
+
+
+  selectedCustomer.hidden =
+    false;
+
+
+  customerSearch.value =
+    "";
+
+
+  customerSearchResults.hidden =
+    true;
+}
+
+
+function clearCustomerSelection() {
+
+  selectedCustomerId.value =
+    "";
+
+  selectedCustomer.hidden =
+    true;
+
+  selectedCustomerText.textContent =
+    "";
+}
+
+
+/* =======================================================
    Availability
    ======================================================= */
 
-async function loadAvailability() {
+async function loadAvailability(
+  preferredTime = ""
+) {
 
   const serviceId =
     serviceSelect.value;
@@ -262,7 +631,8 @@ async function loadAvailability() {
     bookingDate.value;
 
 
-  timeSelect.disabled = true;
+  timeSelect.disabled =
+    true;
 
 
   if (
@@ -304,6 +674,19 @@ async function loadAvailability() {
       });
 
 
+    const currentBookingId =
+      bookingId.value;
+
+
+    if (currentBookingId) {
+
+      query.set(
+        "exclude_appointment_id",
+        currentBookingId
+      );
+    }
+
+
     const response =
       await fetch(
         `/api/bookings/availability?${query.toString()}`,
@@ -319,15 +702,9 @@ async function loadAvailability() {
       );
 
 
-    if (
-      response.status === 401
-    ) {
-
-      window.location.href =
-        "/auth/login.html";
-
-      return;
-    }
+    handleAuthentication(
+      response
+    );
 
 
     const data =
@@ -347,7 +724,21 @@ async function loadAvailability() {
 
 
     const slots =
-      data.slots || [];
+      data.slots ||
+      [];
+
+
+    if (
+      preferredTime &&
+      !slots.includes(
+        preferredTime
+      )
+    ) {
+
+      slots.unshift(
+        preferredTime
+      );
+    }
 
 
     if (
@@ -359,9 +750,6 @@ async function loadAvailability() {
           No available times
         </option>
       `;
-
-      timeSelect.disabled =
-        true;
 
       availabilityStatus.textContent =
         "There are no available appointment times for this date.";
@@ -380,9 +768,13 @@ async function loadAvailability() {
           .map(
             (slot) => `
               <option
-                value="${slot}"
+                value="${escapeHtml(
+                  slot
+                )}"
               >
-                ${formatTime(slot)}
+                ${formatTime(
+                  slot
+                )}
               </option>
             `
           )
@@ -393,6 +785,18 @@ async function loadAvailability() {
 
     timeSelect.disabled =
       false;
+
+
+    if (
+      preferredTime &&
+      slots.includes(
+        preferredTime
+      )
+    ) {
+
+      timeSelect.value =
+        preferredTime;
+    }
 
 
     availabilityStatus.textContent =
@@ -422,7 +826,7 @@ async function loadAvailability() {
 
 
 /* =======================================================
-   Create booking
+   Create / edit booking
    ======================================================= */
 
 form.addEventListener(
@@ -446,6 +850,22 @@ form.addEventListener(
     }
 
 
+    const firstName =
+      document
+        .getElementById(
+          "firstName"
+        )
+        .value
+        .trim();
+
+    const lastName =
+      document
+        .getElementById(
+          "lastName"
+        )
+        .value
+        .trim();
+
     const email =
       document
         .getElementById(
@@ -464,6 +884,19 @@ form.addEventListener(
 
 
     if (
+      !firstName ||
+      !lastName
+    ) {
+
+      showBookingError(
+        "Enter the customer's first and last name."
+      );
+
+      return;
+    }
+
+
+    if (
       !email &&
       !phone
     ) {
@@ -476,6 +909,12 @@ form.addEventListener(
     }
 
 
+    const editing =
+      Boolean(
+        bookingId.value
+      );
+
+
     bookingStatus.hidden =
       false;
 
@@ -483,13 +922,24 @@ form.addEventListener(
       "es-status";
 
     bookingStatus.textContent =
-      "Creating booking…";
+      editing
+        ? "Saving changes…"
+        : "Creating booking…";
+
 
     saveBookingButton.disabled =
       true;
 
 
     const payload = {
+
+      id:
+        bookingId.value ||
+        undefined,
+
+      customer_id:
+        selectedCustomerId.value ||
+        undefined,
 
       service_id:
         serviceSelect.value,
@@ -501,20 +951,10 @@ form.addEventListener(
         timeSelect.value,
 
       first_name:
-        document
-          .getElementById(
-            "firstName"
-          )
-          .value
-          .trim(),
+        firstName,
 
       last_name:
-        document
-          .getElementById(
-            "lastName"
-          )
-          .value
-          .trim(),
+        lastName,
 
       email,
 
@@ -530,6 +970,13 @@ form.addEventListener(
     };
 
 
+    if (editing) {
+
+      payload.action =
+        "update";
+    }
+
+
     try {
 
       const response =
@@ -537,7 +984,9 @@ form.addEventListener(
           "/api/bookings",
           {
             method:
-              "POST",
+              editing
+                ? "PUT"
+                : "POST",
 
             headers: {
               "Content-Type":
@@ -555,6 +1004,11 @@ form.addEventListener(
         );
 
 
+      handleAuthentication(
+        response
+      );
+
+
       const data =
         await response.json();
 
@@ -566,7 +1020,11 @@ form.addEventListener(
 
         throw new Error(
           data.error ||
-          "Unable to create booking."
+          (
+            editing
+              ? "Unable to update booking."
+              : "Unable to create booking."
+          )
         );
       }
 
@@ -575,36 +1033,41 @@ form.addEventListener(
         "es-status success";
 
       bookingStatus.textContent =
-        "Booking created.";
+        editing
+          ? "Booking updated."
+          : "Booking created.";
 
 
       await loadBookings();
 
 
-      form.reset();
+      if (editing) {
 
-      setMinimumDate();
-
-      timeSelect.disabled =
-        true;
-
-      timeSelect.innerHTML = `
-        <option value="">
-          Choose a service and date first
-        </option>
-      `;
+        const updated =
+          bookings.find(
+            (booking) =>
+              booking.id ===
+              bookingId.value
+          );
 
 
-      availabilityStatus.textContent =
-        "Available times will appear after you choose a service and date.";
+        if (updated) {
+
+          showBookingDetails(
+            updated
+          );
+        }
+      }
 
 
-     
+      resetBookingForm();
+
+
     } catch (error) {
 
       showBookingError(
         error.message ||
-        "Unable to create booking."
+        "Unable to save booking."
       );
 
 
@@ -655,15 +1118,9 @@ async function loadBookings() {
       );
 
 
-    if (
-      response.status === 401
-    ) {
-
-      window.location.href =
-        "/auth/login.html";
-
-      return;
-    }
+    handleAuthentication(
+      response
+    );
 
 
     const data =
@@ -683,7 +1140,8 @@ async function loadBookings() {
 
 
     bookings =
-      data.bookings || [];
+      data.bookings ||
+      [];
 
 
     renderBookings();
@@ -713,42 +1171,49 @@ function renderBookings() {
 
 
   const filtered =
-    bookings
-      .filter(
-        (booking) => {
+    bookings.filter(
+      (booking) => {
 
-          if (
-            statusFilter !== "all" &&
-            booking.status !==
-              statusFilter
-          ) {
+        if (
+          statusFilter !==
+            "all" &&
+          booking.status !==
+            statusFilter
+        ) {
 
-            return false;
-          }
-
-
-          if (!query) {
-            return true;
-          }
-
-
-          const searchText = [
-            booking.first_name,
-            booking.last_name,
-            booking.email,
-            booking.phone,
-            booking.service_name
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-
-
-          return searchText.includes(
-            query
-          );
+          return false;
         }
-      );
+
+
+        if (!query) {
+          return true;
+        }
+
+
+        const searchable = [
+          booking.first_name,
+          booking.last_name,
+          booking.email,
+          booking.phone,
+          booking.service_name,
+          booking.status,
+          formatStatus(
+            booking.status
+          ),
+          formatDate(
+            booking.start_at
+          )
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+
+        return searchable.includes(
+          query
+        );
+      }
+    );
 
 
   if (
@@ -826,13 +1291,11 @@ function renderBookings() {
               </span>
 
               <small>
-                ${
-                  escapeHtml(
-                    booking.email ||
-                    booking.phone ||
-                    ""
-                  )
-                }
+                ${escapeHtml(
+                  booking.email ||
+                  booking.phone ||
+                  ""
+                )}
               </small>
 
             </div>
@@ -879,10 +1342,574 @@ function renderBookings() {
 
             </div>
 
+
+            <div class="es-booking-actions">
+
+              <button
+                class="es-booking-action"
+                type="button"
+                data-view="${escapeHtml(
+                  booking.id
+                )}"
+              >
+                View
+              </button>
+
+              ${
+                booking.status ===
+                  "confirmed"
+                  ? `
+                    <button
+                      class="es-booking-action"
+                      type="button"
+                      data-edit="${escapeHtml(
+                        booking.id
+                      )}"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      class="es-booking-action"
+                      type="button"
+                      data-complete="${escapeHtml(
+                        booking.id
+                      )}"
+                    >
+                      Complete
+                    </button>
+
+                    <button
+                      class="es-booking-action danger"
+                      type="button"
+                      data-cancel="${escapeHtml(
+                        booking.id
+                      )}"
+                    >
+                      Cancel
+                    </button>
+                  `
+                  : ""
+              }
+
+            </div>
+
           </article>
         `
       )
       .join("");
+
+
+  bindBookingRowActions();
+}
+
+
+function bindBookingRowActions() {
+
+  document
+    .querySelectorAll(
+      "[data-view]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const booking =
+              getBooking(
+                button.dataset.view
+              );
+
+
+            if (booking) {
+
+              showBookingDetails(
+                booking
+              );
+            }
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-edit]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const booking =
+              getBooking(
+                button.dataset.edit
+              );
+
+
+            if (booking) {
+
+              openBookingForm(
+                booking
+              );
+            }
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-complete]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            completeBooking(
+              button.dataset
+                .complete
+            )
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-cancel]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            cancelBooking(
+              button.dataset
+                .cancel
+            )
+        );
+      }
+    );
+}
+
+
+function getBooking(id) {
+
+  return bookings.find(
+    (booking) =>
+      booking.id === id
+  );
+}
+
+
+/* =======================================================
+   Booking details
+   ======================================================= */
+
+function showBookingDetails(
+  booking
+) {
+
+  currentDetailBookingId =
+    booking.id;
+
+
+  document
+    .getElementById(
+      "detailCustomerName"
+    )
+    .textContent =
+      `${booking.first_name} ${booking.last_name}`;
+
+
+  bookingDetailContent.innerHTML = `
+    ${detailItem(
+      "Service",
+      booking.service_name
+    )}
+
+    ${detailItem(
+      "Status",
+      formatStatus(
+        booking.status
+      )
+    )}
+
+    ${detailItem(
+      "Date",
+      formatFullDate(
+        booking.start_at
+      )
+    )}
+
+    ${detailItem(
+      "Time",
+      formatDateTimeRange(
+        booking.start_at,
+        booking.end_at
+      )
+    )}
+
+    ${detailItem(
+      "Price",
+      formatMoney(
+        booking.price_minor
+      )
+    )}
+
+    ${detailItem(
+      "Deposit due",
+      formatMoney(
+        booking.deposit_due_minor
+      )
+    )}
+
+    ${detailItem(
+      "Email",
+      booking.email ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Phone",
+      booking.phone ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Customer notes",
+      booking.notes ||
+      "No notes",
+      true
+    )}
+
+    ${detailItem(
+      "Booking source",
+      booking.booking_source ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Created",
+      booking.created_at
+        ? formatFullDateTime(
+            booking.created_at
+          )
+        : "—"
+    )}
+  `;
+
+
+  bookingDetailActions.innerHTML =
+    booking.status ===
+      "confirmed"
+      ? `
+        <button
+          id="detailEditButton"
+          class="es-secondary-button"
+          type="button"
+        >
+          Edit / reschedule
+        </button>
+
+        <button
+          id="detailCompleteButton"
+          class="es-secondary-button"
+          type="button"
+        >
+          Mark completed
+        </button>
+
+        <button
+          id="detailCancelButton"
+          class="es-secondary-button"
+          type="button"
+        >
+          Cancel booking
+        </button>
+      `
+      : "";
+
+
+  if (
+    booking.status ===
+    "confirmed"
+  ) {
+
+    document
+      .getElementById(
+        "detailEditButton"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          bookingDetailsDialog.close();
+
+          openBookingForm(
+            booking
+          );
+        }
+      );
+
+
+    document
+      .getElementById(
+        "detailCompleteButton"
+      )
+      .addEventListener(
+        "click",
+        () =>
+          completeBooking(
+            booking.id
+          )
+      );
+
+
+    document
+      .getElementById(
+        "detailCancelButton"
+      )
+      .addEventListener(
+        "click",
+        () =>
+          cancelBooking(
+            booking.id
+          )
+      );
+  }
+
+
+  if (
+    typeof bookingDetailsDialog
+      .showModal ===
+    "function"
+  ) {
+
+    bookingDetailsDialog.showModal();
+  }
+}
+
+
+function detailItem(
+  label,
+  value,
+  full = false
+) {
+
+  return `
+    <div
+      class="es-booking-detail ${
+        full
+          ? "es-booking-detail-full"
+          : ""
+      }"
+    >
+      <span>
+        ${escapeHtml(label)}
+      </span>
+
+      <strong>
+        ${escapeHtml(
+          value ??
+          "—"
+        )}
+      </strong>
+    </div>
+  `;
+}
+
+
+/* =======================================================
+   Status actions
+   ======================================================= */
+
+async function completeBooking(
+  id
+) {
+
+  const booking =
+    getBooking(id);
+
+
+  if (!booking) {
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Mark ${booking.first_name} ${booking.last_name}'s booking as completed?`
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  await updateBookingAction({
+    id,
+    action:
+      "complete",
+    successMessage:
+      "Booking marked as completed."
+  });
+}
+
+
+async function cancelBooking(
+  id
+) {
+
+  const booking =
+    getBooking(id);
+
+
+  if (!booking) {
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Cancel ${booking.first_name} ${booking.last_name}'s booking?`
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const reason =
+    window.prompt(
+      "Cancellation reason (optional):",
+      ""
+    );
+
+
+  if (reason === null) {
+    return;
+  }
+
+
+  await updateBookingAction({
+    id,
+    action:
+      "cancel",
+    reason,
+    successMessage:
+      "Booking cancelled."
+  });
+}
+
+
+async function updateBookingAction({
+  id,
+  action,
+  reason = "",
+  successMessage
+}) {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/bookings",
+        {
+          method:
+            "PUT",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              id,
+              action,
+              reason
+            })
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to update booking."
+      );
+    }
+
+
+    await loadBookings();
+
+
+    if (
+      bookingDetailsDialog.open
+    ) {
+
+      bookingDetailsDialog.close();
+    }
+
+
+    const status =
+      document.createElement(
+        "div"
+      );
+
+    status.className =
+      "es-status success";
+
+    status.textContent =
+      successMessage;
+
+    bookingsList.parentElement
+      .prepend(status);
+
+
+    setTimeout(
+      () =>
+        status.remove(),
+      3000
+    );
+
+
+  } catch (error) {
+
+    window.alert(
+      error.message ||
+      "Unable to update booking."
+    );
+  }
 }
 
 
@@ -890,13 +1917,146 @@ function renderBookings() {
    Form display
    ======================================================= */
 
-function openBookingForm() {
+function openBookingForm(
+  booking = null
+) {
+
+  resetBookingForm(
+    false
+  );
+
 
   bookingStatus.hidden =
     true;
 
+
+  if (booking) {
+
+    bookingId.value =
+      booking.id;
+
+    selectedCustomerId.value =
+      booking.customer_id ||
+      "";
+
+
+    document
+      .getElementById(
+        "bookingFormEyebrow"
+      )
+      .textContent =
+        "Edit booking";
+
+
+    document
+      .getElementById(
+        "bookingFormTitle"
+      )
+      .textContent =
+        "Edit or reschedule appointment";
+
+
+    saveBookingButton.textContent =
+      "Save changes";
+
+
+    serviceSelect.value =
+      booking.service_id;
+
+
+    const parts =
+      splitDateTime(
+        booking.start_at
+      );
+
+
+    bookingDate.value =
+      parts.date;
+
+
+    document
+      .getElementById(
+        "firstName"
+      )
+      .value =
+        booking.first_name ||
+        "";
+
+
+    document
+      .getElementById(
+        "lastName"
+      )
+      .value =
+        booking.last_name ||
+        "";
+
+
+    document
+      .getElementById(
+        "email"
+      )
+      .value =
+        booking.email ||
+        "";
+
+
+    document
+      .getElementById(
+        "phone"
+      )
+      .value =
+        booking.phone ||
+        "";
+
+
+    document
+      .getElementById(
+        "notes"
+      )
+      .value =
+        booking.notes ||
+        "";
+
+
+    selectedCustomerText.textContent =
+      `${booking.first_name} ${booking.last_name}`;
+
+
+    selectedCustomer.hidden =
+      false;
+
+
+    loadAvailability(
+      parts.time
+    );
+
+  } else {
+
+    document
+      .getElementById(
+        "bookingFormEyebrow"
+      )
+      .textContent =
+        "New booking";
+
+
+    document
+      .getElementById(
+        "bookingFormTitle"
+      )
+      .textContent =
+        "Create appointment";
+
+
+    saveBookingButton.textContent =
+      "Create booking";
+  }
+
+
   formPanel.hidden =
     false;
+
 
   formPanel.scrollIntoView({
     behavior:
@@ -911,12 +2071,134 @@ function closeBookingForm() {
 
   formPanel.hidden =
     true;
+
+  resetBookingForm();
+}
+
+
+function resetBookingForm(
+  hidePanel = true
+) {
+
+  form.reset();
+
+  bookingId.value =
+    "";
+
+  selectedCustomerId.value =
+    "";
+
+  selectedCustomer.hidden =
+    true;
+
+  selectedCustomerText.textContent =
+    "";
+
+  customerSearchResults.hidden =
+    true;
+
+  customerSearchResults.innerHTML =
+    "";
+
+  bookingStatus.hidden =
+    true;
+
+  timeSelect.disabled =
+    true;
+
+  timeSelect.innerHTML = `
+    <option value="">
+      Choose a service and date first
+    </option>
+  `;
+
+  availabilityStatus.textContent =
+    "Available times will appear after you choose a service and date.";
+
+  document
+    .getElementById(
+      "bookingFormEyebrow"
+    )
+    .textContent =
+      "New booking";
+
+  document
+    .getElementById(
+      "bookingFormTitle"
+    )
+    .textContent =
+      "Create appointment";
+
+  saveBookingButton.textContent =
+    "Create booking";
+
+
+  setMinimumDate();
+
+
+  if (hidePanel) {
+
+    formPanel.hidden =
+      true;
+  }
 }
 
 
 /* =======================================================
-   Formatters
+   Helpers / formatters
    ======================================================= */
+
+function handleAuthentication(
+  response
+) {
+
+  if (
+    response.status ===
+    401
+  ) {
+
+    window.location.href =
+      "/auth/login.html";
+
+    throw new Error(
+      "Authentication required."
+    );
+  }
+}
+
+
+function splitDateTime(value) {
+
+  const raw =
+    String(value || "");
+
+
+  if (
+    raw.includes("T")
+  ) {
+
+    const [
+      date,
+      timePart
+    ] =
+      raw.split("T");
+
+
+    return {
+      date,
+      time:
+        timePart
+          .slice(0, 5)
+    };
+  }
+
+
+  return {
+    date: "",
+    time: ""
+  };
+}
+
 
 function formatMoney(
   amountMinor
@@ -932,7 +2214,8 @@ function formatMoney(
     }
   ).format(
     Number(
-      amountMinor || 0
+      amountMinor ||
+      0
     ) / 100
   );
 }
@@ -948,6 +2231,44 @@ function formatDate(value) {
       day:
         "numeric",
       month:
+        "short"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatFullDate(value) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      weekday:
+        "long",
+      day:
+        "numeric",
+      month:
+        "long",
+      year:
+        "numeric"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatFullDateTime(
+  value
+) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      dateStyle:
+        "medium",
+      timeStyle:
         "short"
     }
   ).format(
@@ -999,6 +2320,7 @@ function formatTime(value) {
   const date =
     new Date();
 
+
   date.setHours(
     hour,
     minute,
@@ -1041,7 +2363,8 @@ function formatStatus(value) {
 function escapeHtml(value) {
 
   return String(
-    value ?? ""
+    value ??
+    ""
   )
     .replaceAll(
       "&",
@@ -1072,8 +2395,8 @@ function escapeHtml(value) {
 
 setMinimumDate();
 
+
 Promise.all([
   loadServices(),
   loadBookings()
 ]);
-
