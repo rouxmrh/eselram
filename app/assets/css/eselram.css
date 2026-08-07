@@ -612,3 +612,70 @@ textarea:focus {
     flex-direction: column;
   }
 }
+/* =======================================================
+   Settings
+   ======================================================= */
+
+.es-settings-layout {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 24px;
+  margin-top: 36px;
+}
+
+.es-settings-tabs {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+
+.es-settings-tabs button {
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius:
+    var(--es-radius-sm);
+  background: transparent;
+  color: var(--es-muted);
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.es-settings-tabs button:hover,
+.es-settings-tabs button.active {
+  background: #f1f3ef;
+  color: var(--es-text);
+}
+
+.es-settings-content {
+  min-width: 0;
+}
+
+.es-settings-panel {
+  padding: 28px;
+  border: 1px solid var(--es-border);
+  border-radius:
+    var(--es-radius-lg);
+  background:
+    var(--es-surface);
+}
+
+@media (max-width: 760px) {
+
+  .es-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .es-settings-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .es-settings-tabs button {
+    width: auto;
+    white-space: nowrap;
+  }
+}
