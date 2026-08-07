@@ -247,3 +247,25 @@ textarea:focus {
     display: none;
   }
 }
+/* =======================================================
+   Branding
+   ======================================================= */
+
+.es-colour-field {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.es-colour-field input {
+  margin-top: 0;
+}
+
+.es-colour-field input[type="color"] {
+  width: 56px;
+  min-height: 48px;
+  padding: 4px;
+  cursor: pointer;
+}
