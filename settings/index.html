@@ -1,1 +1,354 @@
+<!doctype html>
+<html lang="en">
 
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Settings | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+</head>
+
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
+
+    <aside class="es-sidebar">
+
+      <div class="es-sidebar-brand">
+        ESELRAM
+      </div>
+
+      <nav class="es-sidebar-nav">
+
+        <a href="/dashboard/">
+          Overview
+        </a>
+
+        <a href="/bookings/">
+          Bookings
+        </a>
+
+        <a href="/calendar/">
+          Calendar
+        </a>
+
+        <a href="/customers/">
+          Customers
+        </a>
+
+        <a href="/services/">
+          Services
+        </a>
+
+        <a href="/settings/#payments">
+          Payments
+        </a>
+
+        <a
+          href="/settings/"
+          class="active"
+        >
+          Settings
+        </a>
+
+      </nav>
+
+    </aside>
+
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+
+        <div>
+          <p class="es-eyebrow">
+            Configuration
+          </p>
+
+          <h1>
+            Settings
+          </h1>
+
+          <p class="es-lead">
+            Manage your business, branding,
+            availability and platform preferences.
+          </p>
+        </div>
+
+      </header>
+
+
+      <div class="es-settings-layout">
+
+        <nav class="es-settings-tabs">
+
+          <button
+            type="button"
+            data-tab="business"
+            class="active"
+          >
+            Business
+          </button>
+
+          <button
+            type="button"
+            data-tab="branding"
+          >
+            Branding
+          </button>
+
+          <button
+            type="button"
+            data-tab="hours"
+          >
+            Working Hours
+          </button>
+
+          <button
+            type="button"
+            data-tab="payments"
+          >
+            Payments
+          </button>
+
+          <button
+            type="button"
+            data-tab="users"
+          >
+            Users
+          </button>
+
+          <button
+            type="button"
+            data-tab="roles"
+          >
+            Roles
+          </button>
+
+          <button
+            type="button"
+            data-tab="notifications"
+          >
+            Notifications
+          </button>
+
+          <button
+            type="button"
+            data-tab="advanced"
+          >
+            Advanced
+          </button>
+
+        </nav>
+
+
+        <section class="es-settings-content">
+
+          <div
+            id="tab-business"
+            class="es-settings-panel"
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Business
+                </p>
+
+                <h2>
+                  Business information
+                </h2>
+              </div>
+
+            </div>
+
+
+            <form id="businessSettingsForm">
+
+              <div class="es-form-grid">
+
+                <label>
+                  Business name
+
+                  <input
+                    id="businessName"
+                    type="text"
+                    required
+                  >
+                </label>
+
+
+                <label>
+                  Legal name
+
+                  <input
+                    id="legalName"
+                    type="text"
+                  >
+                </label>
+
+              </div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Email
+
+                  <input
+                    id="businessEmail"
+                    type="email"
+                  >
+                </label>
+
+
+                <label>
+                  Phone
+
+                  <input
+                    id="businessPhone"
+                    type="tel"
+                  >
+                </label>
+
+              </div>
+
+
+              <label>
+                Website
+
+                <input
+                  id="businessWebsite"
+                  type="url"
+                  placeholder="https://"
+                >
+              </label>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Country
+
+                  <select id="countryCode">
+                    <option value="GB">United Kingdom</option>
+                    <option value="IE">Ireland</option>
+                    <option value="US">United States</option>
+                    <option value="AU">Australia</option>
+                    <option value="NZ">New Zealand</option>
+                    <option value="ZA">South Africa</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Timezone
+
+                  <select id="timezone">
+                    <option value="Europe/London">Europe/London</option>
+                    <option value="Europe/Dublin">Europe/Dublin</option>
+                    <option value="Africa/Johannesburg">Africa/Johannesburg</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="America/Los_Angeles">America/Los_Angeles</option>
+                    <option value="Australia/Sydney">Australia/Sydney</option>
+                    <option value="Pacific/Auckland">Pacific/Auckland</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Currency
+
+                  <select id="currency">
+                    <option value="GBP">GBP – £</option>
+                    <option value="EUR">EUR – €</option>
+                    <option value="USD">USD – $</option>
+                    <option value="AUD">AUD – $</option>
+                    <option value="NZD">NZD – $</option>
+                    <option value="ZAR">ZAR – R</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Locale
+
+                  <select id="locale">
+                    <option value="en-GB">English (UK)</option>
+                    <option value="en-IE">English (Ireland)</option>
+                    <option value="en-US">English (US)</option>
+                    <option value="en-AU">English (Australia)</option>
+                    <option value="en-NZ">English (New Zealand)</option>
+                    <option value="en-ZA">English (South Africa)</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <div
+                id="businessStatus"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <button
+                id="saveBusinessButton"
+                class="es-button"
+                type="submit"
+              >
+                Save changes
+              </button>
+
+            </form>
+
+          </div>
+
+
+          <div
+            id="tab-placeholder"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-empty-state">
+
+              <strong id="placeholderTitle">
+                Coming next
+              </strong>
+
+              <span>
+                This settings section will be built next.
+              </span>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="/settings/settings.js"></script>
+
+</body>
+</html>
