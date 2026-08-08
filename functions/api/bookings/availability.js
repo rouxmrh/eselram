@@ -115,6 +115,13 @@ export async function onRequestGet({
         ) || ""
       ).trim();
 
+    const excludeAppointmentId =
+  String(
+    url.searchParams.get(
+      "exclude_appointment_id"
+    ) || ""
+  ).trim();
+    
     if (
       !serviceId ||
       !/^\d{4}-\d{2}-\d{2}$/.test(date)
@@ -226,24 +233,56 @@ export async function onRequestGet({
       });
     }
 
-    const appointments =
-      await env.DB
-        .prepare(`
-          SELECT
-            start_at,
-            end_at
-          FROM appointments
-          WHERE
-            business_id = ?
-            AND status != 'cancelled'
-            AND date(start_at) = ?
-          ORDER BY datetime(start_at) ASC
-        `)
-        .bind(
-          user.business_id,
-          date
-        )
-        .all();
+    let appointmentsQuery = `
+  SELECT
+    id,
+    start_at,
+    end_at
+
+  FROM appointments
+
+  WHERE
+    business_id = ?
+    AND status != 'cancelled'
+    AND date(start_at) = ?
+`;
+
+
+const appointmentBindings = [
+  user.business_id,
+  date
+];
+
+
+if (
+  excludeAppointmentId
+) {
+
+  appointmentsQuery += `
+    AND id != ?
+  `;
+
+  appointmentBindings.push(
+    excludeAppointmentId
+  );
+}
+
+
+appointmentsQuery += `
+  ORDER BY
+    datetime(start_at) ASC
+`;
+
+
+const appointments =
+  await env.DB
+    .prepare(
+      appointmentsQuery
+    )
+    .bind(
+      ...appointmentBindings
+    )
+    .all();
 
     const interval =
       Number(
