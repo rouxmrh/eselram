@@ -258,6 +258,30 @@ function renderEditor() {
       ${
         activeTemplate.id
           ? `
+            <button id="previewTemplateButton" class="es-secondary-button" type="button">
+              Preview
+            </button>
+
+            <button id="publishTemplateButton" class="es-secondary-button" type="button">
+              ${activeTemplate.is_published === 1 ? "Unpublish" : "Publish"}
+            </button>
+
+            ${
+              activeTemplate.is_published === 1 && activeTemplate.public_token
+                ? `
+                  <button id="copyPublicLinkButton" class="es-secondary-button" type="button">
+                    Copy public link
+                  </button>
+                `
+                : ""
+            }
+          `
+          : ""
+      }
+
+      ${
+        activeTemplate.id
+          ? `
             <button id="deleteTemplateButton" class="es-secondary-button" type="button">
               Delete template
             </button>
@@ -365,6 +389,8 @@ function renderFields(section, sectionIndex) {
           ${fieldTypeOption(field, "dropdown", "Dropdown")}
           ${fieldTypeOption(field, "date", "Date")}
           ${fieldTypeOption(field, "number", "Number")}
+          ${fieldTypeOption(field, "signature", "Signature")}
+          ${fieldTypeOption(field, "file_upload", "File upload")}
         </select>
       </label>
 
@@ -563,6 +589,27 @@ function bindEditorEvents() {
   });
 
   document.getElementById("saveTemplateButton").addEventListener("click", saveTemplate);
+
+  const previewButton = document.getElementById("previewTemplateButton");
+  if (previewButton) {
+    previewButton.addEventListener("click", () => {
+      window.open(
+        `/forms/view.html?template_id=${encodeURIComponent(activeTemplate.id)}&mode=preview`,
+        "_blank",
+        "noopener"
+      );
+    });
+  }
+
+  const publishButton = document.getElementById("publishTemplateButton");
+  if (publishButton) {
+    publishButton.addEventListener("click", togglePublish);
+  }
+
+  const copyButton = document.getElementById("copyPublicLinkButton");
+  if (copyButton) {
+    copyButton.addEventListener("click", copyPublicLink);
+  }
 
   const deleteButton = document.getElementById("deleteTemplateButton");
   if (deleteButton) {
@@ -792,6 +839,61 @@ async function deleteTemplate() {
     renderEditor();
   } catch (error) {
     showPageError(error.message || "Unable to delete template.");
+  }
+}
+
+async function togglePublish() {
+  if (!activeTemplate?.id) return;
+
+  const shouldPublish = activeTemplate.is_published !== 1;
+
+  try {
+    const response = await fetch("/api/forms/publish", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        template_id: activeTemplate.id,
+        publish: shouldPublish
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Unable to update publishing.");
+    }
+
+    templateStatus.hidden = false;
+    templateStatus.className = "es-status success";
+    templateStatus.textContent = shouldPublish
+      ? "Form published. You can now copy the public link."
+      : "Form unpublished.";
+
+    await loadTemplates();
+  } catch (error) {
+    showPageError(error.message || "Unable to update publishing.");
+  }
+}
+
+async function copyPublicLink() {
+  if (!activeTemplate?.public_token) return;
+
+  const url =
+    `${location.origin}/forms/view.html?token=${encodeURIComponent(
+      activeTemplate.public_token
+    )}`;
+
+  try {
+    await navigator.clipboard.writeText(url);
+
+    templateStatus.hidden = false;
+    templateStatus.className = "es-status success";
+    templateStatus.textContent = "Public form link copied.";
+  } catch {
+    window.prompt("Copy this public form link:", url);
   }
 }
 
