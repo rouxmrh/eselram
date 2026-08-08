@@ -1,0 +1,1709 @@
+const paymentFormPanel =
+  document.getElementById(
+    "paymentFormPanel"
+  );
+
+const paymentForm =
+  document.getElementById(
+    "paymentForm"
+  );
+
+const paymentCustomer =
+  document.getElementById(
+    "paymentCustomer"
+  );
+
+const paymentAppointment =
+  document.getElementById(
+    "paymentAppointment"
+  );
+
+const paymentAmount =
+  document.getElementById(
+    "paymentAmount"
+  );
+
+const paymentType =
+  document.getElementById(
+    "paymentType"
+  );
+
+const paymentProvider =
+  document.getElementById(
+    "paymentProvider"
+  );
+
+const paymentMethod =
+  document.getElementById(
+    "paymentMethod"
+  );
+
+const paymentFormStatus =
+  document.getElementById(
+    "paymentFormStatus"
+  );
+
+const savePaymentButton =
+  document.getElementById(
+    "savePaymentButton"
+  );
+
+const paymentsList =
+  document.getElementById(
+    "paymentsList"
+  );
+
+const paymentSearch =
+  document.getElementById(
+    "paymentSearch"
+  );
+
+const paymentStatusFilter =
+  document.getElementById(
+    "paymentStatusFilter"
+  );
+
+const paymentDrawer =
+  document.getElementById(
+    "paymentDrawer"
+  );
+
+const paymentDrawerBackdrop =
+  document.getElementById(
+    "paymentDrawerBackdrop"
+  );
+
+const paymentDrawerTitle =
+  document.getElementById(
+    "paymentDrawerTitle"
+  );
+
+const paymentDetails =
+  document.getElementById(
+    "paymentDetails"
+  );
+
+const paymentDrawerActions =
+  document.getElementById(
+    "paymentDrawerActions"
+  );
+
+
+let payments = [];
+let outstanding = [];
+let customers = [];
+let appointments = [];
+let providers = [];
+let activeView = "payments";
+let activePayment = null;
+
+
+document
+  .getElementById(
+    "newPaymentButton"
+  )
+  .addEventListener(
+    "click",
+    openPaymentForm
+  );
+
+
+document
+  .getElementById(
+    "closePaymentFormButton"
+  )
+  .addEventListener(
+    "click",
+    closePaymentForm
+  );
+
+
+document
+  .getElementById(
+    "closePaymentDrawer"
+  )
+  .addEventListener(
+    "click",
+    closePaymentDrawer
+  );
+
+
+paymentDrawerBackdrop
+  .addEventListener(
+    "click",
+    closePaymentDrawer
+  );
+
+
+paymentSearch.addEventListener(
+  "input",
+  renderCurrentView
+);
+
+
+paymentStatusFilter.addEventListener(
+  "change",
+  renderCurrentView
+);
+
+
+document
+  .querySelectorAll(
+    "[data-payment-view]"
+  )
+  .forEach(
+    (button) => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          activeView =
+            button.dataset
+              .paymentView;
+
+
+          document
+            .querySelectorAll(
+              "[data-payment-view]"
+            )
+            .forEach(
+              (item) =>
+                item.classList
+                  .toggle(
+                    "active",
+                    item === button
+                  )
+            );
+
+
+          renderCurrentView();
+        }
+      );
+    }
+  );
+
+
+paymentCustomer.addEventListener(
+  "change",
+  renderAppointmentOptions
+);
+
+
+paymentAppointment.addEventListener(
+  "change",
+  prefillOutstandingAmount
+);
+
+
+/* =======================================================
+   Load
+   ======================================================= */
+
+async function loadPayments() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/payments",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load payments."
+      );
+    }
+
+
+    payments =
+      data.payments ||
+      [];
+
+    outstanding =
+      data.outstanding ||
+      [];
+
+    customers =
+      data.customers ||
+      [];
+
+    appointments =
+      data.appointments ||
+      [];
+
+    providers =
+      data.providers ||
+      [];
+
+
+    renderStats(
+      data.stats ||
+      {}
+    );
+
+
+    renderCustomerOptions();
+
+    renderProviderOptions();
+
+    renderCurrentView();
+
+
+  } catch (error) {
+
+    paymentsList.className =
+      "es-status error";
+
+    paymentsList.textContent =
+      error.message ||
+      "Unable to load payments.";
+  }
+}
+
+
+function renderStats(
+  stats
+) {
+
+  document
+    .getElementById(
+      "paidMonth"
+    )
+    .textContent =
+      formatMoney(
+        stats.paid_month_minor
+      );
+
+
+  document
+    .getElementById(
+      "outstandingTotal"
+    )
+    .textContent =
+      formatMoney(
+        stats.outstanding_minor
+      );
+
+
+  document
+    .getElementById(
+      "refundMonth"
+    )
+    .textContent =
+      formatMoney(
+        stats.refund_month_minor
+      );
+
+
+  document
+    .getElementById(
+      "transactionCount"
+    )
+    .textContent =
+      stats.transaction_count ||
+      0;
+}
+
+
+/* =======================================================
+   Form
+   ======================================================= */
+
+function openPaymentForm() {
+
+  paymentForm.reset();
+
+  paymentFormStatus.hidden =
+    true;
+
+  renderCustomerOptions();
+
+  renderProviderOptions();
+
+  renderAppointmentOptions();
+
+  paymentFormPanel.hidden =
+    false;
+
+
+  paymentFormPanel.scrollIntoView({
+    behavior:
+      "smooth",
+    block:
+      "start"
+  });
+}
+
+
+function closePaymentForm() {
+
+  paymentFormPanel.hidden =
+    true;
+
+  paymentForm.reset();
+
+  paymentFormStatus.hidden =
+    true;
+}
+
+
+function renderCustomerOptions() {
+
+  paymentCustomer.innerHTML = `
+    <option value="">
+      Select customer
+    </option>
+
+    ${
+      customers
+        .map(
+          (customer) => `
+            <option
+              value="${escapeHtml(
+                customer.id
+              )}"
+            >
+              ${escapeHtml(
+                `${customer.first_name} ${customer.last_name}`
+              )}
+            </option>
+          `
+        )
+        .join("")
+    }
+  `;
+}
+
+
+function renderProviderOptions() {
+
+  const list =
+    providers.length > 0
+      ? providers
+      : [
+          {
+            provider_key:
+              "manual",
+            display_name:
+              "Manual / in-person"
+          }
+        ];
+
+
+  paymentProvider.innerHTML =
+    list
+      .map(
+        (provider) => `
+          <option
+            value="${escapeHtml(
+              provider.provider_key
+            )}"
+          >
+            ${escapeHtml(
+              provider.display_name
+            )}
+          </option>
+        `
+      )
+      .join("");
+
+
+  if (
+    list.some(
+      (provider) =>
+        provider.provider_key ===
+        "manual"
+    )
+  ) {
+
+    paymentProvider.value =
+      "manual";
+  }
+}
+
+
+function renderAppointmentOptions() {
+
+  const customerId =
+    paymentCustomer.value;
+
+
+  const available =
+    appointments.filter(
+      (appointment) =>
+        !customerId ||
+        appointment.customer_id ===
+          customerId
+    );
+
+
+  paymentAppointment.innerHTML = `
+    <option value="">
+      No appointment
+    </option>
+
+    ${
+      available
+        .map(
+          (appointment) => `
+            <option
+              value="${escapeHtml(
+                appointment.id
+              )}"
+            >
+              ${escapeHtml(
+                `${formatShortDate(
+                  appointment.start_at
+                )} · ${appointment.service_name} · ${formatMoney(
+                  appointment.balance_minor
+                )} outstanding`
+              )}
+            </option>
+          `
+        )
+        .join("")
+    }
+  `;
+}
+
+
+function prefillOutstandingAmount() {
+
+  const appointment =
+    appointments.find(
+      (item) =>
+        item.id ===
+        paymentAppointment.value
+    );
+
+
+  if (!appointment) {
+    return;
+  }
+
+
+  paymentCustomer.value =
+    appointment.customer_id;
+
+
+  paymentAmount.value =
+    (
+      Number(
+        appointment.balance_minor ||
+        0
+      ) / 100
+    ).toFixed(2);
+
+
+  if (
+    Number(
+      appointment.paid_minor ||
+      0
+    ) > 0
+  ) {
+
+    paymentType.value =
+      "balance";
+
+  } else {
+
+    paymentType.value =
+      "full";
+  }
+}
+
+
+paymentForm.addEventListener(
+  "submit",
+  async (event) => {
+
+    event.preventDefault();
+
+
+    const amountMinor =
+      Math.round(
+        Number(
+          paymentAmount.value
+        ) * 100
+      );
+
+
+    if (
+      !paymentCustomer.value
+    ) {
+
+      showFormError(
+        "Select a customer."
+      );
+
+      return;
+    }
+
+
+    if (
+      !Number.isFinite(
+        amountMinor
+      ) ||
+      amountMinor <= 0
+    ) {
+
+      showFormError(
+        "Enter a valid payment amount."
+      );
+
+      return;
+    }
+
+
+    paymentFormStatus.hidden =
+      false;
+
+    paymentFormStatus.className =
+      "es-status";
+
+    paymentFormStatus.textContent =
+      "Saving payment…";
+
+    savePaymentButton.disabled =
+      true;
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/payments",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+              Accept:
+                "application/json"
+            },
+
+            body:
+              JSON.stringify({
+                customer_id:
+                  paymentCustomer.value,
+
+                appointment_id:
+                  paymentAppointment.value ||
+                  null,
+
+                amount_minor:
+                  amountMinor,
+
+                payment_type:
+                  paymentType.value,
+
+                provider:
+                  paymentProvider.value,
+
+                payment_method:
+                  paymentMethod.value,
+
+                provider_reference:
+                  document
+                    .getElementById(
+                      "providerReference"
+                    )
+                    .value
+                    .trim(),
+
+                notes:
+                  document
+                    .getElementById(
+                      "paymentNotes"
+                    )
+                    .value
+                    .trim()
+              })
+          }
+        );
+
+
+      handleAuthentication(
+        response
+      );
+
+
+      const data =
+        await response.json();
+
+
+      if (
+        !response.ok ||
+        !data.ok
+      ) {
+
+        throw new Error(
+          data.error ||
+          "Unable to record payment."
+        );
+      }
+
+
+      paymentFormStatus.className =
+        "es-status success";
+
+      paymentFormStatus.textContent =
+        "Payment recorded.";
+
+
+      await loadPayments();
+
+
+      setTimeout(
+        closePaymentForm,
+        500
+      );
+
+
+    } catch (error) {
+
+      showFormError(
+        error.message ||
+        "Unable to record payment."
+      );
+
+
+    } finally {
+
+      savePaymentButton.disabled =
+        false;
+    }
+  }
+);
+
+
+function showFormError(
+  message
+) {
+
+  paymentFormStatus.hidden =
+    false;
+
+  paymentFormStatus.className =
+    "es-status error";
+
+  paymentFormStatus.textContent =
+    message;
+}
+
+
+/* =======================================================
+   Lists
+   ======================================================= */
+
+function renderCurrentView() {
+
+  if (
+    activeView ===
+    "outstanding"
+  ) {
+
+    renderOutstanding();
+
+    return;
+  }
+
+
+  renderPayments();
+}
+
+
+function renderPayments() {
+
+  const query =
+    paymentSearch
+      .value
+      .trim()
+      .toLowerCase();
+
+  const status =
+    paymentStatusFilter.value;
+
+
+  const filtered =
+    payments.filter(
+      (payment) => {
+
+        if (
+          status === "refund"
+        ) {
+
+          if (
+            payment.payment_type !==
+            "refund"
+          ) {
+            return false;
+          }
+
+        } else if (
+          status !== "all" &&
+          payment.status !== status
+        ) {
+
+          return false;
+        }
+
+
+        if (!query) {
+          return true;
+        }
+
+
+        const searchable = [
+          payment.first_name,
+          payment.last_name,
+          payment.provider_reference,
+          payment.provider,
+          payment.payment_method,
+          payment.service_name
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+
+        return searchable.includes(
+          query
+        );
+      }
+    );
+
+
+  if (
+    filtered.length === 0
+  ) {
+
+    paymentsList.className =
+      "es-empty-state";
+
+    paymentsList.innerHTML = `
+      <strong>
+        No payments found.
+      </strong>
+
+      <span>
+        Recorded payments will appear here.
+      </span>
+    `;
+
+    return;
+  }
+
+
+  paymentsList.className =
+    "es-payments-list";
+
+
+  paymentsList.innerHTML =
+    filtered
+      .map(
+        (payment) => `
+          <article class="es-payment-row-v2">
+
+            <div class="es-payment-cell">
+              <strong>
+                ${formatMoney(
+                  payment.amount_minor
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  formatPaymentType(
+                    payment.payment_type
+                  )
+                )}
+              </span>
+            </div>
+
+
+            <div class="es-payment-cell">
+              <strong>
+                ${escapeHtml(
+                  `${payment.first_name || ""} ${payment.last_name || ""}`.trim() ||
+                  "Customer"
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  payment.service_name ||
+                  "No appointment"
+                )}
+              </span>
+            </div>
+
+
+            <div class="es-payment-cell">
+              <strong>
+                ${escapeHtml(
+                  formatMethod(
+                    payment.payment_method
+                  )
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  payment.provider_display_name ||
+                  payment.provider
+                )}
+              </span>
+            </div>
+
+
+            <div>
+              <span
+                class="es-payment-status es-payment-status-${escapeHtml(
+                  payment.payment_type ===
+                    "refund"
+                    ? "refunded"
+                    : payment.status
+                )}"
+              >
+                ${escapeHtml(
+                  payment.payment_type ===
+                    "refund"
+                    ? "Refund"
+                    : formatStatus(
+                        payment.status
+                      )
+                )}
+              </span>
+            </div>
+
+
+            <div class="es-payment-actions">
+
+              <button
+                class="es-payment-action"
+                type="button"
+                data-view-payment="${escapeHtml(
+                  payment.id
+                )}"
+              >
+                View
+              </button>
+
+            </div>
+
+          </article>
+        `
+      )
+      .join("");
+
+
+  document
+    .querySelectorAll(
+      "[data-view-payment]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const payment =
+              payments.find(
+                (item) =>
+                  item.id ===
+                  button.dataset
+                    .viewPayment
+              );
+
+
+            if (payment) {
+
+              showPaymentDetails(
+                payment
+              );
+            }
+          }
+        );
+      }
+    );
+}
+
+
+function renderOutstanding() {
+
+  const query =
+    paymentSearch
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const filtered =
+    outstanding.filter(
+      (item) => {
+
+        if (!query) {
+          return true;
+        }
+
+
+        return [
+          item.first_name,
+          item.last_name,
+          item.service_name
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      }
+    );
+
+
+  if (
+    filtered.length === 0
+  ) {
+
+    paymentsList.className =
+      "es-empty-state";
+
+    paymentsList.innerHTML = `
+      <strong>
+        Nothing outstanding.
+      </strong>
+
+      <span>
+        All appointment balances are covered.
+      </span>
+    `;
+
+    return;
+  }
+
+
+  paymentsList.className =
+    "es-payments-list";
+
+
+  paymentsList.innerHTML =
+    filtered
+      .map(
+        (item) => `
+          <article class="es-outstanding-row">
+
+            <div class="es-payment-cell">
+              <strong>
+                ${escapeHtml(
+                  `${item.first_name} ${item.last_name}`
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  item.service_name
+                )}
+              </span>
+            </div>
+
+
+            <div class="es-payment-cell">
+              <strong>
+                ${formatShortDate(
+                  item.start_at
+                )}
+              </strong>
+
+              <span>
+                ${formatTime(
+                  item.start_at
+                )}
+              </span>
+            </div>
+
+
+            <div class="es-payment-cell">
+              <strong>
+                ${formatMoney(
+                  item.price_minor
+                )}
+              </strong>
+
+              <span>
+                value
+              </span>
+            </div>
+
+
+            <div class="es-payment-cell">
+              <strong>
+                ${formatMoney(
+                  item.balance_minor
+                )}
+              </strong>
+
+              <span>
+                outstanding
+              </span>
+            </div>
+
+
+            <div class="es-payment-actions">
+
+              <button
+                class="es-payment-action"
+                type="button"
+                data-record-balance="${escapeHtml(
+                  item.id
+                )}"
+              >
+                Record payment
+              </button>
+
+            </div>
+
+          </article>
+        `
+      )
+      .join("");
+
+
+  document
+    .querySelectorAll(
+      "[data-record-balance]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const appointment =
+              appointments.find(
+                (item) =>
+                  item.id ===
+                  button.dataset
+                    .recordBalance
+              );
+
+
+            if (!appointment) {
+              return;
+            }
+
+
+            openPaymentForm();
+
+            paymentCustomer.value =
+              appointment.customer_id;
+
+            renderAppointmentOptions();
+
+            paymentAppointment.value =
+              appointment.id;
+
+            prefillOutstandingAmount();
+          }
+        );
+      }
+    );
+}
+
+
+/* =======================================================
+   Drawer / refunds
+   ======================================================= */
+
+function showPaymentDetails(
+  payment
+) {
+
+  activePayment =
+    payment;
+
+
+  paymentDrawerTitle.textContent =
+    formatMoney(
+      payment.amount_minor
+    );
+
+
+  paymentDetails.innerHTML = `
+    ${detailItem(
+      "Customer",
+      `${payment.first_name || ""} ${payment.last_name || ""}`.trim() ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Status",
+      payment.payment_type ===
+        "refund"
+        ? "Refund"
+        : formatStatus(
+            payment.status
+          )
+    )}
+
+    ${detailItem(
+      "Provider",
+      payment.provider_display_name ||
+      payment.provider
+    )}
+
+    ${detailItem(
+      "Method",
+      formatMethod(
+        payment.payment_method
+      )
+    )}
+
+    ${detailItem(
+      "Payment type",
+      formatPaymentType(
+        payment.payment_type
+      )
+    )}
+
+    ${detailItem(
+      "Date",
+      formatFullDateTime(
+        payment.paid_at ||
+        payment.created_at
+      )
+    )}
+
+    ${detailItem(
+      "Appointment",
+      payment.service_name ||
+      "No linked appointment"
+    )}
+
+    ${detailItem(
+      "Reference",
+      payment.provider_reference ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Notes",
+      payment.notes ||
+      "No notes",
+      true
+    )}
+  `;
+
+
+  paymentDrawerActions.innerHTML = `
+    ${
+      payment.payment_type !==
+        "refund" &&
+      payment.status ===
+        "paid" &&
+      Number(
+        payment.refundable_minor ||
+        0
+      ) > 0
+        ? `
+          <button
+            id="refundPaymentButton"
+            class="es-secondary-button"
+            type="button"
+          >
+            Record refund
+          </button>
+        `
+        : ""
+    }
+
+    ${
+      payment.customer_id
+        ? `
+          <a
+            class="es-button"
+            href="/customers/?customer=${encodeURIComponent(
+              payment.customer_id
+            )}"
+          >
+            Open customer
+          </a>
+        `
+        : ""
+    }
+  `;
+
+
+  const refundButton =
+    document.getElementById(
+      "refundPaymentButton"
+    );
+
+
+  if (refundButton) {
+
+    refundButton.addEventListener(
+      "click",
+      () =>
+        recordRefund(
+          payment
+        )
+    );
+  }
+
+
+  openPaymentDrawer();
+}
+
+
+async function recordRefund(
+  payment
+) {
+
+  const max =
+    Number(
+      payment.refundable_minor ||
+      0
+    ) / 100;
+
+
+  const entered =
+    window.prompt(
+      `Refund amount (maximum ${formatMoney(
+        payment.refundable_minor
+      )}):`,
+      max.toFixed(2)
+    );
+
+
+  if (entered === null) {
+    return;
+  }
+
+
+  const amountMinor =
+    Math.round(
+      Number(entered) *
+      100
+    );
+
+
+  if (
+    !Number.isFinite(
+      amountMinor
+    ) ||
+    amountMinor <= 0 ||
+    amountMinor >
+      Number(
+        payment.refundable_minor ||
+        0
+      )
+  ) {
+
+    window.alert(
+      "Enter a valid refund amount."
+    );
+
+    return;
+  }
+
+
+  const notes =
+    window.prompt(
+      "Refund note (optional):",
+      ""
+    );
+
+
+  if (notes === null) {
+    return;
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/payments",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              action:
+                "refund",
+
+              payment_id:
+                payment.id,
+
+              amount_minor:
+                amountMinor,
+
+              notes
+            })
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to record refund."
+      );
+    }
+
+
+    closePaymentDrawer();
+
+    await loadPayments();
+
+
+  } catch (error) {
+
+    window.alert(
+      error.message ||
+      "Unable to record refund."
+    );
+  }
+}
+
+
+function detailItem(
+  label,
+  value,
+  full = false
+) {
+
+  return `
+    <div
+      class="
+        es-payment-detail
+        ${
+          full
+            ? "es-payment-detail-full"
+            : ""
+        }
+      "
+    >
+      <span>
+        ${escapeHtml(label)}
+      </span>
+
+      <strong>
+        ${escapeHtml(
+          value ??
+          "—"
+        )}
+      </strong>
+    </div>
+  `;
+}
+
+
+function openPaymentDrawer() {
+
+  paymentDrawer
+    .classList
+    .add(
+      "is-open"
+    );
+
+
+  paymentDrawerBackdrop
+    .classList
+    .add(
+      "is-open"
+    );
+
+
+  paymentDrawer
+    .setAttribute(
+      "aria-hidden",
+      "false"
+    );
+}
+
+
+function closePaymentDrawer() {
+
+  activePayment =
+    null;
+
+
+  paymentDrawer
+    .classList
+    .remove(
+      "is-open"
+    );
+
+
+  paymentDrawerBackdrop
+    .classList
+    .remove(
+      "is-open"
+    );
+
+
+  paymentDrawer
+    .setAttribute(
+      "aria-hidden",
+      "true"
+    );
+}
+
+
+/* =======================================================
+   Helpers
+   ======================================================= */
+
+function handleAuthentication(
+  response
+) {
+
+  if (
+    response.status === 401
+  ) {
+
+    window.location.href =
+      "/auth/login.html";
+
+    throw new Error(
+      "Authentication required."
+    );
+  }
+}
+
+
+function formatMoney(
+  amountMinor
+) {
+
+  return new Intl.NumberFormat(
+    "en-GB",
+    {
+      style:
+        "currency",
+      currency:
+        "GBP"
+    }
+  ).format(
+    Number(
+      amountMinor ||
+      0
+    ) / 100
+  );
+}
+
+
+function formatShortDate(
+  value
+) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      day:
+        "numeric",
+      month:
+        "short"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatFullDateTime(
+  value
+) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      dateStyle:
+        "medium",
+      timeStyle:
+        "short"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatTime(
+  value
+) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      hour:
+        "2-digit",
+      minute:
+        "2-digit"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatStatus(
+  value
+) {
+
+  const values = {
+    pending:
+      "Pending",
+    paid:
+      "Paid",
+    failed:
+      "Failed",
+    refunded:
+      "Refunded",
+    partially_refunded:
+      "Partially refunded",
+    due:
+      "Due"
+  };
+
+
+  return values[value] ||
+    value ||
+    "—";
+}
+
+
+function formatPaymentType(
+  value
+) {
+
+  const values = {
+    full:
+      "Full payment",
+    deposit:
+      "Deposit",
+    balance:
+      "Balance",
+    pay_at_appointment:
+      "Pay at appointment",
+    refund:
+      "Refund"
+  };
+
+
+  return values[value] ||
+    value ||
+    "—";
+}
+
+
+function formatMethod(
+  value
+) {
+
+  const values = {
+    paypal:
+      "PayPal",
+    apple_pay:
+      "Apple Pay",
+    google_pay:
+      "Google Pay",
+    card:
+      "Card",
+    cash:
+      "Cash",
+    bank_transfer:
+      "Bank transfer",
+    other:
+      "Other"
+  };
+
+
+  return values[value] ||
+    value ||
+    "—";
+}
+
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ??
+    ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+}
+
+
+loadPayments();
