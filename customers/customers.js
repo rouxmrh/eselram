@@ -1,1 +1,1258 @@
+const customersList =
+  document.getElementById(
+    "customersList"
+  );
+
+const customerSearch =
+  document.getElementById(
+    "customerSearch"
+  );
+
+const customerFormPanel =
+  document.getElementById(
+    "customerFormPanel"
+  );
+
+const customerForm =
+  document.getElementById(
+    "customerForm"
+  );
+
+const customerId =
+  document.getElementById(
+    "customerId"
+  );
+
+const customerFormStatus =
+  document.getElementById(
+    "customerFormStatus"
+  );
+
+const saveCustomerButton =
+  document.getElementById(
+    "saveCustomerButton"
+  );
+
+const customerDrawer =
+  document.getElementById(
+    "customerDrawer"
+  );
+
+const customerDrawerBackdrop =
+  document.getElementById(
+    "customerDrawerBackdrop"
+  );
+
+const customerDrawerName =
+  document.getElementById(
+    "customerDrawerName"
+  );
+
+const customerDrawerMeta =
+  document.getElementById(
+    "customerDrawerMeta"
+  );
+
+const customerProfileStats =
+  document.getElementById(
+    "customerProfileStats"
+  );
+
+const customerDetails =
+  document.getElementById(
+    "customerDetails"
+  );
+
+const customerUpcomingBookings =
+  document.getElementById(
+    "customerUpcomingBookings"
+  );
+
+const customerBookingHistory =
+  document.getElementById(
+    "customerBookingHistory"
+  );
+
+const newCustomerBookingButton =
+  document.getElementById(
+    "newCustomerBookingButton"
+  );
+
+
+let customers = [];
+let activeCustomer = null;
+
+
+document
+  .getElementById(
+    "newCustomerButton"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      openCustomerForm()
+  );
+
+
+document
+  .getElementById(
+    "closeCustomerFormButton"
+  )
+  .addEventListener(
+    "click",
+    closeCustomerForm
+  );
+
+
+document
+  .getElementById(
+    "closeCustomerDrawer"
+  )
+  .addEventListener(
+    "click",
+    closeCustomerDrawer
+  );
+
+
+customerDrawerBackdrop
+  .addEventListener(
+    "click",
+    closeCustomerDrawer
+  );
+
+
+document
+  .getElementById(
+    "editCustomerButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      if (!activeCustomer) {
+        return;
+      }
+
+      closeCustomerDrawer();
+
+      openCustomerForm(
+        activeCustomer
+      );
+    }
+  );
+
+
+customerSearch.addEventListener(
+  "input",
+  renderCustomers
+);
+
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Escape"
+    ) {
+
+      if (
+        customerDrawer
+          .classList
+          .contains(
+            "is-open"
+          )
+      ) {
+
+        closeCustomerDrawer();
+      }
+    }
+  }
+);
+
+
+/* =======================================================
+   Load list
+   ======================================================= */
+
+async function loadCustomers() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/customers",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load customers."
+      );
+    }
+
+
+    customers =
+      data.customers ||
+      [];
+
+
+    renderCustomers();
+
+
+  } catch (error) {
+
+    customersList.className =
+      "es-status error";
+
+    customersList.textContent =
+      error.message ||
+      "Unable to load customers.";
+  }
+}
+
+
+function renderCustomers() {
+
+  const query =
+    customerSearch
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const filtered =
+    customers.filter(
+      (customer) => {
+
+        if (!query) {
+          return true;
+        }
+
+
+        const searchable = [
+          customer.first_name,
+          customer.last_name,
+          customer.email,
+          customer.phone
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+
+        return searchable.includes(
+          query
+        );
+      }
+    );
+
+
+  if (
+    filtered.length === 0
+  ) {
+
+    customersList.className =
+      "es-empty-state";
+
+    customersList.innerHTML = `
+      <strong>
+        ${
+          customers.length === 0
+            ? "No customers yet."
+            : "No customers match your search."
+        }
+      </strong>
+
+      <span>
+        ${
+          customers.length === 0
+            ? "Customers created through bookings will appear here automatically."
+            : "Try another name, email address or phone number."
+        }
+      </span>
+    `;
+
+    return;
+  }
+
+
+  customersList.className =
+    "es-customers-list";
+
+
+  customersList.innerHTML =
+    filtered
+      .map(
+        (customer) => `
+          <article class="es-customer-row">
+
+            <div class="es-customer-main">
+
+              <strong>
+                ${escapeHtml(
+                  `${customer.first_name} ${customer.last_name}`
+                )}
+              </strong>
+
+              <span>
+                Customer since
+                ${formatDate(
+                  customer.created_at
+                )}
+              </span>
+
+            </div>
+
+
+            <div class="es-customer-contact">
+
+              <span>
+                ${escapeHtml(
+                  customer.email ||
+                  "No email"
+                )}
+              </span>
+
+              <span>
+                ${escapeHtml(
+                  customer.phone ||
+                  "No phone"
+                )}
+              </span>
+
+            </div>
+
+
+            <div class="es-customer-stat">
+
+              <strong>
+                ${customer.visit_count || 0}
+              </strong>
+
+              <span>
+                visits
+              </span>
+
+            </div>
+
+
+            <div class="es-customer-stat">
+
+              <strong>
+                ${formatMoney(
+                  customer.total_paid_minor
+                )}
+              </strong>
+
+              <span>
+                paid
+              </span>
+
+            </div>
+
+
+            <div class="es-customer-actions">
+
+              <button
+                class="es-customer-action"
+                type="button"
+                data-view-customer="${escapeHtml(
+                  customer.id
+                )}"
+              >
+                View
+              </button>
+
+            </div>
+
+          </article>
+        `
+      )
+      .join("");
+
+
+  document
+    .querySelectorAll(
+      "[data-view-customer]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            loadCustomerProfile(
+              button.dataset
+                .viewCustomer
+            )
+        );
+      }
+    );
+}
+
+
+/* =======================================================
+   Profile
+   ======================================================= */
+
+async function loadCustomerProfile(
+  id
+) {
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/customers?id=${encodeURIComponent(
+          id
+        )}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load customer."
+      );
+    }
+
+
+    activeCustomer =
+      data.customer;
+
+
+    renderCustomerProfile(
+      data.customer
+    );
+
+
+    openCustomerDrawer();
+
+
+  } catch (error) {
+
+    window.alert(
+      error.message ||
+      "Unable to load customer."
+    );
+  }
+}
+
+
+function renderCustomerProfile(
+  customer
+) {
+
+  customerDrawerName.textContent =
+    `${customer.first_name} ${customer.last_name}`;
+
+
+  customerDrawerMeta.innerHTML = `
+    <span class="es-customer-chip">
+      Customer since
+      ${formatDate(
+        customer.created_at
+      )}
+    </span>
+
+    ${
+      customer.marketing_consent === 1
+        ? `
+          <span class="es-customer-chip">
+            Marketing consent
+          </span>
+        `
+        : ""
+    }
+  `;
+
+
+  customerProfileStats.innerHTML = `
+    ${profileStat(
+      "Visits",
+      customer.visit_count || 0
+    )}
+
+    ${profileStat(
+      "Upcoming",
+      customer.upcoming_count || 0
+    )}
+
+    ${profileStat(
+      "Paid",
+      formatMoney(
+        customer.total_paid_minor
+      )
+    )}
+  `;
+
+
+  customerDetails.innerHTML = `
+    ${detailItem(
+      "Email",
+      customer.email ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Phone",
+      customer.phone ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Notes",
+      customer.notes ||
+      "No customer notes",
+      true
+    )}
+  `;
+
+
+  customerUpcomingBookings.innerHTML =
+    renderAppointments(
+      customer.upcoming_bookings,
+      "No upcoming bookings."
+    );
+
+
+  customerBookingHistory.innerHTML =
+    renderAppointments(
+      customer.booking_history,
+      "No previous bookings."
+    );
+
+
+  newCustomerBookingButton.href =
+    `/bookings/?customer=${encodeURIComponent(
+      customer.id
+    )}`;
+}
+
+
+function profileStat(
+  label,
+  value
+) {
+
+  return `
+    <div class="es-customer-profile-stat">
+      <span>
+        ${escapeHtml(label)}
+      </span>
+
+      <strong>
+        ${escapeHtml(value)}
+      </strong>
+    </div>
+  `;
+}
+
+
+function detailItem(
+  label,
+  value,
+  full = false
+) {
+
+  return `
+    <div
+      class="
+        es-customer-detail
+        ${
+          full
+            ? "es-customer-detail-full"
+            : ""
+        }
+      "
+    >
+      <span>
+        ${escapeHtml(label)}
+      </span>
+
+      <strong>
+        ${escapeHtml(value)}
+      </strong>
+    </div>
+  `;
+}
+
+
+function renderAppointments(
+  appointments,
+  emptyMessage
+) {
+
+  const items =
+    appointments ||
+    [];
+
+
+  if (
+    items.length === 0
+  ) {
+
+    return `
+      <div class="es-empty-state">
+        <strong>
+          ${escapeHtml(
+            emptyMessage
+          )}
+        </strong>
+      </div>
+    `;
+  }
+
+
+  return items
+    .map(
+      (appointment) => `
+        <div class="es-customer-appointment">
+
+          <div class="es-customer-appointment-time">
+            <strong>
+              ${formatShortDate(
+                appointment.start_at
+              )}
+            </strong>
+
+            <span>
+              ${formatTime(
+                appointment.start_at
+              )}
+            </span>
+          </div>
+
+          <div class="es-customer-appointment-main">
+            <strong>
+              ${escapeHtml(
+                appointment.service_name
+              )}
+            </strong>
+
+            <small>
+              ${formatMoney(
+                appointment.price_minor
+              )}
+            </small>
+          </div>
+
+          <span
+            class="
+              es-customer-status
+              es-customer-status-${escapeHtml(
+                appointment.status
+              )}
+            "
+          >
+            ${escapeHtml(
+              formatStatus(
+                appointment.status
+              )
+            )}
+          </span>
+
+        </div>
+      `
+    )
+    .join("");
+}
+
+
+function openCustomerDrawer() {
+
+  customerDrawer
+    .classList
+    .add(
+      "is-open"
+    );
+
+
+  customerDrawerBackdrop
+    .classList
+    .add(
+      "is-open"
+    );
+
+
+  customerDrawer
+    .setAttribute(
+      "aria-hidden",
+      "false"
+    );
+}
+
+
+function closeCustomerDrawer() {
+
+  customerDrawer
+    .classList
+    .remove(
+      "is-open"
+    );
+
+
+  customerDrawerBackdrop
+    .classList
+    .remove(
+      "is-open"
+    );
+
+
+  customerDrawer
+    .setAttribute(
+      "aria-hidden",
+      "true"
+    );
+}
+
+
+/* =======================================================
+   Create / edit
+   ======================================================= */
+
+function openCustomerForm(
+  customer = null
+) {
+
+  resetCustomerForm(
+    false
+  );
+
+
+  if (customer) {
+
+    customerId.value =
+      customer.id;
+
+
+    document
+      .getElementById(
+        "customerFormTitle"
+      )
+      .textContent =
+        "Edit customer";
+
+
+    saveCustomerButton.textContent =
+      "Save changes";
+
+
+    document
+      .getElementById(
+        "customerFirstName"
+      )
+      .value =
+        customer.first_name ||
+        "";
+
+
+    document
+      .getElementById(
+        "customerLastName"
+      )
+      .value =
+        customer.last_name ||
+        "";
+
+
+    document
+      .getElementById(
+        "customerEmail"
+      )
+      .value =
+        customer.email ||
+        "";
+
+
+    document
+      .getElementById(
+        "customerPhone"
+      )
+      .value =
+        customer.phone ||
+        "";
+
+
+    document
+      .getElementById(
+        "customerNotes"
+      )
+      .value =
+        customer.notes ||
+        "";
+
+
+    document
+      .getElementById(
+        "marketingConsent"
+      )
+      .checked =
+        customer
+          .marketing_consent ===
+        1;
+
+  } else {
+
+    document
+      .getElementById(
+        "customerFormTitle"
+      )
+      .textContent =
+        "Add customer";
+
+
+    saveCustomerButton.textContent =
+      "Save customer";
+  }
+
+
+  customerFormPanel.hidden =
+    false;
+
+
+  customerFormPanel.scrollIntoView({
+    behavior:
+      "smooth",
+    block:
+      "start"
+  });
+}
+
+
+function closeCustomerForm() {
+
+  resetCustomerForm();
+}
+
+
+function resetCustomerForm(
+  hidePanel = true
+) {
+
+  customerForm.reset();
+
+  customerId.value =
+    "";
+
+  customerFormStatus.hidden =
+    true;
+
+  saveCustomerButton.disabled =
+    false;
+
+  document
+    .getElementById(
+      "customerFormTitle"
+    )
+    .textContent =
+      "Add customer";
+
+  saveCustomerButton.textContent =
+    "Save customer";
+
+
+  if (hidePanel) {
+
+    customerFormPanel.hidden =
+      true;
+  }
+}
+
+
+customerForm.addEventListener(
+  "submit",
+  async (event) => {
+
+    event.preventDefault();
+
+
+    const editing =
+      Boolean(
+        customerId.value
+      );
+
+
+    const payload = {
+      id:
+        customerId.value ||
+        undefined,
+
+      first_name:
+        document
+          .getElementById(
+            "customerFirstName"
+          )
+          .value
+          .trim(),
+
+      last_name:
+        document
+          .getElementById(
+            "customerLastName"
+          )
+          .value
+          .trim(),
+
+      email:
+        document
+          .getElementById(
+            "customerEmail"
+          )
+          .value
+          .trim(),
+
+      phone:
+        document
+          .getElementById(
+            "customerPhone"
+          )
+          .value
+          .trim(),
+
+      notes:
+        document
+          .getElementById(
+            "customerNotes"
+          )
+          .value
+          .trim(),
+
+      marketing_consent:
+        document
+          .getElementById(
+            "marketingConsent"
+          )
+          .checked
+            ? 1
+            : 0
+    };
+
+
+    if (
+      !payload.first_name ||
+      !payload.last_name
+    ) {
+
+      showFormError(
+        "First and last name are required."
+      );
+
+      return;
+    }
+
+
+    customerFormStatus.hidden =
+      false;
+
+    customerFormStatus.className =
+      "es-status";
+
+    customerFormStatus.textContent =
+      editing
+        ? "Saving changes…"
+        : "Creating customer…";
+
+
+    saveCustomerButton.disabled =
+      true;
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/customers",
+          {
+            method:
+              editing
+                ? "PUT"
+                : "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Accept:
+                "application/json"
+            },
+
+            body:
+              JSON.stringify(
+                payload
+              )
+          }
+        );
+
+
+      handleAuthentication(
+        response
+      );
+
+
+      const data =
+        await response.json();
+
+
+      if (
+        !response.ok ||
+        !data.ok
+      ) {
+
+        throw new Error(
+          data.error ||
+          "Unable to save customer."
+        );
+      }
+
+
+      customerFormStatus.className =
+        "es-status success";
+
+      customerFormStatus.textContent =
+        editing
+          ? "Customer updated."
+          : "Customer created.";
+
+
+      await loadCustomers();
+
+
+      setTimeout(
+        () =>
+          resetCustomerForm(),
+        500
+      );
+
+
+    } catch (error) {
+
+      showFormError(
+        error.message ||
+        "Unable to save customer."
+      );
+
+
+    } finally {
+
+      saveCustomerButton.disabled =
+        false;
+    }
+  }
+);
+
+
+function showFormError(
+  message
+) {
+
+  customerFormStatus.hidden =
+    false;
+
+  customerFormStatus.className =
+    "es-status error";
+
+  customerFormStatus.textContent =
+    message;
+}
+
+
+/* =======================================================
+   Helpers
+   ======================================================= */
+
+function handleAuthentication(
+  response
+) {
+
+  if (
+    response.status === 401
+  ) {
+
+    window.location.href =
+      "/auth/login.html";
+
+    throw new Error(
+      "Authentication required."
+    );
+  }
+}
+
+
+function formatMoney(
+  amountMinor
+) {
+
+  return new Intl.NumberFormat(
+    "en-GB",
+    {
+      style:
+        "currency",
+      currency:
+        "GBP"
+    }
+  ).format(
+    Number(
+      amountMinor ||
+      0
+    ) / 100
+  );
+}
+
+
+function formatDate(value) {
+
+  if (!value) {
+    return "—";
+  }
+
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      day:
+        "numeric",
+      month:
+        "short",
+      year:
+        "numeric"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatShortDate(value) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      day:
+        "numeric",
+      month:
+        "short"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatTime(value) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      hour:
+        "2-digit",
+      minute:
+        "2-digit"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatStatus(value) {
+
+  const statuses = {
+    pending:
+      "Pending",
+    confirmed:
+      "Confirmed",
+    completed:
+      "Completed",
+    cancelled:
+      "Cancelled",
+    no_show:
+      "No show"
+  };
+
+
+  return statuses[value] ||
+    value ||
+    "—";
+}
+
+
+function escapeHtml(value) {
+
+  return String(
+    value ??
+    ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+}
+
+
+/* =======================================================
+   Start
+   ======================================================= */
+
+loadCustomers();
 
