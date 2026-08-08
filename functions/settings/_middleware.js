@@ -9,9 +9,7 @@ export async function onRequest({
   env,
   next
 }) {
-
   try {
-
     const sessionToken =
       readSessionToken(
         request
@@ -19,7 +17,6 @@ export async function onRequest({
 
 
     if (!sessionToken) {
-
       return Response.redirect(
         new URL(
           "/auth/login.html",
@@ -39,13 +36,13 @@ export async function onRequest({
     const session =
       await env.DB
         .prepare(`
-          SELECT s.id
+          SELECT
+            s.id
 
           FROM user_sessions s
 
           JOIN users u
-            ON u.id =
-              s.user_id
+            ON u.id = s.user_id
 
           WHERE
             s.token_hash = ?
@@ -64,7 +61,6 @@ export async function onRequest({
 
 
     if (!session) {
-
       return Response.redirect(
         new URL(
           "/auth/login.html",
@@ -77,11 +73,9 @@ export async function onRequest({
 
     return next();
 
-
   } catch (error) {
-
     console.error(
-      "Branding authentication failed:"
+      "Settings authentication failed:",
       error
     );
 
