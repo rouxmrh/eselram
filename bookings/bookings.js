@@ -2393,10 +2393,71 @@ function escapeHtml(value) {
    Start
    ======================================================= */
 
-setMinimumDate();
+async function initialiseBookingsPage() {
+
+  setMinimumDate();
+
+  await Promise.all([
+    loadServices(),
+    loadBookings()
+  ]);
 
 
-Promise.all([
-  loadServices(),
-  loadBookings()
-]);
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const date =
+    params.get(
+      "date"
+    );
+
+
+  const bookingIdFromUrl =
+    params.get(
+      "booking"
+    );
+
+
+  if (date) {
+
+    openBookingForm();
+
+    bookingDate.value =
+      date;
+
+
+    if (
+      serviceSelect.value
+    ) {
+
+      await loadAvailability();
+    }
+  }
+
+
+  if (
+    bookingIdFromUrl
+  ) {
+
+    const booking =
+      bookings.find(
+        (item) =>
+          item.id ===
+          bookingIdFromUrl
+      );
+
+
+    if (booking) {
+
+      showBookingDetails(
+        booking
+      );
+    }
+  }
+}
+
+
+initialiseBookingsPage();
