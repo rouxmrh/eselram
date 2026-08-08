@@ -81,7 +81,7 @@ export async function onRequest({
   } catch (error) {
 
     console.error(
-      "Dashboard authentication failed:",
+      "Branding authentication failed:"
       error
     );
 
