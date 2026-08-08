@@ -1,0 +1,1158 @@
+import {
+  readSessionToken,
+  hashSessionToken
+} from "../../../lib/auth.js";
+
+
+async function getUserContext(
+  request,
+  env
+) {
+
+  const token =
+    readSessionToken(
+      request
+    );
+
+
+  if (!token) {
+    return null;
+  }
+
+
+  const tokenHash =
+    await hashSessionToken(
+      token
+    );
+
+
+  return await env.DB
+    .prepare(`
+      SELECT
+        u.id AS user_id,
+        u.business_id,
+        b.currency
+
+      FROM user_sessions s
+
+      JOIN users u
+        ON u.id =
+           s.user_id
+
+      JOIN businesses b
+        ON b.id =
+           u.business_id
+
+      WHERE
+        s.token_hash = ?
+        AND s.revoked_at IS NULL
+        AND datetime(
+          s.expires_at
+        ) > datetime('now')
+        AND u.is_active = 1
+
+      LIMIT 1
+    `)
+    .bind(
+      tokenHash
+    )
+    .first();
+}
+
+
+function unauthorized() {
+
+  return Response.json(
+    {
+      ok: false,
+      error:
+        "Authentication required."
+    },
+    {
+      status: 401
+    }
+  );
+}
+
+
+function badRequest(
+  message
+) {
+
+  return Response.json(
+    {
+      ok: false,
+      error:
+        message
+    },
+    {
+      status: 400
+    }
+  );
+}
+
+
+function notFound(
+  message
+) {
+
+  return Response.json(
+    {
+      ok: false,
+      error:
+        message
+    },
+    {
+      status: 404
+    }
+  );
+}
+
+
+/* =======================================================
+   GET
+   ======================================================= */
+
+export async function onRequestGet({
+  request,
+  env
+}) {
+
+  try {
+
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
+
+
+    if (!user) {
+      return unauthorized();
+    }
+
+
+    const [
+      paymentRows,
+      customerRows,
+      appointmentRows,
+      providerRows,
+      paidMonth,
+      refundMonth
+    ] =
+      await Promise.all([
+
+        env.DB
+          .prepare(`
+            SELECT
+              p.id,
+              p.appointment_id,
+              p.customer_id,
+              p.provider,
+              p.payment_type,
+              p.amount_minor,
+              p.currency,
+              p.status,
+              p.provider_reference,
+              p.paid_at,
+              p.created_at,
+              p.updated_at,
+              p.payment_method,
+              p.notes,
+
+              c.first_name,
+              c.last_name,
+
+              a.start_at,
+              s.name AS service_name,
+
+              pp.display_name
+                AS provider_display_name,
+
+              CASE
+                WHEN
+                  p.payment_type = 'refund'
+                THEN 0
+
+                ELSE
+                  MAX(
+                    p.amount_minor -
+                    COALESCE(
+                      (
+                        SELECT
+                          SUM(r.amount_minor)
+
+                        FROM payments r
+
+                        WHERE
+                          r.business_id =
+                            p.business_id
+                          AND r.payment_type =
+                            'refund'
+                          AND r.status =
+                            'paid'
+                          AND (
+                            r.provider_reference =
+                              'refund:' || p.id
+                            OR r.notes LIKE
+                              '%original_payment=' ||
+                              p.id ||
+                              '%'
+                          )
+                      ),
+                      0
+                    ),
+                    0
+                  )
+              END
+              AS refundable_minor
+
+            FROM payments p
+
+            LEFT JOIN customers c
+              ON c.id =
+                 p.customer_id
+
+            LEFT JOIN appointments a
+              ON a.id =
+                 p.appointment_id
+
+            LEFT JOIN services s
+              ON s.id =
+                 a.service_id
+
+            LEFT JOIN payment_providers pp
+              ON pp.provider_key =
+                 p.provider
+
+            WHERE
+              p.business_id = ?
+
+            ORDER BY
+              datetime(
+                COALESCE(
+                  p.paid_at,
+                  p.created_at
+                )
+              ) DESC
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              id,
+              first_name,
+              last_name
+
+            FROM customers
+
+            WHERE
+              business_id = ?
+
+            ORDER BY
+              last_name COLLATE NOCASE,
+              first_name COLLATE NOCASE
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              a.id,
+              a.customer_id,
+              a.start_at,
+              a.price_minor,
+              a.status,
+
+              c.first_name,
+              c.last_name,
+
+              s.name AS service_name,
+
+              COALESCE(
+                (
+                  SELECT
+                    SUM(
+                      CASE
+                        WHEN
+                          p.payment_type =
+                            'refund'
+                        THEN -p.amount_minor
+                        ELSE p.amount_minor
+                      END
+                    )
+
+                  FROM payments p
+
+                  WHERE
+                    p.appointment_id =
+                      a.id
+                    AND p.business_id =
+                      a.business_id
+                    AND p.status = 'paid'
+                ),
+                0
+              ) AS paid_minor
+
+            FROM appointments a
+
+            JOIN customers c
+              ON c.id =
+                 a.customer_id
+
+            JOIN services s
+              ON s.id =
+                 a.service_id
+
+            WHERE
+              a.business_id = ?
+              AND a.status !=
+                  'cancelled'
+
+            ORDER BY
+              datetime(a.start_at) DESC
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              pp.provider_key,
+              pp.display_name,
+              pp.provider_type,
+
+              COALESCE(
+                bpp.is_enabled,
+                CASE
+                  WHEN
+                    pp.provider_key =
+                      'manual'
+                  THEN 1
+                  ELSE 0
+                END
+              ) AS is_enabled,
+
+              COALESCE(
+                bpp.connection_status,
+                'not_connected'
+              ) AS connection_status
+
+            FROM payment_providers pp
+
+            LEFT JOIN
+              business_payment_providers
+              bpp
+
+              ON bpp.provider_key =
+                 pp.provider_key
+              AND bpp.business_id = ?
+
+            WHERE
+              pp.is_available = 1
+              AND (
+                pp.provider_key =
+                  'manual'
+                OR bpp.is_enabled = 1
+              )
+
+            ORDER BY
+              pp.sort_order,
+              pp.display_name
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              COALESCE(
+                SUM(
+                  CASE
+                    WHEN
+                      payment_type =
+                        'refund'
+                    THEN -amount_minor
+                    ELSE amount_minor
+                  END
+                ),
+                0
+              ) AS total
+
+            FROM payments
+
+            WHERE
+              business_id = ?
+              AND status = 'paid'
+              AND strftime(
+                '%Y-%m',
+                COALESCE(
+                  paid_at,
+                  created_at
+                )
+              ) =
+              strftime(
+                '%Y-%m',
+                'now'
+              )
+          `)
+          .bind(
+            user.business_id
+          )
+          .first(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              COALESCE(
+                SUM(amount_minor),
+                0
+              ) AS total
+
+            FROM payments
+
+            WHERE
+              business_id = ?
+              AND payment_type =
+                  'refund'
+              AND status = 'paid'
+              AND strftime(
+                '%Y-%m',
+                COALESCE(
+                  paid_at,
+                  created_at
+                )
+              ) =
+              strftime(
+                '%Y-%m',
+                'now'
+              )
+          `)
+          .bind(
+            user.business_id
+          )
+          .first()
+      ]);
+
+
+    const appointments =
+      (
+        appointmentRows.results ||
+        []
+      ).map(
+        (appointment) => {
+
+          const paidMinor =
+            Number(
+              appointment.paid_minor ||
+              0
+            );
+
+
+          const priceMinor =
+            Number(
+              appointment.price_minor ||
+              0
+            );
+
+
+          return {
+            ...appointment,
+
+            paid_minor:
+              paidMinor,
+
+            balance_minor:
+              Math.max(
+                priceMinor -
+                paidMinor,
+                0
+              )
+          };
+        }
+      );
+
+
+    const outstanding =
+      appointments.filter(
+        (appointment) =>
+          Number(
+            appointment.balance_minor
+          ) > 0
+      );
+
+
+    const outstandingMinor =
+      outstanding.reduce(
+        (
+          total,
+          appointment
+        ) =>
+          total +
+          Number(
+            appointment.balance_minor ||
+            0
+          ),
+        0
+      );
+
+
+    return Response.json({
+      ok: true,
+
+      currency:
+        user.currency ||
+        "GBP",
+
+      stats: {
+        paid_month_minor:
+          Number(
+            paidMonth?.total ||
+            0
+          ),
+
+        outstanding_minor:
+          outstandingMinor,
+
+        refund_month_minor:
+          Number(
+            refundMonth?.total ||
+            0
+          ),
+
+        transaction_count:
+          (
+            paymentRows.results ||
+            []
+          ).length
+      },
+
+      payments:
+        paymentRows.results ||
+        [],
+
+      customers:
+        customerRows.results ||
+        [],
+
+      appointments,
+
+      outstanding,
+
+      providers:
+        providerRows.results ||
+        []
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Payments GET failed:",
+      error
+    );
+
+
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to load payments."
+      },
+      {
+        status: 500
+      }
+    );
+  }
+}
+
+
+/* =======================================================
+   POST payment / refund
+   ======================================================= */
+
+export async function onRequestPost({
+  request,
+  env
+}) {
+
+  try {
+
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
+
+
+    if (!user) {
+      return unauthorized();
+    }
+
+
+    const body =
+      await request.json();
+
+
+    if (
+      body.action ===
+      "refund"
+    ) {
+
+      return await createRefund({
+        body,
+        user,
+        env
+      });
+    }
+
+
+    const customerId =
+      String(
+        body.customer_id ||
+        ""
+      ).trim();
+
+    const appointmentId =
+      String(
+        body.appointment_id ||
+        ""
+      ).trim();
+
+    const provider =
+      String(
+        body.provider ||
+        ""
+      ).trim();
+
+    const paymentMethod =
+      String(
+        body.payment_method ||
+        ""
+      ).trim();
+
+    const paymentType =
+      String(
+        body.payment_type ||
+        ""
+      ).trim();
+
+    const amountMinor =
+      Number(
+        body.amount_minor
+      );
+
+    const providerReference =
+      String(
+        body.provider_reference ||
+        ""
+      ).trim();
+
+    const notes =
+      String(
+        body.notes ||
+        ""
+      ).trim();
+
+
+    if (!customerId) {
+
+      return badRequest(
+        "Customer is required."
+      );
+    }
+
+
+    if (
+      !Number.isInteger(
+        amountMinor
+      ) ||
+      amountMinor <= 0
+    ) {
+
+      return badRequest(
+        "A valid amount is required."
+      );
+    }
+
+
+    const allowedTypes = [
+      "full",
+      "deposit",
+      "balance",
+      "pay_at_appointment"
+    ];
+
+
+    if (
+      !allowedTypes.includes(
+        paymentType
+      )
+    ) {
+
+      return badRequest(
+        "Invalid payment type."
+      );
+    }
+
+
+    const allowedMethods = [
+      "paypal",
+      "apple_pay",
+      "google_pay",
+      "card",
+      "cash",
+      "bank_transfer",
+      "other"
+    ];
+
+
+    if (
+      !allowedMethods.includes(
+        paymentMethod
+      )
+    ) {
+
+      return badRequest(
+        "Invalid payment method."
+      );
+    }
+
+
+    const customer =
+      await env.DB
+        .prepare(`
+          SELECT id
+
+          FROM customers
+
+          WHERE
+            id = ?
+            AND business_id = ?
+
+          LIMIT 1
+        `)
+        .bind(
+          customerId,
+          user.business_id
+        )
+        .first();
+
+
+    if (!customer) {
+
+      return badRequest(
+        "Customer not found."
+      );
+    }
+
+
+    let appointment = null;
+
+
+    if (appointmentId) {
+
+      appointment =
+        await env.DB
+          .prepare(`
+            SELECT
+              id,
+              customer_id,
+              price_minor
+
+            FROM appointments
+
+            WHERE
+              id = ?
+              AND business_id = ?
+
+            LIMIT 1
+          `)
+          .bind(
+            appointmentId,
+            user.business_id
+          )
+          .first();
+
+
+      if (!appointment) {
+
+        return badRequest(
+          "Appointment not found."
+        );
+      }
+
+
+      if (
+        appointment.customer_id !==
+        customerId
+      ) {
+
+        return badRequest(
+          "Appointment does not belong to the selected customer."
+        );
+      }
+    }
+
+
+    const providerRecord =
+      await env.DB
+        .prepare(`
+          SELECT
+            pp.provider_key,
+
+            COALESCE(
+              bpp.is_enabled,
+              CASE
+                WHEN
+                  pp.provider_key =
+                    'manual'
+                THEN 1
+                ELSE 0
+              END
+            ) AS is_enabled
+
+          FROM payment_providers pp
+
+          LEFT JOIN
+            business_payment_providers
+            bpp
+
+            ON bpp.provider_key =
+               pp.provider_key
+            AND bpp.business_id = ?
+
+          WHERE
+            pp.provider_key = ?
+            AND pp.is_available = 1
+
+          LIMIT 1
+        `)
+        .bind(
+          user.business_id,
+          provider
+        )
+        .first();
+
+
+    if (
+      !providerRecord ||
+      providerRecord.is_enabled !== 1
+    ) {
+
+      return badRequest(
+        "Selected payment provider is not enabled."
+      );
+    }
+
+
+    const id =
+      `pay_${
+        crypto.randomUUID()
+      }`;
+
+
+    await env.DB
+      .prepare(`
+        INSERT INTO payments (
+          id,
+          business_id,
+          appointment_id,
+          customer_id,
+          provider,
+          payment_type,
+          amount_minor,
+          currency,
+          status,
+          provider_reference,
+          paid_at,
+          payment_method,
+          notes
+        )
+
+        VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?,
+          'paid',
+          ?,
+          CURRENT_TIMESTAMP,
+          ?,
+          ?
+        )
+      `)
+      .bind(
+        id,
+        user.business_id,
+        appointmentId || null,
+        customerId,
+        provider,
+        paymentType,
+        amountMinor,
+        user.currency ||
+          "GBP",
+        providerReference || null,
+        paymentMethod,
+        notes || null
+      )
+      .run();
+
+
+    return Response.json({
+      ok: true,
+      payment: {
+        id
+      }
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Payment creation failed:",
+      error
+    );
+
+
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to record payment."
+      },
+      {
+        status: 500
+      }
+    );
+  }
+}
+
+
+async function createRefund({
+  body,
+  user,
+  env
+}) {
+
+  const paymentId =
+    String(
+      body.payment_id ||
+      ""
+    ).trim();
+
+  const amountMinor =
+    Number(
+      body.amount_minor
+    );
+
+  const notes =
+    String(
+      body.notes ||
+      ""
+    ).trim();
+
+
+  if (
+    !paymentId ||
+    !Number.isInteger(
+      amountMinor
+    ) ||
+    amountMinor <= 0
+  ) {
+
+    return badRequest(
+      "Payment and refund amount are required."
+    );
+  }
+
+
+  const original =
+    await env.DB
+      .prepare(`
+        SELECT
+          id,
+          appointment_id,
+          customer_id,
+          provider,
+          payment_method,
+          amount_minor,
+          currency,
+          status,
+          payment_type
+
+        FROM payments
+
+        WHERE
+          id = ?
+          AND business_id = ?
+
+        LIMIT 1
+      `)
+      .bind(
+        paymentId,
+        user.business_id
+      )
+      .first();
+
+
+  if (!original) {
+
+    return notFound(
+      "Payment not found."
+    );
+  }
+
+
+  if (
+    original.payment_type ===
+      "refund" ||
+    original.status !==
+      "paid"
+  ) {
+
+    return badRequest(
+      "This payment cannot be refunded."
+    );
+  }
+
+
+  const existingRefunds =
+    await env.DB
+      .prepare(`
+        SELECT
+          COALESCE(
+            SUM(amount_minor),
+            0
+          ) AS total
+
+        FROM payments
+
+        WHERE
+          business_id = ?
+          AND payment_type =
+              'refund'
+          AND status = 'paid'
+          AND (
+            provider_reference =
+              ?
+            OR notes LIKE ?
+          )
+      `)
+      .bind(
+        user.business_id,
+        `refund:${paymentId}`,
+        `%original_payment=${paymentId}%`
+      )
+      .first();
+
+
+  const alreadyRefunded =
+    Number(
+      existingRefunds?.total ||
+      0
+    );
+
+
+  const refundable =
+    Number(
+      original.amount_minor
+    ) -
+    alreadyRefunded;
+
+
+  if (
+    amountMinor >
+    refundable
+  ) {
+
+    return badRequest(
+      "Refund amount exceeds the remaining refundable amount."
+    );
+  }
+
+
+  const refundId =
+    `pay_${
+      crypto.randomUUID()
+    }`;
+
+
+  const refundNotes = [
+    `original_payment=${paymentId}`,
+    notes
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+
+  await env.DB
+    .prepare(`
+      INSERT INTO payments (
+        id,
+        business_id,
+        appointment_id,
+        customer_id,
+        provider,
+        payment_type,
+        amount_minor,
+        currency,
+        status,
+        provider_reference,
+        paid_at,
+        payment_method,
+        notes
+      )
+
+      VALUES (
+        ?, ?, ?, ?, ?,
+        'refund',
+        ?, ?,
+        'paid',
+        ?,
+        CURRENT_TIMESTAMP,
+        ?,
+        ?
+      )
+    `)
+    .bind(
+      refundId,
+      user.business_id,
+      original.appointment_id ||
+        null,
+      original.customer_id ||
+        null,
+      original.provider,
+      amountMinor,
+      original.currency ||
+        user.currency ||
+        "GBP",
+      `refund:${paymentId}`,
+      original.payment_method ||
+        "other",
+      refundNotes
+    )
+    .run();
+
+
+  return Response.json({
+    ok: true,
+    refund: {
+      id:
+        refundId
+    }
+  });
+}
