@@ -18,19 +18,34 @@ const calendarSummary =
     "calendarSummary"
   );
 
-const calendarBookingDialog =
+const calendarBookingDrawer =
   document.getElementById(
-    "calendarBookingDialog"
+    "calendarBookingDrawer"
   );
 
-const calendarDialogTitle =
+const calendarDrawerBackdrop =
   document.getElementById(
-    "calendarDialogTitle"
+    "calendarDrawerBackdrop"
+  );
+
+const calendarDrawerTitle =
+  document.getElementById(
+    "calendarDrawerTitle"
+  );
+
+const calendarDrawerStatus =
+  document.getElementById(
+    "calendarDrawerStatus"
   );
 
 const calendarBookingDetails =
   document.getElementById(
     "calendarBookingDetails"
+  );
+
+const openBookingsButton =
+  document.getElementById(
+    "openBookingsButton"
   );
 
 
@@ -99,13 +114,38 @@ document
 
 document
   .getElementById(
-    "closeCalendarDialog"
+    "closeCalendarDrawer"
   )
   .addEventListener(
     "click",
-    () =>
-      calendarBookingDialog.close()
+    closeBookingDrawer
   );
+
+
+calendarDrawerBackdrop
+  .addEventListener(
+    "click",
+    closeBookingDrawer
+  );
+
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Escape" &&
+      calendarBookingDrawer
+        .classList
+        .contains(
+          "is-open"
+        )
+    ) {
+
+      closeBookingDrawer();
+    }
+  }
+);
 
 
 /* =======================================================
@@ -272,6 +312,15 @@ function renderDay(date) {
     );
 
 
+  const jsDay =
+    date.getDay();
+
+
+  const isWeekend =
+    jsDay === 0 ||
+    jsDay === 6;
+
+
   const visibleBookings =
     dayBookings.slice(
       0,
@@ -286,7 +335,8 @@ function renderDay(date) {
 
   return `
     <div
-      class="es-calendar-day
+      class="
+        es-calendar-day
         ${
           isCurrentMonth
             ? ""
@@ -296,7 +346,13 @@ function renderDay(date) {
           dateKey === today
             ? "is-today"
             : ""
-        }"
+        }
+        ${
+          isWeekend
+            ? "is-weekend"
+            : ""
+        }
+      "
       data-date="${dateKey}"
     >
 
@@ -382,13 +438,15 @@ function renderBooking(
         ${formatTimeFromDateTime(
           booking.start_at
         )}
-        ·
-        ${escapeHtml(
-          booking.first_name
-        )}
       </strong>
 
-      <span>
+      <span class="es-calendar-event-customer">
+        ${escapeHtml(
+          `${booking.first_name} ${booking.last_name}`
+        )}
+      </span>
+
+      <span class="es-calendar-event-service">
         ${escapeHtml(
           booking.service_name
         )}
@@ -479,28 +537,34 @@ function bindCalendarEvents() {
 
 
 /* =======================================================
-   Booking details
+   Booking drawer
    ======================================================= */
 
 function showBookingDetails(
   booking
 ) {
 
-  calendarDialogTitle.textContent =
+  calendarDrawerTitle.textContent =
     `${booking.first_name} ${booking.last_name}`;
+
+
+  calendarDrawerStatus.textContent =
+    formatStatus(
+      booking.status
+    );
+
+
+  calendarDrawerStatus.className =
+    `es-calendar-drawer-status ${
+      booking.status ||
+      ""
+    }`;
 
 
   calendarBookingDetails.innerHTML = `
     ${detailItem(
       "Service",
       booking.service_name
-    )}
-
-    ${detailItem(
-      "Status",
-      formatStatus(
-        booking.status
-      )
     )}
 
     ${detailItem(
@@ -556,14 +620,55 @@ function showBookingDetails(
   `;
 
 
-  if (
-    typeof calendarBookingDialog
-      .showModal ===
-    "function"
-  ) {
+  openBookingsButton.href =
+    `/bookings/?booking=${encodeURIComponent(
+      booking.id
+    )}`;
 
-    calendarBookingDialog.showModal();
-  }
+
+  calendarBookingDrawer
+    .classList
+    .add(
+      "is-open"
+    );
+
+
+  calendarDrawerBackdrop
+    .classList
+    .add(
+      "is-open"
+    );
+
+
+  calendarBookingDrawer
+    .setAttribute(
+      "aria-hidden",
+      "false"
+    );
+}
+
+
+function closeBookingDrawer() {
+
+  calendarBookingDrawer
+    .classList
+    .remove(
+      "is-open"
+    );
+
+
+  calendarDrawerBackdrop
+    .classList
+    .remove(
+      "is-open"
+    );
+
+
+  calendarBookingDrawer
+    .setAttribute(
+      "aria-hidden",
+      "true"
+    );
 }
 
 
@@ -654,32 +759,28 @@ function renderSummary() {
 
 
   calendarSummary.innerHTML = `
-    <span>
+    <span class="es-calendar-summary-pill">
       <strong>
         ${monthBookings.length}
       </strong>
-      booking${
-        monthBookings.length === 1
-          ? ""
-          : "s"
-      }
+      total
     </span>
 
-    <span>
+    <span class="es-calendar-summary-pill confirmed">
       <strong>
         ${confirmed}
       </strong>
       confirmed
     </span>
 
-    <span>
+    <span class="es-calendar-summary-pill completed">
       <strong>
         ${completed}
       </strong>
       completed
     </span>
 
-    <span>
+    <span class="es-calendar-summary-pill cancelled">
       <strong>
         ${cancelled}
       </strong>
@@ -696,13 +797,6 @@ function renderSummary() {
 function openNewBooking(
   date
 ) {
-
-  /*
-    The date is included in the URL now.
-    The Bookings page can use it as a
-    preselected date when we wire that
-    small enhancement into bookings.js.
-  */
 
   window.location.href =
     `/bookings/?date=${encodeURIComponent(
@@ -961,4 +1055,3 @@ function escapeHtml(value) {
    ======================================================= */
 
 loadBookings();
-
