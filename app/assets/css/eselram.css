@@ -2437,3 +2437,274 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =======================================================
+   Clinical Form Renderer
+   ======================================================= */
+
+.es-form-render-page {
+  min-height: 100vh;
+  padding: 28px 18px 60px;
+  background: var(--client-bg, #f5f4ef);
+  color: var(--client-text, #18221f);
+}
+
+.es-form-render-shell {
+  width: min(900px, 100%);
+  margin: 0 auto;
+}
+
+.es-form-render-brand {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.es-form-render-brand.left {
+  justify-items: start;
+  text-align: left;
+}
+
+.es-form-render-logo {
+  max-width: 190px;
+  max-height: 84px;
+  object-fit: contain;
+}
+
+.es-form-render-business {
+  margin: 0;
+  color: var(--client-primary, #365c50);
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.es-form-render-card {
+  overflow: hidden;
+  border: 1px solid rgba(20, 35, 30, .12);
+  border-radius: 22px;
+  background: var(--client-surface, #fff);
+  box-shadow: 0 16px 50px rgba(25, 35, 31, .07);
+}
+
+.es-form-render-header {
+  padding: 28px 30px 18px;
+  border-bottom: 1px solid rgba(20, 35, 30, .09);
+}
+
+.es-form-render-header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.08;
+}
+
+.es-form-render-header p {
+  margin: 0;
+  color: color-mix(in srgb, var(--client-text) 68%, transparent);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.es-form-render-section {
+  padding: 24px 30px;
+  border-bottom: 1px solid rgba(20, 35, 30, .08);
+}
+
+.es-form-render-section:last-child {
+  border-bottom: 0;
+}
+
+.es-form-render-section h2 {
+  margin: 0 0 6px;
+  color: var(--client-primary, #365c50);
+  font-size: 18px;
+}
+
+.es-form-render-section > p {
+  margin: 0 0 18px;
+  color: color-mix(in srgb, var(--client-text) 68%, transparent);
+  font-size: 12px;
+}
+
+.es-form-render-fields {
+  display: grid;
+  gap: 16px;
+}
+
+.es-form-render-field {
+  display: grid;
+  gap: 7px;
+}
+
+.es-form-render-field label,
+.es-form-render-field legend {
+  color: var(--client-text, #18221f);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.es-form-render-required {
+  color: #9a3e32;
+}
+
+.es-form-render-help {
+  color: color-mix(in srgb, var(--client-text) 60%, transparent);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.es-form-render-field input[type="text"],
+.es-form-render-field input[type="email"],
+.es-form-render-field input[type="date"],
+.es-form-render-field input[type="number"],
+.es-form-render-field textarea,
+.es-form-render-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(20, 35, 30, .15);
+  border-radius: 11px;
+  background: #fff;
+  color: #18221f;
+  font: inherit;
+}
+
+.es-form-render-field textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.es-form-render-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.es-form-render-choice label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(20, 35, 30, .13);
+  border-radius: 999px;
+  background: rgba(255,255,255,.76);
+  cursor: pointer;
+}
+
+.es-form-render-choice input {
+  margin: 0;
+}
+
+.es-form-render-signature {
+  border: 1px solid rgba(20, 35, 30, .15);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.es-form-render-signature canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  touch-action: none;
+}
+
+.es-form-render-signature-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px;
+  border-top: 1px solid rgba(20, 35, 30, .1);
+}
+
+.es-form-render-submit {
+  padding: 24px 30px 30px;
+}
+
+.es-form-render-submit button {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--client-primary, #365c50);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.es-form-render-submit button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.es-form-render-footer {
+  padding: 18px 4px 0;
+  color: color-mix(in srgb, var(--client-text) 58%, transparent);
+  font-size: 11px;
+  text-align: center;
+}
+
+.es-form-render-preview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(54, 92, 80, .16);
+  border-radius: 12px;
+  background: rgba(255,255,255,.82);
+  color: #365c50;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.es-form-render-hidden {
+  display: none !important;
+}
+
+.es-form-render-upload-note {
+  margin-top: 5px;
+  color: color-mix(in srgb, var(--client-text) 55%, transparent);
+  font-size: 10px;
+}
+
+.es-form-render-error {
+  margin: 16px 30px 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(160, 50, 50, .18);
+  border-radius: 11px;
+  background: rgba(160, 50, 50, .06);
+  color: #8f332c;
+  font-size: 12px;
+}
+
+.es-form-render-success {
+  padding: 42px 30px;
+  text-align: center;
+}
+
+.es-form-render-success h2 {
+  margin: 0 0 8px;
+  color: var(--client-primary, #365c50);
+}
+
+@media (max-width: 650px) {
+  .es-form-render-page {
+    padding: 12px 8px 36px;
+  }
+
+  .es-form-render-card {
+    border-radius: 16px;
+  }
+
+  .es-form-render-header,
+  .es-form-render-section,
+  .es-form-render-submit {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
