@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clinical Records | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+<body class="es-dashboard-body">
+  <div class="es-dashboard-layout">
+    <aside class="es-sidebar">
+      <div class="es-sidebar-brand">ESELRAM</div>
+      <nav class="es-sidebar-nav">
+        <a href="/dashboard/">Overview</a>
+        <a href="/bookings/">Bookings</a>
+        <a href="/calendar/">Calendar</a>
+        <a href="/customers/">Customers</a>
+        <a href="/services/">Services</a>
+        <a href="/treatment-records/">Treatment Records</a>
+        <a href="/clinical-submissions/" class="active">Clinical Records</a>
+        <a href="/payments/">Payments</a>
+        <a href="/settings/">Settings</a>
+      </nav>
+    </aside>
+
+    <main class="es-dashboard-main">
+      <header class="es-dashboard-header">
+        <div>
+          <p class="es-eyebrow">Clinical</p>
+          <h1>Clinical Records</h1>
+          <p class="es-lead">Review completed consultations, patch tests and other submitted forms.</p>
+        </div>
+        <a class="es-secondary-button" href="/clinical-templates/">Manage templates</a>
+      </header>
+
+      <section class="es-clinical-record-kpis">
+        <article class="es-clinical-record-kpi"><span>Total submissions</span><strong id="totalSubmissions">0</strong><small>All submitted clinical forms</small></article>
+        <article class="es-clinical-record-kpi"><span>Awaiting review</span><strong id="awaitingReview">0</strong><small>Submitted but not reviewed</small></article>
+        <article class="es-clinical-record-kpi"><span>Reviewed</span><strong id="reviewedSubmissions">0</strong><small>Clinical records reviewed</small></article>
+        <article class="es-clinical-record-kpi"><span>Unassigned</span><strong id="unassignedSubmissions">0</strong><small>Not linked to a customer yet</small></article>
+      </section>
+
+      <section class="es-dashboard-panel">
+        <div class="es-clinical-record-toolbar">
+          <div>
+            <p class="es-eyebrow">Submissions</p>
+            <h2>Completed forms</h2>
+          </div>
+          <div class="es-clinical-record-filters">
+            <input id="submissionSearch" type="search" placeholder="Search customer or form">
+            <select id="templateFilter"><option value="all">All forms</option></select>
+            <select id="statusFilter">
+              <option value="all">All statuses</option>
+              <option value="submitted">Awaiting review</option>
+              <option value="reviewed">Reviewed</option>
+            </select>
+            <select id="assignmentFilter">
+              <option value="all">All assignments</option>
+              <option value="assigned">Assigned</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
+          </div>
+        </div>
+        <div id="submissionList" class="es-empty-state">Loading clinical records…</div>
+      </section>
+    </main>
+  </div>
+
+  <div id="recordBackdrop" class="es-clinical-record-drawer-backdrop"></div>
+  <aside id="recordDrawer" class="es-clinical-record-drawer" aria-hidden="true">
+    <div class="es-clinical-record-drawer-header">
+      <div><p class="es-eyebrow">Clinical record</p><h2 id="recordTitle">Submission</h2></div>
+      <button id="closeRecordDrawer" class="es-clinical-record-close" type="button">×</button>
+    </div>
+
+    <div id="recordMeta" class="es-clinical-record-meta"></div>
+
+    <section class="es-clinical-record-assignment">
+      <h3>Customer & appointment</h3>
+      <div class="es-form-grid">
+        <label>Customer<select id="recordCustomer"><option value="">Not assigned</option></select></label>
+        <label>Appointment<select id="recordAppointment"><option value="">Not assigned</option></select></label>
+      </div>
+      <button id="saveRecordAssignment" class="es-secondary-button" type="button">Save assignment</button>
+    </section>
+
+    <div id="recordSections" class="es-clinical-record-sections"></div>
+
+    <div class="es-clinical-record-drawer-actions">
+      <button id="markReviewedButton" class="es-button" type="button">Mark reviewed</button>
+      <a id="openCustomerButton" class="es-secondary-button" href="/customers/" hidden>Open customer</a>
+    </div>
+  </aside>
+
+  <script src="/clinical-submissions/clinical-submissions.js"></script>
+</body>
+</html>
