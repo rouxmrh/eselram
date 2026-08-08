@@ -1,156 +1,95 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Clinical Templates | Eselram</title>
-
-  <link
-    rel="stylesheet"
-    href="/app/assets/css/eselram.css"
-  >
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
 </head>
 
 <body class="es-dashboard-body">
-
   <div class="es-dashboard-layout">
 
     <aside class="es-sidebar">
-
-      <div class="es-sidebar-brand">
-        ESELRAM
-      </div>
+      <div class="es-sidebar-brand">ESELRAM</div>
 
       <nav class="es-sidebar-nav">
-
-        <a href="/dashboard/">
-          Overview
-        </a>
-
-        <a href="/bookings/">
-          Bookings
-        </a>
-
-        <a href="/calendar/">
-          Calendar
-        </a>
-
-        <a href="/customers/">
-          Customers
-        </a>
-
-        <a href="/services/">
-          Services
-        </a>
-
-        <a href="/treatment-records/">
-          Treatment Records
-        </a>
-
-        <a href="/payments/">
-          Payments
-        </a>
-
-        <a href="/settings/">
-          Settings
-        </a>
-
+        <a href="/dashboard/">Overview</a>
+        <a href="/bookings/">Bookings</a>
+        <a href="/calendar/">Calendar</a>
+        <a href="/customers/">Customers</a>
+        <a href="/services/">Services</a>
+        <a href="/treatment-records/">Treatment Records</a>
+        <a href="/payments/">Payments</a>
+        <a href="/settings/" class="active">Settings</a>
       </nav>
-
     </aside>
-
 
     <main class="es-dashboard-main">
 
       <header class="es-dashboard-header">
-
         <div>
-          <p class="es-eyebrow">
-            Settings
-          </p>
-
-          <h1>
-            Clinical Templates
-          </h1>
-
+          <p class="es-eyebrow">Settings</p>
+          <h1>Clinical Templates</h1>
           <p class="es-lead">
-            Build the consultation, patch test and clinical forms your business needs.
+            Start with an Eselram template or build a form from scratch.
           </p>
         </div>
 
-        <button
-          id="newTemplateButton"
-          class="es-button"
-          type="button"
-        >
-          New template
-        </button>
-
+        <div class="es-dashboard-header-actions">
+          <a class="es-secondary-button" href="/settings/branding.html">
+            Branding
+          </a>
+          <button id="newTemplateButton" class="es-button" type="button">
+            Blank template
+          </button>
+        </div>
       </header>
 
+      <section id="templateStatus" class="es-status" hidden></section>
 
-      <section
-        id="templateStatus"
-        class="es-status"
-        hidden
-      ></section>
+      <section class="es-dashboard-panel">
+        <div class="es-panel-header">
+          <div>
+            <p class="es-eyebrow">Starter library</p>
+            <h2>Start with a template</h2>
+          </div>
+        </div>
 
+        <p class="es-lead" style="font-size:13px;max-width:760px;">
+          Starter templates are neutral Eselram forms. Once added to your business,
+          every section and question can be changed.
+        </p>
+
+        <div id="starterTemplateLibrary" class="es-template-library">
+          Loading starter templates…
+        </div>
+      </section>
 
       <section class="es-template-layout">
 
         <aside class="es-template-sidebar">
+          <p class="es-eyebrow">Templates</p>
+          <h2>Your forms</h2>
 
-          <p class="es-eyebrow">
-            Templates
-          </p>
-
-          <h2>
-            Your forms
-          </h2>
-
-          <div
-            id="templateList"
-            class="es-template-list"
-          >
+          <div id="templateList" class="es-template-list">
             Loading templates…
           </div>
-
         </aside>
 
-
-        <section
-          id="templateEditor"
-          class="es-template-editor"
-        >
-
+        <section id="templateEditor" class="es-template-editor">
           <div class="es-template-editor-empty">
-
-            <strong>
-              Select or create a template.
-            </strong>
-
+            <strong>Select or create a template.</strong>
             <span>
-              Templates can contain any number of sections and custom fields.
+              Add sections, custom fields, required questions and conditional display rules.
             </span>
-
           </div>
-
         </section>
 
       </section>
-
     </main>
-
   </div>
 
-
   <script src="/clinical-templates/clinical-templates.js"></script>
-
 </body>
 </html>
