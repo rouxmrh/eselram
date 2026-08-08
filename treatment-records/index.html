@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Treatment Records | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+</head>
+
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
+
+    <aside class="es-sidebar">
+
+      <div class="es-sidebar-brand">
+        ESELRAM
+      </div>
+
+      <nav class="es-sidebar-nav">
+
+        <a href="/dashboard/">
+          Overview
+        </a>
+
+        <a href="/bookings/">
+          Bookings
+        </a>
+
+        <a href="/calendar/">
+          Calendar
+        </a>
+
+        <a href="/customers/">
+          Customers
+        </a>
+
+        <a href="/services/">
+          Services
+        </a>
+
+        <a
+          href="/treatment-records/"
+          class="active"
+        >
+          Treatment Records
+        </a>
+
+        <a href="/payments/">
+          Payments
+        </a>
+
+        <a href="/settings/">
+          Settings
+        </a>
+
+      </nav>
+
+    </aside>
+
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+
+        <div>
+
+          <p class="es-eyebrow">
+            Clinical
+          </p>
+
+          <h1>
+            Treatment Records
+          </h1>
+
+          <p class="es-lead">
+            Record treatment details, responses and next-session plans.
+          </p>
+
+        </div>
+
+        <button
+          id="newTreatmentButton"
+          class="es-button"
+          type="button"
+        >
+          New record
+        </button>
+
+      </header>
+
+
+      <section class="es-treatment-kpis">
+
+        <article class="es-treatment-kpi">
+          <span>
+            Total records
+          </span>
+
+          <strong id="totalRecords">
+            0
+          </strong>
+
+          <small>
+            All treatment records
+          </small>
+        </article>
+
+
+        <article class="es-treatment-kpi">
+          <span>
+            This month
+          </span>
+
+          <strong id="monthRecords">
+            0
+          </strong>
+
+          <small>
+            Treatments recorded this month
+          </small>
+        </article>
+
+
+        <article class="es-treatment-kpi">
+          <span>
+            Drafts
+          </span>
+
+          <strong id="draftRecords">
+            0
+          </strong>
+
+          <small>
+            Records still in progress
+          </small>
+        </article>
+
+
+        <article class="es-treatment-kpi">
+          <span>
+            Follow-ups planned
+          </span>
+
+          <strong id="followupRecords">
+            0
+          </strong>
+
+          <small>
+            Records with a next treatment date
+          </small>
+        </article>
+
+      </section>
+
+
+      <section
+        id="treatmentFormPanel"
+        class="es-dashboard-panel"
+        hidden
+      >
+
+        <div class="es-panel-header">
+
+          <div>
+
+            <p class="es-eyebrow">
+              Clinical record
+            </p>
+
+            <h2 id="treatmentFormTitle">
+              New treatment record
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <form id="treatmentForm">
+
+          <input
+            id="treatmentRecordId"
+            type="hidden"
+          >
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Customer
+
+              <select
+                id="treatmentCustomer"
+                required
+              >
+                <option value="">
+                  Select customer
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Appointment
+
+              <select id="treatmentAppointment">
+
+                <option value="">
+                  No linked appointment
+                </option>
+
+              </select>
+            </label>
+
+          </div>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Service
+
+              <select
+                id="treatmentService"
+                required
+              >
+                <option value="">
+                  Select service
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Treatment date
+
+              <input
+                id="treatmentDate"
+                type="date"
+                required
+              >
+            </label>
+
+          </div>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Practitioner
+
+              <input
+                id="practitionerName"
+                type="text"
+                required
+              >
+            </label>
+
+
+            <label>
+              Record status
+
+              <select id="treatmentStatus">
+
+                <option value="complete">
+                  Complete
+                </option>
+
+                <option value="draft">
+                  Draft
+                </option>
+
+              </select>
+            </label>
+
+          </div>
+
+
+          <label>
+            Treatment area
+
+            <input
+              id="treatmentArea"
+              type="text"
+              placeholder="e.g. left forearm, full face, right big toe"
+            >
+          </label>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Device / machine
+
+              <input
+                id="deviceName"
+                type="text"
+                placeholder="Optional"
+              >
+            </label>
+
+
+            <label>
+              Device settings
+
+              <input
+                id="deviceSettings"
+                type="text"
+                placeholder="e.g. wavelength, fluence, pulse settings"
+              >
+            </label>
+
+          </div>
+
+
+          <p class="es-treatment-form-note">
+            Device settings are intentionally flexible so different services and clinics can record the parameters relevant to their equipment.
+          </p>
+
+
+          <label>
+            Treatment notes
+
+            <textarea
+              id="treatmentNotes"
+              placeholder="Clinical notes about the treatment performed"
+            ></textarea>
+          </label>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Client response
+
+              <textarea
+                id="clientResponse"
+                placeholder="Immediate response / observations"
+              ></textarea>
+            </label>
+
+
+            <label>
+              Client tolerance
+
+              <textarea
+                id="clientTolerance"
+                placeholder="Comfort, tolerance or relevant observations"
+              ></textarea>
+            </label>
+
+          </div>
+
+
+          <label>
+            Aftercare notes
+
+            <textarea
+              id="aftercareNotes"
+              placeholder="Aftercare advice or instructions given"
+            ></textarea>
+          </label>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Next-session plan
+
+              <textarea
+                id="nextSessionPlan"
+                placeholder="Optional next-session plan"
+              ></textarea>
+            </label>
+
+
+            <label>
+              Next treatment date
+
+              <input
+                id="nextTreatmentDate"
+                type="date"
+              >
+            </label>
+
+          </div>
+
+
+          <div
+            id="treatmentFormStatus"
+            class="es-status"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+
+
+          <div class="es-form-actions">
+
+            <button
+              id="saveTreatmentButton"
+              class="es-button"
+              type="submit"
+            >
+              Save record
+            </button>
+
+            <button
+              id="closeTreatmentFormButton"
+              class="es-secondary-button"
+              type="button"
+            >
+              Close
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+      <section class="es-dashboard-panel">
+
+        <div class="es-treatment-toolbar">
+
+          <div>
+
+            <p class="es-eyebrow">
+              Records
+            </p>
+
+            <h2>
+              Treatment history
+            </h2>
+
+          </div>
+
+
+          <div class="es-treatment-filter-group">
+
+            <input
+              id="treatmentSearch"
+              type="search"
+              placeholder="Search customer or service"
+              aria-label="Search treatment records"
+            >
+
+
+            <select
+              id="treatmentStatusFilter"
+              aria-label="Filter record status"
+            >
+
+              <option value="all">
+                All statuses
+              </option>
+
+              <option value="complete">
+                Complete
+              </option>
+
+              <option value="draft">
+                Draft
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="treatmentRecordsList"
+          class="es-empty-state"
+        >
+          Loading treatment records…
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+  <div
+    id="treatmentDrawerBackdrop"
+    class="es-treatment-drawer-backdrop"
+  ></div>
+
+
+  <aside
+    id="treatmentDrawer"
+    class="es-treatment-drawer"
+    aria-hidden="true"
+  >
+
+    <div class="es-treatment-drawer-header">
+
+      <div>
+
+        <p class="es-eyebrow">
+          Treatment record
+        </p>
+
+        <h2 id="treatmentDrawerTitle">
+          Record
+        </h2>
+
+      </div>
+
+
+      <button
+        id="closeTreatmentDrawer"
+        class="es-treatment-drawer-close"
+        type="button"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      id="treatmentDetails"
+      class="es-treatment-detail-grid"
+    ></div>
+
+
+    <div
+      id="treatmentClinicalNotes"
+    ></div>
+
+
+    <div class="es-treatment-drawer-actions">
+
+      <button
+        id="editTreatmentButton"
+        class="es-secondary-button"
+        type="button"
+      >
+        Edit record
+      </button>
+
+      <a
+        id="openTreatmentCustomerButton"
+        class="es-button"
+        href="/customers/"
+      >
+        Open customer
+      </a>
+
+    </div>
+
+  </aside>
+
+
+  <script src="/treatment-records/treatment-records.js"></script>
+
+</body>
+</html>
