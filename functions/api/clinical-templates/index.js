@@ -19,7 +19,9 @@ const allowedFieldTypes = [
   "checkbox",
   "dropdown",
   "date",
-  "number"
+  "number",
+  "signature",
+  "file_upload"
 ];
 
 async function getUserContext(request, env) {
@@ -77,6 +79,9 @@ export async function onRequestGet({ request, env }) {
           description,
           is_active,
           is_default,
+          is_published,
+          public_token,
+          published_at,
           created_at,
           updated_at
         FROM clinical_templates
