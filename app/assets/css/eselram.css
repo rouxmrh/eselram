@@ -2872,3 +2872,64 @@ textarea:focus {
   padding: 7px 10px;
   font-size: 11px;
 }
+
+
+/* =======================================================
+   Business integrations
+   ======================================================= */
+
+.es-integration-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.es-integration-summary > div {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  background: var(--es-surface);
+}
+
+.es-integration-summary span {
+  color: var(--es-muted);
+  font-size: 11px;
+}
+
+.es-integration-summary strong {
+  font-size: 14px;
+}
+
+.es-settings-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.es-field-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--es-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.es-field-button {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 1px;
+}
+
+@media (max-width: 700px) {
+  .es-integration-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .es-field-button {
+    align-items: stretch;
+  }
+}
