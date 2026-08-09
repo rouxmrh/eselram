@@ -172,6 +172,12 @@ export async function onRequestGet({ request, env }) {
             r.opened_at,
             r.submitted_at,
             r.expires_at,
+            r.email_status,
+            r.email_to,
+            r.email_sent_at,
+            r.email_provider_id,
+            r.email_error,
+            r.email_send_count,
 
             t.name AS template_name,
             t.template_type,
