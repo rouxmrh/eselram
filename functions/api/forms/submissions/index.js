@@ -2,36 +2,88 @@ export async function onRequestPost({ request, env }) {
   try {
     const form = await request.formData();
     const token = String(form.get("token") || "").trim();
+    const requestToken = String(
+      form.get("request_token") || ""
+    ).trim();
 
-    if (!token) {
+    if (!token && !requestToken) {
       return Response.json(
         { ok: false, error: "Form token is required." },
         { status: 400 }
       );
     }
 
-    const template = await env.DB
-      .prepare(`
-        SELECT
-          id,
-          business_id,
-          name,
-          template_type,
-          description,
-          version
-        FROM clinical_templates
-        WHERE
-          public_token = ?
-          AND is_published = 1
-          AND is_active = 1
-        LIMIT 1
-      `)
-      .bind(token)
-      .first();
+    let formRequest = null;
+    let template = null;
+
+    if (requestToken) {
+      formRequest = await env.DB
+        .prepare(`
+          SELECT
+            r.id AS request_id,
+            r.business_id,
+            r.template_id,
+            r.customer_id,
+            r.appointment_id,
+            r.status AS request_status,
+            r.expires_at,
+
+            t.name,
+            t.template_type,
+            t.description,
+            t.version
+
+          FROM clinical_form_requests r
+
+          JOIN clinical_templates t
+            ON t.id = r.template_id
+
+          WHERE
+            r.request_token = ?
+            AND r.status IN ('created', 'opened')
+            AND datetime(r.expires_at) > datetime('now')
+            AND t.is_published = 1
+            AND t.is_active = 1
+
+          LIMIT 1
+        `)
+        .bind(requestToken)
+        .first();
+
+      if (formRequest) {
+        template = {
+          id: formRequest.template_id,
+          business_id: formRequest.business_id,
+          name: formRequest.name,
+          template_type: formRequest.template_type,
+          description: formRequest.description,
+          version: formRequest.version
+        };
+      }
+    } else {
+      template = await env.DB
+        .prepare(`
+          SELECT
+            id,
+            business_id,
+            name,
+            template_type,
+            description,
+            version
+          FROM clinical_templates
+          WHERE
+            public_token = ?
+            AND is_published = 1
+            AND is_active = 1
+          LIMIT 1
+        `)
+        .bind(token)
+        .first();
+    }
 
     if (!template) {
       return Response.json(
-        { ok: false, error: "Form is not available." },
+        { ok: false, error: "Form is not available or has already been submitted." },
         { status: 404 }
       );
     }
@@ -196,19 +248,30 @@ export async function onRequestPost({ request, env }) {
             id,
             business_id,
             template_id,
+            customer_id,
+            appointment_id,
+            form_request_id,
             public_token,
             submitted_by,
             status,
             template_version,
             template_snapshot_json
           )
-          VALUES (?, ?, ?, ?, 'client', 'submitted', ?, ?)
+          VALUES (
+            ?, ?, ?, ?, ?, ?, ?,
+            'client',
+            'submitted',
+            ?, ?
+          )
         `)
         .bind(
           submissionId,
           template.business_id,
           template.id,
-          token,
+          formRequest?.customer_id || null,
+          formRequest?.appointment_id || null,
+          formRequest?.request_id || null,
+          requestToken || token,
           Number(template.version || 1),
           JSON.stringify(templateSnapshot)
         )
@@ -347,6 +410,25 @@ export async function onRequestPost({ request, env }) {
           )
           .run();
       }
+    }
+
+    if (formRequest?.request_id) {
+      await env.DB
+        .prepare(`
+          UPDATE clinical_form_requests
+          SET
+            status = 'submitted',
+            submission_id = ?,
+            submitted_at = CURRENT_TIMESTAMP
+          WHERE
+            id = ?
+            AND status IN ('created', 'opened')
+        `)
+        .bind(
+          submissionId,
+          formRequest.request_id
+        )
+        .run();
     }
 
     return Response.json({
