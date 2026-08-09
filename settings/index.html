@@ -84,6 +84,13 @@
 
           <button
             type="button"
+            data-tab="email"
+          >
+            Email
+          </button>
+
+          <button
+            type="button"
             data-tab="users"
           >
             Users
@@ -307,6 +314,194 @@
     </a>
   </div>
 </div>
+
+
+          <div
+            id="tab-email"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Email
+                </p>
+
+                <h2>
+                  Email provider
+                </h2>
+
+                <p class="es-muted-copy">
+                  Connect your own Resend account. Your API key is encrypted before it is stored.
+                </p>
+              </div>
+
+            </div>
+
+
+            <div
+              id="emailEncryptionWarning"
+              class="es-status error"
+              hidden
+            ></div>
+
+
+            <div class="es-integration-summary">
+
+              <div>
+                <span>
+                  Provider
+                </span>
+
+                <strong>
+                  Resend
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Status
+                </span>
+
+                <strong id="emailIntegrationStatus">
+                  Not configured
+                </strong>
+              </div>
+
+            </div>
+
+
+            <form id="emailIntegrationForm">
+
+              <div class="es-form-grid">
+
+                <label>
+                  From name
+
+                  <input
+                    id="emailFromName"
+                    type="text"
+                    placeholder="My Clinic"
+                    required
+                  >
+                </label>
+
+
+                <label>
+                  From email
+
+                  <input
+                    id="emailFromEmail"
+                    type="email"
+                    placeholder="forms@myclinic.co.uk"
+                    required
+                  >
+                </label>
+
+              </div>
+
+
+              <label>
+                Resend API key
+
+                <input
+                  id="emailApiKey"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="re_••••••••••••••••"
+                >
+
+                <small
+                  id="emailApiKeyHelp"
+                  class="es-field-help"
+                >
+                  Paste a sending-only API key from your own Resend account.
+                </small>
+              </label>
+
+
+              <div
+                id="emailIntegrationMessage"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <div class="es-settings-actions">
+
+                <button
+                  id="saveEmailIntegrationButton"
+                  class="es-button"
+                  type="submit"
+                >
+                  Save email settings
+                </button>
+
+                <button
+                  id="disconnectEmailIntegrationButton"
+                  class="es-secondary-button"
+                  type="button"
+                  hidden
+                >
+                  Disconnect
+                </button>
+
+              </div>
+
+            </form>
+
+
+            <div class="es-settings-divider"></div>
+
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Connection test
+                </p>
+
+                <h3>
+                  Send a test email
+                </h3>
+
+                <p class="es-muted-copy">
+                  Save your email settings first, then confirm that your own Resend account and verified sender are working.
+                </p>
+              </div>
+
+            </div>
+
+
+            <div class="es-form-grid es-email-test-grid">
+
+              <label>
+                Send test to
+
+                <input
+                  id="emailTestRecipient"
+                  type="email"
+                  placeholder="you@example.com"
+                >
+              </label>
+
+              <div class="es-field-button">
+
+                <button
+                  id="sendEmailTestButton"
+                  class="es-secondary-button"
+                  type="button"
+                >
+                  Send test email
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
 
 <div
             id="tab-hours"
