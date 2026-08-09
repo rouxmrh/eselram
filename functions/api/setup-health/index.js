@@ -52,7 +52,8 @@ async function getUserContext(
     .prepare(`
       SELECT
         u.id AS user_id,
-        u.business_id
+        u.business_id,
+        u.name AS user_name
 
       FROM user_sessions s
 
@@ -849,6 +850,12 @@ export async function onRequestGet({
           name:
             business?.name ||
             "Eselram"
+        },
+
+        user: {
+          name:
+            user?.user_name ||
+            ""
         },
 
         environment: {
