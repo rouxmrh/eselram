@@ -28,6 +28,11 @@ const hoursPanel =
     "tab-hours"
   );
 
+const emailPanel =
+  document.getElementById(
+    "tab-email"
+  );
+
 const placeholderPanel =
   document.getElementById(
     "tab-placeholder"
@@ -357,6 +362,7 @@ function showTab(tab) {
   businessPanel.hidden = true;
   brandingPanel.hidden = true;
   hoursPanel.hidden = true;
+  emailPanel.hidden = true;
   placeholderPanel.hidden = true;
 
 
@@ -371,6 +377,16 @@ function showTab(tab) {
   if (tab === "branding") {
 
     brandingPanel.hidden = false;
+
+    return;
+  }
+
+
+  if (tab === "email") {
+
+    emailPanel.hidden = false;
+
+    loadEmailIntegration();
 
     return;
   }
@@ -391,6 +407,7 @@ function showTab(tab) {
 
   const names = {
     payments: "Payments",
+    email: "Email",
     users: "Users",
     roles: "Roles",
     notifications:
@@ -448,6 +465,520 @@ window.addEventListener(
   loadTabFromHash
 );
 
+
+
+
+
+/* =======================================================
+   Email integration
+   ======================================================= */
+
+const emailIntegrationForm =
+  document.getElementById(
+    "emailIntegrationForm"
+  );
+
+const emailIntegrationMessage =
+  document.getElementById(
+    "emailIntegrationMessage"
+  );
+
+const emailIntegrationStatus =
+  document.getElementById(
+    "emailIntegrationStatus"
+  );
+
+const emailEncryptionWarning =
+  document.getElementById(
+    "emailEncryptionWarning"
+  );
+
+const emailApiKeyHelp =
+  document.getElementById(
+    "emailApiKeyHelp"
+  );
+
+const disconnectEmailIntegrationButton =
+  document.getElementById(
+    "disconnectEmailIntegrationButton"
+  );
+
+const sendEmailTestButton =
+  document.getElementById(
+    "sendEmailTestButton"
+  );
+
+
+async function loadEmailIntegration() {
+
+  emailIntegrationMessage.hidden =
+    true;
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/integrations/email",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    if (
+      response.status === 401
+    ) {
+
+      window.location.href =
+        "/auth/login.html";
+
+      return;
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load email settings."
+      );
+    }
+
+
+    const integration =
+      data.integration || {};
+
+
+    document
+      .getElementById(
+        "emailFromName"
+      )
+      .value =
+        integration.from_name ||
+        "";
+
+
+    document
+      .getElementById(
+        "emailFromEmail"
+      )
+      .value =
+        integration.from_email ||
+        "";
+
+
+    document
+      .getElementById(
+        "emailApiKey"
+      )
+      .value =
+        "";
+
+
+    emailApiKeyHelp.textContent =
+      integration.has_api_key
+        ? "A Resend API key is already stored securely. Leave this blank to keep the existing key."
+        : "Paste a sending-only API key from your own Resend account.";
+
+
+    const statusLabels = {
+      not_configured:
+        "Not configured",
+      configured:
+        "Configured — test required",
+      verified:
+        "Connected",
+      error:
+        "Connection error",
+      disabled:
+        "Disabled"
+    };
+
+
+    emailIntegrationStatus.textContent =
+      statusLabels[
+        integration.status
+      ] ||
+      integration.status ||
+      "Not configured";
+
+
+    disconnectEmailIntegrationButton.hidden =
+      !integration.has_api_key;
+
+
+    emailEncryptionWarning.hidden =
+      data.encryption_ready;
+
+
+    if (!data.encryption_ready) {
+
+      emailEncryptionWarning.textContent =
+        "This installation cannot save provider credentials until ESELRAM_ENCRYPTION_KEY is added as a Cloudflare secret.";
+    }
+
+
+    if (integration.last_error) {
+
+      emailIntegrationMessage.hidden =
+        false;
+
+      emailIntegrationMessage.className =
+        "es-status error";
+
+      emailIntegrationMessage.textContent =
+        integration.last_error;
+    }
+
+
+  } catch (error) {
+
+    emailIntegrationMessage.hidden =
+      false;
+
+    emailIntegrationMessage.className =
+      "es-status error";
+
+    emailIntegrationMessage.textContent =
+      error.message ||
+      "Unable to load email settings.";
+  }
+}
+
+
+emailIntegrationForm
+  ?.addEventListener(
+    "submit",
+    async (event) => {
+
+      event.preventDefault();
+
+
+      const saveButton =
+        document.getElementById(
+          "saveEmailIntegrationButton"
+        );
+
+
+      saveButton.disabled =
+        true;
+
+
+      emailIntegrationMessage.hidden =
+        false;
+
+      emailIntegrationMessage.className =
+        "es-status";
+
+      emailIntegrationMessage.textContent =
+        "Saving email settings…";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/integrations/email",
+            {
+              method: "PUT",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Accept:
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  provider:
+                    "resend",
+
+                  from_name:
+                    document
+                      .getElementById(
+                        "emailFromName"
+                      )
+                      .value
+                      .trim(),
+
+                  from_email:
+                    document
+                      .getElementById(
+                        "emailFromEmail"
+                      )
+                      .value
+                      .trim(),
+
+                  api_key:
+                    document
+                      .getElementById(
+                        "emailApiKey"
+                      )
+                      .value
+                      .trim()
+                })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Unable to save email settings."
+          );
+        }
+
+
+        emailIntegrationMessage.className =
+          "es-status success";
+
+        emailIntegrationMessage.textContent =
+          "Email settings saved. Send a test email to verify the connection.";
+
+
+        await loadEmailIntegration();
+
+
+      } catch (error) {
+
+        emailIntegrationMessage.hidden =
+          false;
+
+        emailIntegrationMessage.className =
+          "es-status error";
+
+        emailIntegrationMessage.textContent =
+          error.message ||
+          "Unable to save email settings.";
+
+      } finally {
+
+        saveButton.disabled =
+          false;
+      }
+    }
+  );
+
+
+sendEmailTestButton
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      const recipient =
+        document
+          .getElementById(
+            "emailTestRecipient"
+          )
+          .value
+          .trim();
+
+
+      if (!recipient) {
+
+        emailIntegrationMessage.hidden =
+          false;
+
+        emailIntegrationMessage.className =
+          "es-status error";
+
+        emailIntegrationMessage.textContent =
+          "Enter the email address that should receive the test.";
+
+        return;
+      }
+
+
+      sendEmailTestButton.disabled =
+        true;
+
+      sendEmailTestButton.textContent =
+        "Sending…";
+
+
+      emailIntegrationMessage.hidden =
+        false;
+
+      emailIntegrationMessage.className =
+        "es-status";
+
+      emailIntegrationMessage.textContent =
+        "Sending test email…";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/integrations/email",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Accept:
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  action:
+                    "test",
+
+                  test_email:
+                    recipient
+                })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Unable to send test email."
+          );
+        }
+
+
+        emailIntegrationMessage.className =
+          "es-status success";
+
+        emailIntegrationMessage.textContent =
+          data.message ||
+          "Test email sent.";
+
+
+        await loadEmailIntegration();
+
+
+      } catch (error) {
+
+        emailIntegrationMessage.className =
+          "es-status error";
+
+        emailIntegrationMessage.textContent =
+          error.message ||
+          "Unable to send test email.";
+
+      } finally {
+
+        sendEmailTestButton.disabled =
+          false;
+
+        sendEmailTestButton.textContent =
+          "Send test email";
+      }
+    }
+  );
+
+
+disconnectEmailIntegrationButton
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !confirm(
+          "Disconnect this business's email provider? Consultation emails will stop sending until another provider is configured."
+        )
+      ) {
+        return;
+      }
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/integrations/email",
+            {
+              method:
+                "DELETE",
+
+              headers: {
+                Accept:
+                  "application/json"
+              }
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Unable to disconnect email provider."
+          );
+        }
+
+
+        emailIntegrationMessage.hidden =
+          false;
+
+        emailIntegrationMessage.className =
+          "es-status success";
+
+        emailIntegrationMessage.textContent =
+          "Email provider disconnected.";
+
+
+        await loadEmailIntegration();
+
+
+      } catch (error) {
+
+        emailIntegrationMessage.hidden =
+          false;
+
+        emailIntegrationMessage.className =
+          "es-status error";
+
+        emailIntegrationMessage.textContent =
+          error.message ||
+          "Unable to disconnect email provider.";
+      }
+    }
+  );
 
 
 /* =======================================================
