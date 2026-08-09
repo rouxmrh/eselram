@@ -263,6 +263,18 @@ export async function onRequestGet({
     }
 
 
+    const origin =
+      new URL(
+        request.url
+      ).origin;
+
+
+    const webhookUrl =
+      `${origin}/api/payments/stripe/webhook?business_id=${encodeURIComponent(
+        user.business_id
+      )}`;
+
+
     const integration =
       await getIntegration(
         env,
@@ -330,7 +342,9 @@ export async function onRequestGet({
           last_tested_at:
             null,
           last_error:
-            null
+            null,
+          webhook_url:
+            webhookUrl
         },
 
         encryption_ready:
@@ -390,7 +404,9 @@ export async function onRequestGet({
         last_tested_at:
           integration.last_tested_at,
         last_error:
-          integration.last_error
+          integration.last_error,
+        webhook_url:
+          webhookUrl
       },
 
       encryption_ready:
