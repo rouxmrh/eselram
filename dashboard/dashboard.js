@@ -169,6 +169,8 @@ function renderHeader(
     "Business";
 
 
+  if (sidebarUser) {
+
   sidebarUser.innerHTML = `
     <strong>
       ${escapeHtml(
