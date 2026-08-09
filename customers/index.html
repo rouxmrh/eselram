@@ -694,6 +694,14 @@
         Edit customer
       </button>
 
+      <button
+        id="sendCustomerFormButton"
+        class="es-secondary-button"
+        type="button"
+      >
+        Send form
+      </button>
+
       <a
         id="newCustomerBookingButton"
         class="es-button"
@@ -705,6 +713,90 @@
     </div>
 
   </aside>
+
+  <dialog
+    id="customerSendFormDialog"
+    class="es-form-request-dialog"
+  >
+    <div class="es-form-request-dialog-inner">
+
+      <div class="es-booking-dialog-header">
+        <div>
+          <p class="es-eyebrow">Client form</p>
+          <h2 id="customerSendFormTitle">Send form</h2>
+        </div>
+
+        <button
+          id="closeCustomerSendFormDialog"
+          class="es-dialog-close"
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <label>
+        Link to appointment
+        <select id="customerFormAppointment">
+          <option value="">Customer only — no appointment</option>
+        </select>
+      </label>
+
+      <label>
+        Published form
+        <select id="customerFormTemplate">
+          <option value="">Choose a form</option>
+        </select>
+      </label>
+
+      <div
+        id="customerSendFormStatus"
+        class="es-status"
+        hidden
+      ></div>
+
+      <button
+        id="generateCustomerFormLinkButton"
+        class="es-button"
+        type="button"
+      >
+        Generate secure link
+      </button>
+
+      <div
+        id="customerGeneratedFormLinkWrap"
+        class="es-form-request-link"
+        hidden
+      >
+        <input
+          id="customerGeneratedFormLink"
+          type="text"
+          readonly
+          aria-label="Generated client form link"
+        >
+
+        <button
+          id="copyCustomerGeneratedFormLink"
+          class="es-secondary-button"
+          type="button"
+        >
+          Copy link
+        </button>
+      </div>
+
+      <div class="es-settings-divider"></div>
+
+      <p class="es-eyebrow">Form history</p>
+
+      <div
+        id="customerFormRequests"
+        class="es-form-request-list"
+      ></div>
+
+    </div>
+  </dialog>
+
 
 <script type="module">
   import { renderSidebar } from "/components/sidebar.js";
