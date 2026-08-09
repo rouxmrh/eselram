@@ -1,787 +1,3204 @@
-<!doctype html>
-<html lang="en">
+const formPanel =
+  document.getElementById(
+    "bookingFormPanel"
+  );
 
-<head>
-  <meta charset="utf-8">
+const form =
+  document.getElementById(
+    "bookingForm"
+  );
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
+const bookingId =
+  document.getElementById(
+    "bookingId"
+  );
 
-  <title>Bookings | Eselram</title>
+const selectedCustomerId =
+  document.getElementById(
+    "selectedCustomerId"
+  );
 
-  <link
-    rel="stylesheet"
-    href="/app/assets/css/eselram.css"
-  >
+const serviceSelect =
+  document.getElementById(
+    "serviceSelect"
+  );
 
-  <style>
-    .es-booking-form-heading {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
+const bookingDate =
+  document.getElementById(
+    "bookingDate"
+  );
+
+const timeSelect =
+  document.getElementById(
+    "timeSelect"
+  );
+
+const availabilityStatus =
+  document.getElementById(
+    "availabilityStatus"
+  );
+
+const bookingStatus =
+  document.getElementById(
+    "bookingStatus"
+  );
+
+const saveBookingButton =
+  document.getElementById(
+    "saveBookingButton"
+  );
+
+const bookingsList =
+  document.getElementById(
+    "bookingsList"
+  );
+
+const bookingSearch =
+  document.getElementById(
+    "bookingSearch"
+  );
+
+const bookingStatusFilter =
+  document.getElementById(
+    "bookingStatusFilter"
+  );
+
+const customerSearch =
+  document.getElementById(
+    "customerSearch"
+  );
+
+const customerSearchResults =
+  document.getElementById(
+    "customerSearchResults"
+  );
+
+const selectedCustomer =
+  document.getElementById(
+    "selectedCustomer"
+  );
+
+const selectedCustomerText =
+  document.getElementById(
+    "selectedCustomerText"
+  );
+
+const bookingDetailsDialog =
+  document.getElementById(
+    "bookingDetailsDialog"
+  );
+
+const bookingDetailContent =
+  document.getElementById(
+    "bookingDetailContent"
+  );
+
+const bookingDetailActions =
+  document.getElementById(
+    "bookingDetailActions"
+  );
+
+
+let services = [];
+let bookings = [];
+let currentDetailBookingId = null;
+
+let currentFormRequestBooking = null;
+let currentGeneratedFormRequest = null;
+
+const sendFormDialog =
+  document.getElementById("sendFormDialog");
+
+const sendFormTitle =
+  document.getElementById("sendFormTitle");
+
+const sendFormContext =
+  document.getElementById("sendFormContext");
+
+const sendFormTemplate =
+  document.getElementById("sendFormTemplate");
+
+const sendFormStatus =
+  document.getElementById("sendFormStatus");
+
+const generatedFormLinkWrap =
+  document.getElementById("generatedFormLinkWrap");
+
+const generatedFormLink =
+  document.getElementById("generatedFormLink");
+
+const bookingFormRequests =
+  document.getElementById("bookingFormRequests");
+
+let customerSearchTimer = null;
+
+
+/* =======================================================
+   Initial setup
+   ======================================================= */
+
+document
+  .getElementById(
+    "newBookingButton"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      openBookingForm()
+  );
+
+
+document
+  .getElementById(
+    "cancelBookingButton"
+  )
+  .addEventListener(
+    "click",
+    closeBookingForm
+  );
+
+
+document
+  .getElementById(
+    "clearSelectedCustomer"
+  )
+  .addEventListener(
+    "click",
+    clearCustomerSelection
+  );
+
+
+document
+  .getElementById(
+    "closeBookingDialog"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      bookingDetailsDialog.close()
+  );
+
+
+serviceSelect.addEventListener(
+  "change",
+  () => loadAvailability()
+);
+
+
+bookingDate.addEventListener(
+  "change",
+  () => loadAvailability()
+);
+
+
+bookingSearch.addEventListener(
+  "input",
+  renderBookings
+);
+
+
+bookingStatusFilter.addEventListener(
+  "change",
+  renderBookings
+);
+
+
+customerSearch.addEventListener(
+  "input",
+  () => {
+
+    clearTimeout(
+      customerSearchTimer
+    );
+
+
+    const query =
+      customerSearch
+        .value
+        .trim();
+
+
+    if (
+      query.length < 2
+    ) {
+
+      customerSearchResults.hidden =
+        true;
+
+      customerSearchResults.innerHTML =
+        "";
+
+      return;
     }
 
-    .es-customer-search-wrap {
-      position: relative;
+
+    customerSearchTimer =
+      setTimeout(
+        () =>
+          searchCustomers(
+            query
+          ),
+        250
+      );
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  (event) => {
+
+    if (
+      !event.target.closest(
+        ".es-customer-search-wrap"
+      )
+    ) {
+
+      customerSearchResults.hidden =
+        true;
+    }
+  }
+);
+
+
+function setMinimumDate() {
+
+  const today =
+    new Date();
+
+
+  const yyyy =
+    today.getFullYear();
+
+  const mm =
+    String(
+      today.getMonth() + 1
+    ).padStart(2, "0");
+
+  const dd =
+    String(
+      today.getDate()
+    ).padStart(2, "0");
+
+
+  bookingDate.min =
+    `${yyyy}-${mm}-${dd}`;
+}
+
+
+/* =======================================================
+   Services
+   ======================================================= */
+
+async function loadServices() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/services",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load services."
+      );
     }
 
-    .es-customer-results {
-      position: absolute;
-      z-index: 20;
-      top: calc(100% - 14px);
-      left: 0;
-      right: 0;
-      overflow: hidden;
-      border: 1px solid var(--es-border);
-      border-radius: var(--es-radius-md);
-      background: var(--es-surface);
-      box-shadow: var(--es-shadow);
+
+    services =
+      data.services ||
+      [];
+
+
+    if (
+      services.length === 0
+    ) {
+
+      serviceSelect.innerHTML = `
+        <option value="">
+          No services available
+        </option>
+      `;
+
+      serviceSelect.disabled =
+        true;
+
+      return;
     }
 
-    .es-customer-result {
-      display: grid;
-      gap: 2px;
-      width: 100%;
-      padding: 12px 14px;
-      border: 0;
-      border-bottom: 1px solid var(--es-border);
-      background: transparent;
-      color: var(--es-text);
-      text-align: left;
-      cursor: pointer;
-    }
 
-    .es-customer-result:last-child {
-      border-bottom: 0;
-    }
-
-    .es-customer-result:hover {
-      background: #f7f8f5;
-    }
-
-    .es-customer-result span {
-      color: var(--es-muted);
-      font-size: 12px;
-    }
-
-    .es-selected-customer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: -8px;
-      margin-bottom: 20px;
-      padding: 10px 12px;
-      border: 1px solid var(--es-border);
-      border-radius: var(--es-radius-sm);
-      background: #f7f8f5;
-      font-size: 13px;
-    }
-
-    .es-booking-actions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 7px;
-    }
-
-    .es-booking-action {
-      min-height: 34px;
-      padding: 0 11px;
-      border: 1px solid var(--es-border);
-      border-radius: var(--es-radius-sm);
-      background: var(--es-surface);
-      color: var(--es-text);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .es-booking-action:hover {
-      border-color: var(--es-primary);
-    }
-
-    .es-booking-action.danger {
-      color: var(--es-error);
-    }
-
-    .es-booking-row {
-      grid-template-columns:
-        minmax(130px, .8fr)
-        minmax(210px, 1.5fr)
-        minmax(90px, .55fr)
-        auto
-        minmax(220px, 1.2fr);
-    }
-
-    .es-booking-dialog {
-      width: min(560px, calc(100vw - 32px));
-      max-height: calc(100vh - 48px);
-      overflow: auto;
-      padding: 0;
-      border: 1px solid var(--es-border);
-      border-radius: var(--es-radius-lg);
-      background: var(--es-surface);
-      color: var(--es-text);
-      box-shadow: var(--es-shadow);
-    }
-
-    .es-booking-dialog::backdrop {
-      background: rgba(20, 25, 22, .35);
-    }
-
-    .es-booking-dialog-inner {
-      padding: 28px;
-    }
-
-    .es-booking-dialog-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-
-    .es-booking-dialog-header h2 {
-      margin: 4px 0 0;
-    }
-
-    .es-dialog-close {
-      border: 0;
-      background: transparent;
-      color: var(--es-muted);
-      font-size: 24px;
-      cursor: pointer;
-    }
-
-    .es-booking-detail-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-
-    .es-booking-detail {
-      display: grid;
-      gap: 4px;
-    }
-
-    .es-booking-detail span {
-      color: var(--es-muted);
-      font-size: 12px;
-    }
-
-    .es-booking-detail-full {
-      grid-column: 1 / -1;
-    }
-
-    .es-dialog-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-      margin-top: 26px;
-      padding-top: 20px;
-      border-top: 1px solid var(--es-border);
-    }
-
-    @media (max-width: 1040px) {
-      .es-booking-row {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .es-booking-actions {
-        justify-content: flex-start;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .es-booking-detail-grid,
-      .es-booking-row {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-
-<body class="es-dashboard-body">
-
-  <div class="es-dashboard-layout">
-
-    <aside
-  id="appSidebar"
-  class="es-sidebar"
-></aside>
+    serviceSelect.disabled =
+      false;
 
 
-    <main class="es-dashboard-main">
+    serviceSelect.innerHTML = `
+      <option value="">
+        Choose a service
+      </option>
 
-      <header class="es-dashboard-header">
-
-        <div>
-
-          <p class="es-eyebrow">
-            Appointments
-          </p>
-
-          <h1>
-            Bookings
-          </h1>
-
-          <p class="es-lead">
-            Create appointments and manage your upcoming schedule.
-          </p>
-
-        </div>
-
-        <button
-          id="newBookingButton"
-          class="es-button"
-          type="button"
-        >
-          New booking
-        </button>
-
-      </header>
-
-
-      <section
-        id="bookingFormPanel"
-        class="es-dashboard-panel"
-        hidden
-      >
-
-        <div class="es-booking-form-heading">
-
-          <div>
-
-            <p
-              id="bookingFormEyebrow"
-              class="es-eyebrow"
-            >
-              New booking
-            </p>
-
-            <h2 id="bookingFormTitle">
-              Create appointment
-            </h2>
-
-          </div>
-
-        </div>
-
-
-        <form id="bookingForm">
-
-          <input
-            id="bookingId"
-            type="hidden"
-          >
-
-          <input
-            id="selectedCustomerId"
-            type="hidden"
-          >
-
-
-          <div class="es-customer-search-wrap">
-
-            <label>
-              Find existing customer
-
-              <input
-                id="customerSearch"
-                type="search"
-                placeholder="Search name, email or phone"
-                autocomplete="off"
+      ${
+        services
+          .map(
+            (service) => `
+              <option
+                value="${escapeHtml(
+                  service.id
+                )}"
               >
-            </label>
+                ${escapeHtml(
+                  service.name
+                )}
+                ·
+                ${service.duration_minutes} min
+                ·
+                ${formatMoney(
+                  service.price_minor
+                )}
+              </option>
+            `
+          )
+          .join("")
+      }
+    `;
 
-            <div
-              id="customerSearchResults"
-              class="es-customer-results"
-              hidden
-            ></div>
 
-          </div>
+  } catch (error) {
+
+    serviceSelect.innerHTML = `
+      <option value="">
+        Unable to load services
+      </option>
+    `;
+
+    serviceSelect.disabled =
+      true;
+  }
+}
 
 
-          <div
-            id="selectedCustomer"
-            class="es-selected-customer"
-            hidden
-          >
+/* =======================================================
+   Customers
+   ======================================================= */
 
-            <span id="selectedCustomerText"></span>
+async function searchCustomers(
+  query
+) {
 
+  try {
+
+    const params =
+      new URLSearchParams({
+        customer_search:
+          query
+      });
+
+
+    const response =
+      await fetch(
+        `/api/bookings?${params.toString()}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to search customers."
+      );
+    }
+
+
+    const customers =
+      data.customers ||
+      [];
+
+
+    if (
+      customers.length === 0
+    ) {
+
+      customerSearchResults.innerHTML = `
+        <div class="es-customer-result">
+          <strong>
+            No customers found
+          </strong>
+
+          <span>
+            Continue below to create a new customer.
+          </span>
+        </div>
+      `;
+
+      customerSearchResults.hidden =
+        false;
+
+      return;
+    }
+
+
+    customerSearchResults.innerHTML =
+      customers
+        .map(
+          (customer) => `
             <button
-              id="clearSelectedCustomer"
-              class="es-booking-action"
+              class="es-customer-result"
               type="button"
+              data-customer-id="${escapeHtml(
+                customer.id
+              )}"
             >
-              Use new customer
+              <strong>
+                ${escapeHtml(
+                  customer.first_name
+                )}
+                ${escapeHtml(
+                  customer.last_name
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  [
+                    customer.email,
+                    customer.phone
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                )}
+              </span>
             </button>
+          `
+        )
+        .join("");
 
-          </div>
 
+    customerSearchResults
+      .querySelectorAll(
+        "[data-customer-id]"
+      )
+      .forEach(
+        (button) => {
 
-          <div class="es-form-grid">
+          button.addEventListener(
+            "click",
+            () => {
 
-            <label>
-              Service
+              const customer =
+                customers.find(
+                  (item) =>
+                    item.id ===
+                    button.dataset
+                      .customerId
+                );
 
-              <select
-                id="serviceSelect"
-                required
-              >
-                <option value="">
-                  Select a service
-                </option>
-              </select>
 
-            </label>
+              if (customer) {
 
+                selectCustomer(
+                  customer
+                );
+              }
+            }
+          );
+        }
+      );
 
-            <label>
-              Date
 
-              <input
-                id="bookingDate"
-                type="date"
-                required
-              >
-            </label>
+    customerSearchResults.hidden =
+      false;
 
-          </div>
 
+  } catch (error) {
 
-          <label>
-            Available time
-
-            <select
-              id="timeSelect"
-              required
-              disabled
-            >
-              <option value="">
-                Choose a service and date first
-              </option>
-            </select>
-          </label>
-
-
-          <div
-            id="availabilityStatus"
-            class="es-booking-hint"
-          >
-            Available times will appear after you choose a service and date.
-          </div>
-
-
-          <div class="es-booking-divider"></div>
-
-
-          <div class="es-form-grid">
-
-            <label>
-              First name
-
-              <input
-                id="firstName"
-                type="text"
-                autocomplete="given-name"
-                required
-              >
-            </label>
-
-
-            <label>
-              Last name
-
-              <input
-                id="lastName"
-                type="text"
-                autocomplete="family-name"
-                required
-              >
-            </label>
-
-          </div>
-
-
-          <div class="es-form-grid">
-
-            <label>
-              Email
-
-              <input
-                id="email"
-                type="email"
-                autocomplete="email"
-              >
-            </label>
-
-
-            <label>
-              Phone
-
-              <input
-                id="phone"
-                type="tel"
-                autocomplete="tel"
-              >
-            </label>
-
-          </div>
-
-
-          <label>
-            Customer notes
-
-            <textarea
-              id="notes"
-              placeholder="Optional notes for this appointment"
-            ></textarea>
-          </label>
-
-
-          <div
-            id="bookingStatus"
-            class="es-status"
-            role="status"
-            aria-live="polite"
-            hidden
-          ></div>
-
-
-          <div class="es-form-actions">
-
-            <button
-              id="saveBookingButton"
-              class="es-button"
-              type="submit"
-            >
-              Create booking
-            </button>
-
-            <button
-              id="cancelBookingButton"
-              class="es-secondary-button"
-              type="button"
-            >
-              Close
-            </button>
-
-          </div>
-
-        </form>
-
-      </section>
-
-
-      <section class="es-dashboard-panel">
-
-        <div class="es-bookings-toolbar">
-
-          <div>
-
-            <p class="es-eyebrow">
-              Schedule
-            </p>
-
-            <h2>
-              Bookings
-            </h2>
-
-          </div>
-
-
-          <div class="es-bookings-filter-group">
-
-            <input
-              id="bookingSearch"
-              type="search"
-              placeholder="Search customer or service"
-              aria-label="Search bookings"
-            >
-
-            <select
-              id="bookingStatusFilter"
-              aria-label="Filter by status"
-            >
-              <option value="all">
-                All statuses
-              </option>
-
-              <option value="confirmed">
-                Confirmed
-              </option>
-
-              <option value="completed">
-                Completed
-              </option>
-
-              <option value="cancelled">
-                Cancelled
-              </option>
-            </select>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="bookingsList"
-          class="es-empty-state"
-        >
-          Loading bookings…
-        </div>
-
-      </section>
-
-    </main>
-
-  </div>
-
-
-  <dialog
-    id="bookingDetailsDialog"
-    class="es-booking-dialog"
-  >
-
-    <div class="es-booking-dialog-inner">
-
-      <div class="es-booking-dialog-header">
-
-        <div>
-          <p class="es-eyebrow">
-            Booking details
-          </p>
-
-          <h2 id="detailCustomerName">
-            Appointment
-          </h2>
-        </div>
-
-        <button
-          id="closeBookingDialog"
-          class="es-dialog-close"
-          type="button"
-          aria-label="Close"
-        >
-          ×
-        </button>
-
+    customerSearchResults.innerHTML = `
+      <div class="es-customer-result">
+        <strong>
+          Unable to search customers
+        </strong>
       </div>
+    `;
+
+    customerSearchResults.hidden =
+      false;
+  }
+}
 
 
-      <div
-        id="bookingDetailContent"
-        class="es-booking-detail-grid"
-      ></div>
+function selectCustomer(
+  customer
+) {
+
+  selectedCustomerId.value =
+    customer.id;
 
 
-      <div
-        id="bookingDetailActions"
-        class="es-dialog-actions"
-      ></div>
-
-    </div>
-
-  </dialog>
-
+  document
+    .getElementById(
+      "firstName"
+    )
+    .value =
+      customer.first_name ||
+      "";
 
 
-  <dialog
-    id="paymentLinkDialog"
-    class="es-booking-dialog"
-  >
+  document
+    .getElementById(
+      "lastName"
+    )
+    .value =
+      customer.last_name ||
+      "";
 
-    <div class="es-booking-dialog-inner">
 
-      <div class="es-booking-dialog-header">
+  document
+    .getElementById(
+      "email"
+    )
+    .value =
+      customer.email ||
+      "";
 
-        <div>
 
-          <p class="es-eyebrow">
-            Stripe Checkout
-          </p>
+  document
+    .getElementById(
+      "phone"
+    )
+    .value =
+      customer.phone ||
+      "";
 
-          <h2>
-            Customer payment link
-          </h2>
 
-        </div>
+  selectedCustomerText.textContent =
+    `${customer.first_name} ${customer.last_name}`;
 
-        <button
-          id="closePaymentLinkDialog"
-          class="es-dialog-close"
-          type="button"
-          aria-label="Close"
-        >
-          ×
-        </button>
 
+  selectedCustomer.hidden =
+    false;
+
+
+  customerSearch.value =
+    "";
+
+
+  customerSearchResults.hidden =
+    true;
+}
+
+
+function clearCustomerSelection() {
+
+  selectedCustomerId.value =
+    "";
+
+  selectedCustomer.hidden =
+    true;
+
+  selectedCustomerText.textContent =
+    "";
+}
+
+
+/* =======================================================
+   Availability
+   ======================================================= */
+
+async function loadAvailability(
+  preferredTime = ""
+) {
+
+  const serviceId =
+    serviceSelect.value;
+
+  const date =
+    bookingDate.value;
+
+
+  timeSelect.disabled =
+    true;
+
+
+  if (
+    !serviceId ||
+    !date
+  ) {
+
+    timeSelect.innerHTML = `
+      <option value="">
+        Choose a service and date first
+      </option>
+    `;
+
+    availabilityStatus.textContent =
+      "Available times will appear after you choose a service and date.";
+
+    return;
+  }
+
+
+  timeSelect.innerHTML = `
+    <option value="">
+      Loading available times…
+    </option>
+  `;
+
+
+  availabilityStatus.textContent =
+    "Checking availability…";
+
+
+  try {
+
+    const query =
+      new URLSearchParams({
+        service_id:
+          serviceId,
+        date
+      });
+
+
+    const currentBookingId =
+      bookingId.value;
+
+
+    if (currentBookingId) {
+
+      query.set(
+        "exclude_appointment_id",
+        currentBookingId
+      );
+    }
+
+
+    const response =
+      await fetch(
+        `/api/bookings/availability?${query.toString()}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load availability."
+      );
+    }
+
+
+    const slots =
+      data.slots ||
+      [];
+
+
+    if (
+      preferredTime &&
+      !slots.includes(
+        preferredTime
+      )
+    ) {
+
+      slots.unshift(
+        preferredTime
+      );
+    }
+
+
+    if (
+      slots.length === 0
+    ) {
+
+      timeSelect.innerHTML = `
+        <option value="">
+          No available times
+        </option>
+      `;
+
+      availabilityStatus.textContent =
+        "There are no available appointment times for this date.";
+
+      return;
+    }
+
+
+    timeSelect.innerHTML = `
+      <option value="">
+        Choose a time
+      </option>
+
+      ${
+        slots
+          .map(
+            (slot) => `
+              <option
+                value="${escapeHtml(
+                  slot
+                )}"
+              >
+                ${formatTime(
+                  slot
+                )}
+              </option>
+            `
+          )
+          .join("")
+      }
+    `;
+
+
+    timeSelect.disabled =
+      false;
+
+
+    if (
+      preferredTime &&
+      slots.includes(
+        preferredTime
+      )
+    ) {
+
+      timeSelect.value =
+        preferredTime;
+    }
+
+
+    availabilityStatus.textContent =
+      `${slots.length} available time${
+        slots.length === 1
+          ? ""
+          : "s"
+      } · ${data.timezone || ""}`;
+
+
+  } catch (error) {
+
+    timeSelect.innerHTML = `
+      <option value="">
+        Unable to load times
+      </option>
+    `;
+
+    timeSelect.disabled =
+      true;
+
+    availabilityStatus.textContent =
+      error.message ||
+      "Unable to load availability.";
+  }
+}
+
+
+/* =======================================================
+   Create / edit booking
+   ======================================================= */
+
+form.addEventListener(
+  "submit",
+  async (event) => {
+
+    event.preventDefault();
+
+
+    if (
+      !serviceSelect.value ||
+      !bookingDate.value ||
+      !timeSelect.value
+    ) {
+
+      showBookingError(
+        "Choose a service, date and available time."
+      );
+
+      return;
+    }
+
+
+    const firstName =
+      document
+        .getElementById(
+          "firstName"
+        )
+        .value
+        .trim();
+
+    const lastName =
+      document
+        .getElementById(
+          "lastName"
+        )
+        .value
+        .trim();
+
+    const email =
+      document
+        .getElementById(
+          "email"
+        )
+        .value
+        .trim();
+
+    const phone =
+      document
+        .getElementById(
+          "phone"
+        )
+        .value
+        .trim();
+
+
+    if (
+      !firstName ||
+      !lastName
+    ) {
+
+      showBookingError(
+        "Enter the customer's first and last name."
+      );
+
+      return;
+    }
+
+
+    if (
+      !email &&
+      !phone
+    ) {
+
+      showBookingError(
+        "Enter an email address or phone number."
+      );
+
+      return;
+    }
+
+
+    const editing =
+      Boolean(
+        bookingId.value
+      );
+
+
+    bookingStatus.hidden =
+      false;
+
+    bookingStatus.className =
+      "es-status";
+
+    bookingStatus.textContent =
+      editing
+        ? "Saving changes…"
+        : "Creating booking…";
+
+
+    saveBookingButton.disabled =
+      true;
+
+
+    const payload = {
+
+      id:
+        bookingId.value ||
+        undefined,
+
+      customer_id:
+        selectedCustomerId.value ||
+        undefined,
+
+      service_id:
+        serviceSelect.value,
+
+      date:
+        bookingDate.value,
+
+      time:
+        timeSelect.value,
+
+      first_name:
+        firstName,
+
+      last_name:
+        lastName,
+
+      email,
+
+      phone,
+
+      notes:
+        document
+          .getElementById(
+            "notes"
+          )
+          .value
+          .trim()
+    };
+
+
+    if (editing) {
+
+      payload.action =
+        "update";
+    }
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/bookings",
+          {
+            method:
+              editing
+                ? "PUT"
+                : "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Accept:
+                "application/json"
+            },
+
+            body:
+              JSON.stringify(
+                payload
+              )
+          }
+        );
+
+
+      handleAuthentication(
+        response
+      );
+
+
+      const data =
+        await response.json();
+
+
+      if (
+        !response.ok ||
+        !data.ok
+      ) {
+
+        throw new Error(
+          data.error ||
+          (
+            editing
+              ? "Unable to update booking."
+              : "Unable to create booking."
+          )
+        );
+      }
+
+
+      bookingStatus.className =
+        "es-status success";
+
+      bookingStatus.textContent =
+        editing
+          ? "Booking updated."
+          : "Booking created.";
+
+
+      await loadBookings();
+
+
+      if (editing) {
+
+        const updated =
+          bookings.find(
+            (booking) =>
+              booking.id ===
+              bookingId.value
+          );
+
+
+        if (updated) {
+
+          showBookingDetails(
+            updated
+          );
+        }
+      }
+
+
+      resetBookingForm();
+
+
+    } catch (error) {
+
+      showBookingError(
+        error.message ||
+        "Unable to save booking."
+      );
+
+
+    } finally {
+
+      saveBookingButton.disabled =
+        false;
+    }
+  }
+);
+
+
+function showBookingError(
+  message
+) {
+
+  bookingStatus.hidden =
+    false;
+
+  bookingStatus.className =
+    "es-status error";
+
+  bookingStatus.textContent =
+    message;
+}
+
+
+/* =======================================================
+   Booking list
+   ======================================================= */
+
+async function loadBookings() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/bookings",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load bookings."
+      );
+    }
+
+
+    bookings =
+      data.bookings ||
+      [];
+
+
+    renderBookings();
+
+
+  } catch (error) {
+
+    bookingsList.className =
+      "es-status error";
+
+    bookingsList.textContent =
+      error.message ||
+      "Unable to load bookings.";
+  }
+}
+
+
+function renderBookings() {
+
+  const query =
+    bookingSearch.value
+      .trim()
+      .toLowerCase();
+
+  const statusFilter =
+    bookingStatusFilter.value;
+
+
+  const filtered =
+    bookings.filter(
+      (booking) => {
+
+        if (
+          statusFilter !==
+            "all" &&
+          booking.status !==
+            statusFilter
+        ) {
+
+          return false;
+        }
+
+
+        if (!query) {
+          return true;
+        }
+
+
+        const searchable = [
+          booking.first_name,
+          booking.last_name,
+          booking.email,
+          booking.phone,
+          booking.service_name,
+          booking.status,
+          formatStatus(
+            booking.status
+          ),
+          formatDate(
+            booking.start_at
+          )
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+
+        return searchable.includes(
+          query
+        );
+      }
+    );
+
+
+  if (
+    filtered.length === 0
+  ) {
+
+    bookingsList.className =
+      "es-empty-state";
+
+    bookingsList.innerHTML = `
+      <strong>
+        ${
+          bookings.length === 0
+            ? "No bookings yet."
+            : "No bookings match your filters."
+        }
+      </strong>
+
+      <span>
+        ${
+          bookings.length === 0
+            ? "Create your first appointment to get started."
+            : "Try changing your search or status filter."
+        }
+      </span>
+    `;
+
+    return;
+  }
+
+
+  bookingsList.className =
+    "es-bookings-list";
+
+
+  bookingsList.innerHTML =
+    filtered
+      .map(
+        (booking) => `
+          <article class="es-booking-row">
+
+            <div class="es-booking-date">
+
+              <strong>
+                ${formatDate(
+                  booking.start_at
+                )}
+              </strong>
+
+              <span>
+                ${formatDateTimeRange(
+                  booking.start_at,
+                  booking.end_at
+                )}
+              </span>
+
+            </div>
+
+
+            <div class="es-booking-customer">
+
+              <strong>
+                ${escapeHtml(
+                  booking.first_name
+                )}
+                ${escapeHtml(
+                  booking.last_name
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  booking.service_name
+                )}
+              </span>
+
+              <small>
+                ${escapeHtml(
+                  booking.email ||
+                  booking.phone ||
+                  ""
+                )}
+              </small>
+
+            </div>
+
+
+            <div class="es-booking-money">
+
+              <strong>
+                ${formatMoney(
+                  booking.price_minor
+                )}
+              </strong>
+
+              ${
+                Number(
+                  booking.deposit_due_minor ||
+                  0
+                ) > 0
+                  ? `
+                    <small>
+                      Deposit:
+                      ${formatMoney(
+                        booking.deposit_due_minor
+                      )}
+                    </small>
+                  `
+                  : ""
+              }
+
+            </div>
+
+
+            <div>
+
+              <span
+                class="es-booking-status es-booking-status-${escapeHtml(
+                  booking.status
+                )}"
+              >
+                ${formatStatus(
+                  booking.status
+                )}
+              </span>
+
+            </div>
+
+
+            <div class="es-booking-actions">
+
+              <button
+                class="es-booking-action"
+                type="button"
+                data-view="${escapeHtml(
+                  booking.id
+                )}"
+              >
+                View
+              </button>
+
+              ${
+                booking.status ===
+                  "confirmed"
+                  ? `
+                    <button
+                      class="es-booking-action"
+                      type="button"
+                      data-edit="${escapeHtml(
+                        booking.id
+                      )}"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      class="es-booking-action"
+                      type="button"
+                      data-complete="${escapeHtml(
+                        booking.id
+                      )}"
+                    >
+                      Complete
+                    </button>
+
+                    <button
+                      class="es-booking-action danger"
+                      type="button"
+                      data-cancel="${escapeHtml(
+                        booking.id
+                      )}"
+                    >
+                      Cancel
+                    </button>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          </article>
+        `
+      )
+      .join("");
+
+
+  bindBookingRowActions();
+}
+
+
+function bindBookingRowActions() {
+
+  document
+    .querySelectorAll(
+      "[data-view]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const booking =
+              getBooking(
+                button.dataset.view
+              );
+
+
+            if (booking) {
+
+              showBookingDetails(
+                booking
+              );
+            }
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-edit]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const booking =
+              getBooking(
+                button.dataset.edit
+              );
+
+
+            if (booking) {
+
+              openBookingForm(
+                booking
+              );
+            }
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-complete]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            completeBooking(
+              button.dataset
+                .complete
+            )
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-cancel]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            cancelBooking(
+              button.dataset
+                .cancel
+            )
+        );
+      }
+    );
+}
+
+
+
+/* =======================================================
+   Secure client form links
+   ======================================================= */
+
+document
+  .getElementById("closeSendFormDialog")
+  ?.addEventListener("click", () => {
+    sendFormDialog.close();
+  });
+
+document
+  .getElementById("generateFormLinkButton")
+  ?.addEventListener("click", generateBookingFormLink);
+
+document
+  .getElementById("copyGeneratedFormLink")
+  ?.addEventListener("click", async () => {
+    if (!generatedFormLink.value) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        generatedFormLink.value
+      );
+
+      showBookingFormRequestStatus(
+        "Secure form link copied.",
+        "success"
+      );
+    } catch {
+      generatedFormLink.select();
+      document.execCommand("copy");
+    }
+  });
+
+
+document
+  .getElementById("emailGeneratedFormLink")
+  ?.addEventListener(
+    "click",
+    async () => {
+      if (!currentGeneratedFormRequest?.id) {
+        showBookingFormRequestStatus(
+          "Generate the secure consultation link first.",
+          "error"
+        );
+        return;
+      }
+
+      await sendBookingConsultationEmail(
+        currentGeneratedFormRequest.id
+      );
+    }
+  );
+
+
+async function sendBookingConsultationEmail(
+  formRequestId
+) {
+  const button =
+    document.getElementById(
+      "emailGeneratedFormLink"
+    );
+
+  if (button) {
+    button.disabled = true;
+    button.textContent =
+      "Sending…";
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/form-requests/email",
+        {
+          method:
+            "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              form_request_id:
+                formRequestId
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to send consultation email."
+      );
+    }
+
+    showBookingFormRequestStatus(
+      `Consultation emailed to ${data.email.to}.`,
+      "success"
+    );
+
+    if (currentFormRequestBooking) {
+      await loadBookingFormRequests(
+        currentFormRequestBooking.id
+      );
+    }
+  } catch (error) {
+    showBookingFormRequestStatus(
+      error.message ||
+      "Unable to send consultation email.",
+      "error"
+    );
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent =
+        "Send by email";
+    }
+  }
+}
+
+
+async function openBookingFormRequest(
+  booking
+) {
+  currentFormRequestBooking =
+    booking;
+
+  currentGeneratedFormRequest =
+    null;
+
+  sendFormTitle.textContent =
+    "Send client form";
+
+  sendFormContext.textContent =
+    `${booking.first_name} ${booking.last_name} · ${booking.service_name} · ${formatFullDate(booking.start_at)}`;
+
+  sendFormTemplate.innerHTML =
+    `<option value="">Loading forms…</option>`;
+
+  bookingFormRequests.innerHTML =
+    `<div class="es-empty-state">Loading form history…</div>`;
+
+  generatedFormLinkWrap.hidden =
+    true;
+
+  sendFormStatus.hidden =
+    true;
+
+  if (
+    typeof sendFormDialog.showModal ===
+    "function"
+  ) {
+    sendFormDialog.showModal();
+  }
+
+  await loadBookingFormRequests(
+    booking.id
+  );
+}
+
+
+async function loadBookingFormRequests(
+  appointmentId
+) {
+  try {
+    const response =
+      await fetch(
+        `/api/form-requests?appointment_id=${encodeURIComponent(appointmentId)}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to load forms."
+      );
+    }
+
+    sendFormTemplate.innerHTML =
+      `<option value="">Choose a form</option>` +
+      (data.templates || [])
+        .map(
+          template => `
+            <option value="${escapeHtml(template.id)}">
+              ${escapeHtml(template.name)}
+            </option>
+          `
+        )
+        .join("");
+
+    if (!(data.templates || []).length) {
+      showBookingFormRequestStatus(
+        "Publish at least one Clinical Template before sending a form.",
+        "error"
+      );
+    }
+
+    renderBookingFormRequests(
+      data.requests || []
+    );
+  } catch (error) {
+    showBookingFormRequestStatus(
+      error.message ||
+      "Unable to load forms.",
+      "error"
+    );
+  }
+}
+
+
+function renderBookingFormRequests(
+  requests
+) {
+  if (!requests.length) {
+    bookingFormRequests.innerHTML = `
+      <div class="es-empty-state">
+        <strong>No forms sent for this appointment yet.</strong>
       </div>
+    `;
 
+    return;
+  }
 
-      <p
-        id="paymentLinkContext"
-        class="es-muted-copy"
-      ></p>
+  bookingFormRequests.innerHTML =
+    requests
+      .map(
+        request => `
+          <div class="es-form-request-item">
+            <div class="es-form-request-item-main">
+              <strong>
+                ${escapeHtml(request.template_name)}
+              </strong>
 
+              <span>
+                Created ${formatFullDateTime(request.created_at)}
+              </span>
 
-      <div
-        id="paymentLinkStatus"
-        class="es-status"
-        hidden
-      ></div>
+              <small>
+                ${
+                  request.email_status === "sent"
+                    ? `Email sent to ${escapeHtml(request.email_to || "")}${request.email_send_count > 1 ? ` · ${request.email_send_count} sends` : ""}`
+                    : request.email_status === "failed"
+                      ? "Last email attempt failed"
+                      : "Email not sent"
+                }
+              </small>
+            </div>
 
+            <div class="es-customer-appointment-actions">
+              ${
+                ["created", "opened"].includes(request.status)
+                  ? `
+                    <button
+                      type="button"
+                      class="es-secondary-button"
+                      data-resend-consultation="${escapeHtml(request.id)}"
+                    >
+                      ${request.email_status === "sent" ? "Resend email" : "Send email"}
+                    </button>
+                  `
+                  : ""
+              }
 
-      <div
-        id="paymentLinkResult"
-        hidden
-      >
-
-        <label>
-          Secure Stripe Checkout link
-
-          <div class="es-copy-field">
-
-            <input
-              id="generatedPaymentLink"
-              type="text"
-              readonly
-            >
-
-            <button
-              id="copyPaymentLink"
-              class="es-secondary-button"
-              type="button"
-            >
-              Copy link
-            </button>
-
+              <span class="es-form-request-status ${escapeHtml(request.display_status)}">
+                ${escapeHtml(formatFormRequestStatus(request.display_status))}
+              </span>
+            </div>
           </div>
-        </label>
+        `
+      )
+      .join("");
+
+  bookingFormRequests
+    .querySelectorAll(
+      "[data-resend-consultation]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () =>
+            sendBookingConsultationEmail(
+              button.dataset.resendConsultation
+            )
+        );
+      }
+    );
+}
 
 
-        <div class="es-dialog-actions">
+async function generateBookingFormLink() {
+  if (!currentFormRequestBooking) {
+    return;
+  }
 
-          <a
-            id="openPaymentLink"
+  const templateId =
+    sendFormTemplate.value;
+
+  if (!templateId) {
+    showBookingFormRequestStatus(
+      "Choose a form first.",
+      "error"
+    );
+
+    return;
+  }
+
+  const button =
+    document.getElementById(
+      "generateFormLinkButton"
+    );
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Generating…";
+
+  try {
+    const response =
+      await fetch(
+        "/api/form-requests",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              template_id:
+                templateId,
+              appointment_id:
+                currentFormRequestBooking.id
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to generate form link."
+      );
+    }
+
+    currentGeneratedFormRequest =
+      data.request;
+
+    generatedFormLink.value =
+      `${location.origin}${data.request.url_path}`;
+
+    generatedFormLinkWrap.hidden =
+      false;
+
+    showBookingFormRequestStatus(
+      data.reused
+        ? "Existing secure link ready to copy."
+        : "Secure form link created.",
+      "success"
+    );
+
+    await loadBookingFormRequests(
+      currentFormRequestBooking.id
+    );
+  } catch (error) {
+    showBookingFormRequestStatus(
+      error.message ||
+      "Unable to generate form link.",
+      "error"
+    );
+  } finally {
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Generate secure link";
+  }
+}
+
+
+function showBookingFormRequestStatus(
+  message,
+  type = ""
+) {
+  sendFormStatus.hidden =
+    false;
+
+  sendFormStatus.className =
+    `es-status ${type}`.trim();
+
+  sendFormStatus.textContent =
+    message;
+}
+
+
+function formatFormRequestStatus(
+  status
+) {
+  return {
+    created:
+      "Link created",
+    opened:
+      "Opened",
+    submitted:
+      "Completed",
+    reviewed:
+      "Reviewed",
+    revoked:
+      "Revoked"
+  }[status] ||
+  formatStatus(status);
+}
+
+function getBooking(id) {
+
+  return bookings.find(
+    (booking) =>
+      booking.id === id
+  );
+}
+
+
+/* =======================================================
+   Booking details
+   ======================================================= */
+
+
+
+/* =======================================================
+   Stripe Checkout payment links
+   ======================================================= */
+
+const paymentLinkDialog =
+  document.getElementById(
+    "paymentLinkDialog"
+  );
+
+const paymentLinkStatus =
+  document.getElementById(
+    "paymentLinkStatus"
+  );
+
+const paymentLinkResult =
+  document.getElementById(
+    "paymentLinkResult"
+  );
+
+const generatedPaymentLink =
+  document.getElementById(
+    "generatedPaymentLink"
+  );
+
+const openPaymentLink =
+  document.getElementById(
+    "openPaymentLink"
+  );
+
+const paymentLinkContext =
+  document.getElementById(
+    "paymentLinkContext"
+  );
+
+
+document
+  .getElementById(
+    "closePaymentLinkDialog"
+  )
+  ?.addEventListener(
+    "click",
+    () =>
+      paymentLinkDialog.close()
+  );
+
+
+document
+  .getElementById(
+    "copyPaymentLink"
+  )
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !generatedPaymentLink.value
+      ) {
+        return;
+      }
+
+
+      try {
+
+        await navigator.clipboard.writeText(
+          generatedPaymentLink.value
+        );
+
+      } catch {
+
+        generatedPaymentLink.select();
+
+        document.execCommand(
+          "copy"
+        );
+      }
+
+
+      paymentLinkStatus.hidden =
+        false;
+
+      paymentLinkStatus.className =
+        "es-status success";
+
+      paymentLinkStatus.textContent =
+        "Payment link copied.";
+    }
+  );
+
+
+async function createStripePaymentLink(
+  booking
+) {
+
+  paymentLinkResult.hidden =
+    true;
+
+  paymentLinkStatus.hidden =
+    false;
+
+  paymentLinkStatus.className =
+    "es-status";
+
+  paymentLinkStatus.textContent =
+    "Creating secure Stripe Checkout…";
+
+
+  paymentLinkContext.textContent =
+    `${booking.first_name} ${booking.last_name} · ${booking.service_name}`;
+
+
+  if (
+    typeof paymentLinkDialog
+      .showModal === "function"
+  ) {
+
+    paymentLinkDialog.showModal();
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/payments/stripe/checkout",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              appointment_id:
+                booking.id
+            })
+        }
+      );
+
+
+    if (
+      response.status === 401
+    ) {
+
+      window.location.href =
+        "/auth/login.html";
+
+      return;
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to create payment link."
+      );
+    }
+
+
+    generatedPaymentLink.value =
+      data.checkout.url;
+
+
+    openPaymentLink.href =
+      data.checkout.url;
+
+
+    paymentLinkResult.hidden =
+      false;
+
+    paymentLinkStatus.className =
+      "es-status success";
+
+    paymentLinkStatus.textContent =
+      `${formatMoney(
+        data.checkout.amount_minor
+      )} Checkout created for ${data.checkout.customer_email}.`;
+
+
+  } catch (error) {
+
+    paymentLinkStatus.className =
+      "es-status error";
+
+    paymentLinkStatus.textContent =
+      error.message ||
+      "Unable to create payment link.";
+  }
+}
+
+
+function showBookingDetails(
+  booking
+) {
+
+  currentDetailBookingId =
+    booking.id;
+
+
+  document
+    .getElementById(
+      "detailCustomerName"
+    )
+    .textContent =
+      `${booking.first_name} ${booking.last_name}`;
+
+
+  bookingDetailContent.innerHTML = `
+    ${detailItem(
+      "Service",
+      booking.service_name
+    )}
+
+    ${detailItem(
+      "Status",
+      formatStatus(
+        booking.status
+      )
+    )}
+
+    ${detailItem(
+      "Date",
+      formatFullDate(
+        booking.start_at
+      )
+    )}
+
+    ${detailItem(
+      "Time",
+      formatDateTimeRange(
+        booking.start_at,
+        booking.end_at
+      )
+    )}
+
+    ${detailItem(
+      "Price",
+      formatMoney(
+        booking.price_minor
+      )
+    )}
+
+    ${detailItem(
+      "Deposit due",
+      formatMoney(
+        booking.deposit_due_minor
+      )
+    )}
+
+    ${detailItem(
+      "Email",
+      booking.email ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Phone",
+      booking.phone ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Customer notes",
+      booking.notes ||
+      "No notes",
+      true
+    )}
+
+    ${detailItem(
+      "Booking source",
+      booking.booking_source ||
+      "—"
+    )}
+
+    ${detailItem(
+      "Created",
+      booking.created_at
+        ? formatFullDateTime(
+            booking.created_at
+          )
+        : "—"
+    )}
+  `;
+
+
+  bookingDetailActions.innerHTML = `
+    ${
+      booking.status !== "cancelled"
+        ? `
+          <button
+            id="detailPaymentLinkButton"
             class="es-button"
-            href="#"
-            target="_blank"
-            rel="noopener"
+            type="button"
           >
-            Open test checkout
-          </a>
+            Create payment link
+          </button>
 
-        </div>
+          <button
+            id="detailSendFormButton"
+            class="es-button"
+            type="button"
+          >
+            Send form
+          </button>
+        `
+        : ""
+    }
 
-      </div>
-
-    </div>
-
-  </dialog>
-
-
-  <dialog
-    id="sendFormDialog"
-    class="es-form-request-dialog"
-  >
-    <div class="es-form-request-dialog-inner">
-
-      <div class="es-booking-dialog-header">
-        <div>
-          <p class="es-eyebrow">Client form</p>
-          <h2 id="sendFormTitle">Send form</h2>
-        </div>
-
+    ${
+      booking.status === "confirmed"
+        ? `
         <button
-          id="closeSendFormDialog"
-          class="es-dialog-close"
-          type="button"
-          aria-label="Close"
-        >
-          ×
-        </button>
-      </div>
-
-      <p id="sendFormContext" class="es-muted-copy"></p>
-
-      <label>
-        Published form
-        <select id="sendFormTemplate">
-          <option value="">Choose a form</option>
-        </select>
-      </label>
-
-      <div
-        id="sendFormStatus"
-        class="es-status"
-        hidden
-      ></div>
-
-      <button
-        id="generateFormLinkButton"
-        class="es-button"
-        type="button"
-      >
-        Generate secure link
-      </button>
-
-      <div
-        id="generatedFormLinkWrap"
-        class="es-form-request-link"
-        hidden
-      >
-        <input
-          id="generatedFormLink"
-          type="text"
-          readonly
-          aria-label="Generated client form link"
-        >
-
-        <button
-          id="copyGeneratedFormLink"
+          id="detailEditButton"
           class="es-secondary-button"
           type="button"
         >
-          Copy link
+          Edit / reschedule
         </button>
 
         <button
-          id="emailGeneratedFormLink"
-          class="es-button"
+          id="detailCompleteButton"
+          class="es-secondary-button"
           type="button"
         >
-          Send by email
+          Mark completed
         </button>
-      </div>
 
-      <div class="es-settings-divider"></div>
+        <button
+          id="detailCancelButton"
+          class="es-secondary-button"
+          type="button"
+        >
+          Cancel booking
+        </button>
+        `
+        : ""
+    }
+  `;
 
-      <p class="es-eyebrow">Form history</p>
+  const detailPaymentLinkButton =
+    document.getElementById(
+      "detailPaymentLinkButton"
+    );
 
-      <div
-        id="bookingFormRequests"
-        class="es-form-request-list"
-      ></div>
 
+  if (detailPaymentLinkButton) {
+
+    detailPaymentLinkButton.addEventListener(
+      "click",
+      () => {
+
+        bookingDetailsDialog.close();
+
+        createStripePaymentLink(
+          booking
+        );
+      }
+    );
+  }
+
+
+  const detailSendFormButton =
+    document.getElementById(
+      "detailSendFormButton"
+    );
+
+  if (detailSendFormButton) {
+    detailSendFormButton.addEventListener(
+      "click",
+      () => {
+        bookingDetailsDialog.close();
+        openBookingFormRequest(booking);
+      }
+    );
+  }
+
+
+  if (
+    booking.status ===
+    "confirmed"
+  ) {
+
+    document
+      .getElementById(
+        "detailEditButton"
+      )
+      .addEventListener(
+        "click",
+        () => {
+
+          bookingDetailsDialog.close();
+
+          openBookingForm(
+            booking
+          );
+        }
+      );
+
+
+    document
+      .getElementById(
+        "detailCompleteButton"
+      )
+      .addEventListener(
+        "click",
+        () =>
+          completeBooking(
+            booking.id
+          )
+      );
+
+
+    document
+      .getElementById(
+        "detailCancelButton"
+      )
+      .addEventListener(
+        "click",
+        () =>
+          cancelBooking(
+            booking.id
+          )
+      );
+  }
+
+
+  if (
+    typeof bookingDetailsDialog
+      .showModal ===
+    "function"
+  ) {
+
+    bookingDetailsDialog.showModal();
+  }
+}
+
+
+function detailItem(
+  label,
+  value,
+  full = false
+) {
+
+  return `
+    <div
+      class="es-booking-detail ${
+        full
+          ? "es-booking-detail-full"
+          : ""
+      }"
+    >
+      <span>
+        ${escapeHtml(label)}
+      </span>
+
+      <strong>
+        ${escapeHtml(
+          value ??
+          "—"
+        )}
+      </strong>
     </div>
-  </dialog>
+  `;
+}
 
 
-  <script type="module">
-  import { renderSidebar } from "/components/sidebar.js";
-  renderSidebar("bookings");
-</script>
-  
-  <script src="/bookings/bookings.js"></script>
+/* =======================================================
+   Status actions
+   ======================================================= */
 
-</body>
-</html>
+async function completeBooking(
+  id
+) {
+
+  const booking =
+    getBooking(id);
+
+
+  if (!booking) {
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Mark ${booking.first_name} ${booking.last_name}'s booking as completed?`
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  await updateBookingAction({
+    id,
+    action:
+      "complete",
+    successMessage:
+      "Booking marked as completed."
+  });
+}
+
+
+async function cancelBooking(
+  id
+) {
+
+  const booking =
+    getBooking(id);
+
+
+  if (!booking) {
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Cancel ${booking.first_name} ${booking.last_name}'s booking?`
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const reason =
+    window.prompt(
+      "Cancellation reason (optional):",
+      ""
+    );
+
+
+  if (reason === null) {
+    return;
+  }
+
+
+  await updateBookingAction({
+    id,
+    action:
+      "cancel",
+    reason,
+    successMessage:
+      "Booking cancelled."
+  });
+}
+
+
+async function updateBookingAction({
+  id,
+  action,
+  reason = "",
+  successMessage
+}) {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/bookings",
+        {
+          method:
+            "PUT",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              id,
+              action,
+              reason
+            })
+        }
+      );
+
+
+    handleAuthentication(
+      response
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to update booking."
+      );
+    }
+
+
+    await loadBookings();
+
+
+    if (
+      bookingDetailsDialog.open
+    ) {
+
+      bookingDetailsDialog.close();
+    }
+
+
+    const status =
+      document.createElement(
+        "div"
+      );
+
+    status.className =
+      "es-status success";
+
+    status.textContent =
+      successMessage;
+
+    bookingsList.parentElement
+      .prepend(status);
+
+
+    setTimeout(
+      () =>
+        status.remove(),
+      3000
+    );
+
+
+  } catch (error) {
+
+    window.alert(
+      error.message ||
+      "Unable to update booking."
+    );
+  }
+}
+
+
+/* =======================================================
+   Form display
+   ======================================================= */
+
+function openBookingForm(
+  booking = null
+) {
+
+  resetBookingForm(
+    false
+  );
+
+
+  bookingStatus.hidden =
+    true;
+
+
+  if (booking) {
+
+    bookingId.value =
+      booking.id;
+
+    selectedCustomerId.value =
+      booking.customer_id ||
+      "";
+
+
+    document
+      .getElementById(
+        "bookingFormEyebrow"
+      )
+      .textContent =
+        "Edit booking";
+
+
+    document
+      .getElementById(
+        "bookingFormTitle"
+      )
+      .textContent =
+        "Edit or reschedule appointment";
+
+
+    saveBookingButton.textContent =
+      "Save changes";
+
+
+    serviceSelect.value =
+      booking.service_id;
+
+
+    const parts =
+      splitDateTime(
+        booking.start_at
+      );
+
+
+    bookingDate.value =
+      parts.date;
+
+
+    document
+      .getElementById(
+        "firstName"
+      )
+      .value =
+        booking.first_name ||
+        "";
+
+
+    document
+      .getElementById(
+        "lastName"
+      )
+      .value =
+        booking.last_name ||
+        "";
+
+
+    document
+      .getElementById(
+        "email"
+      )
+      .value =
+        booking.email ||
+        "";
+
+
+    document
+      .getElementById(
+        "phone"
+      )
+      .value =
+        booking.phone ||
+        "";
+
+
+    document
+      .getElementById(
+        "notes"
+      )
+      .value =
+        booking.notes ||
+        "";
+
+
+    selectedCustomerText.textContent =
+      `${booking.first_name} ${booking.last_name}`;
+
+
+    selectedCustomer.hidden =
+      false;
+
+
+    loadAvailability(
+      parts.time
+    );
+
+  } else {
+
+    document
+      .getElementById(
+        "bookingFormEyebrow"
+      )
+      .textContent =
+        "New booking";
+
+
+    document
+      .getElementById(
+        "bookingFormTitle"
+      )
+      .textContent =
+        "Create appointment";
+
+
+    saveBookingButton.textContent =
+      "Create booking";
+  }
+
+
+  formPanel.hidden =
+    false;
+
+
+  formPanel.scrollIntoView({
+    behavior:
+      "smooth",
+    block:
+      "start"
+  });
+}
+
+
+function closeBookingForm() {
+
+  formPanel.hidden =
+    true;
+
+  resetBookingForm();
+}
+
+
+function resetBookingForm(
+  hidePanel = true
+) {
+
+  form.reset();
+
+  bookingId.value =
+    "";
+
+  selectedCustomerId.value =
+    "";
+
+  selectedCustomer.hidden =
+    true;
+
+  selectedCustomerText.textContent =
+    "";
+
+  customerSearchResults.hidden =
+    true;
+
+  customerSearchResults.innerHTML =
+    "";
+
+  bookingStatus.hidden =
+    true;
+
+  timeSelect.disabled =
+    true;
+
+  timeSelect.innerHTML = `
+    <option value="">
+      Choose a service and date first
+    </option>
+  `;
+
+  availabilityStatus.textContent =
+    "Available times will appear after you choose a service and date.";
+
+  document
+    .getElementById(
+      "bookingFormEyebrow"
+    )
+    .textContent =
+      "New booking";
+
+  document
+    .getElementById(
+      "bookingFormTitle"
+    )
+    .textContent =
+      "Create appointment";
+
+  saveBookingButton.textContent =
+    "Create booking";
+
+
+  setMinimumDate();
+
+
+  if (hidePanel) {
+
+    formPanel.hidden =
+      true;
+  }
+}
+
+
+/* =======================================================
+   Helpers / formatters
+   ======================================================= */
+
+function handleAuthentication(
+  response
+) {
+
+  if (
+    response.status ===
+    401
+  ) {
+
+    window.location.href =
+      "/auth/login.html";
+
+    throw new Error(
+      "Authentication required."
+    );
+  }
+}
+
+
+function splitDateTime(value) {
+
+  const raw =
+    String(value || "");
+
+
+  if (
+    raw.includes("T")
+  ) {
+
+    const [
+      date,
+      timePart
+    ] =
+      raw.split("T");
+
+
+    return {
+      date,
+      time:
+        timePart
+          .slice(0, 5)
+    };
+  }
+
+
+  return {
+    date: "",
+    time: ""
+  };
+}
+
+
+function formatMoney(
+  amountMinor
+) {
+
+  return new Intl.NumberFormat(
+    "en-GB",
+    {
+      style:
+        "currency",
+      currency:
+        "GBP"
+    }
+  ).format(
+    Number(
+      amountMinor ||
+      0
+    ) / 100
+  );
+}
+
+
+function formatDate(value) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      weekday:
+        "short",
+      day:
+        "numeric",
+      month:
+        "short"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatFullDate(value) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      weekday:
+        "long",
+      day:
+        "numeric",
+      month:
+        "long",
+      year:
+        "numeric"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatFullDateTime(
+  value
+) {
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      dateStyle:
+        "medium",
+      timeStyle:
+        "short"
+    }
+  ).format(
+    new Date(value)
+  );
+}
+
+
+function formatDateTimeRange(
+  startValue,
+  endValue
+) {
+
+  const formatter =
+    new Intl.DateTimeFormat(
+      "en-GB",
+      {
+        hour:
+          "2-digit",
+        minute:
+          "2-digit"
+      }
+    );
+
+
+  return `${
+    formatter.format(
+      new Date(startValue)
+    )
+  } – ${
+    formatter.format(
+      new Date(endValue)
+    )
+  }`;
+}
+
+
+function formatTime(value) {
+
+  const [
+    hour,
+    minute
+  ] =
+    value
+      .split(":")
+      .map(Number);
+
+
+  const date =
+    new Date();
+
+
+  date.setHours(
+    hour,
+    minute,
+    0,
+    0
+  );
+
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      hour:
+        "2-digit",
+      minute:
+        "2-digit"
+    }
+  ).format(date);
+}
+
+
+function formatStatus(value) {
+
+  const statuses = {
+    confirmed:
+      "Confirmed",
+    completed:
+      "Completed",
+    cancelled:
+      "Cancelled",
+    pending:
+      "Pending"
+  };
+
+
+  return statuses[value] ||
+    value;
+}
+
+
+function escapeHtml(value) {
+
+  return String(
+    value ??
+    ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+}
+
+
+/* =======================================================
+   Start
+   ======================================================= */
+
+async function initialiseBookingsPage() {
+
+  setMinimumDate();
+
+  await Promise.all([
+    loadServices(),
+    loadBookings()
+  ]);
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const date =
+    params.get(
+      "date"
+    );
+
+
+  const bookingIdFromUrl =
+    params.get(
+      "booking"
+    );
+
+
+  if (date) {
+
+    openBookingForm();
+
+    bookingDate.value =
+      date;
+
+
+    if (
+      serviceSelect.value
+    ) {
+
+      await loadAvailability();
+    }
+  }
+
+
+  if (
+    bookingIdFromUrl
+  ) {
+
+    const booking =
+      bookings.find(
+        (item) =>
+          item.id ===
+          bookingIdFromUrl
+      );
+
+
+    if (booking) {
+
+      showBookingDetails(
+        booking
+      );
+    }
+  }
+}
+
+
+initialiseBookingsPage();
