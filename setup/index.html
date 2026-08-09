@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Setup Health | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+</head>
+
+<body class="es-dashboard-shell">
+
+  <aside
+    id="appSidebar"
+    class="es-sidebar"
+  ></aside>
+
+
+  <main class="es-dashboard-main">
+
+    <section class="es-dashboard-welcome">
+
+      <div>
+
+        <p class="es-eyebrow">
+          Installation
+        </p>
+
+        <h1>
+          Setup & health
+        </h1>
+
+        <p class="es-dashboard-date">
+          Check whether this Eselram installation is ready for day-to-day use.
+        </p>
+
+      </div>
+
+
+      <div class="es-dashboard-header-actions">
+
+        <button
+          id="refreshSetupHealth"
+          class="es-secondary-button"
+          type="button"
+        >
+          Recheck
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <section
+      id="setupHealthStatus"
+      class="es-status"
+      hidden
+    ></section>
+
+
+    <section class="es-setup-summary">
+
+      <article class="es-dashboard-kpi">
+
+        <span>
+          Ready to use
+        </span>
+
+        <strong id="setupReady">
+          Checking…
+        </strong>
+
+        <small id="setupReadyNote">
+          Running installation checks
+        </small>
+
+      </article>
+
+
+      <article class="es-dashboard-kpi">
+
+        <span>
+          Setup progress
+        </span>
+
+        <strong id="setupProgress">
+          —
+        </strong>
+
+        <small id="setupProgressNote">
+          Required setup items
+        </small>
+
+      </article>
+
+
+      <article class="es-dashboard-kpi">
+
+        <span>
+          Business
+        </span>
+
+        <strong id="setupBusiness">
+          —
+        </strong>
+
+        <small id="setupHost">
+          —
+        </small>
+
+      </article>
+
+    </section>
+
+
+    <section class="es-dashboard-panel">
+
+      <div class="es-panel-header">
+
+        <div>
+
+          <p class="es-eyebrow">
+            Checklist
+          </p>
+
+          <h2>
+            Installation health
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="setupChecklist"
+        class="es-setup-checklist"
+      >
+        <div class="es-empty-state">
+          Checking installation…
+        </div>
+      </div>
+
+    </section>
+
+
+    <section class="es-dashboard-panel">
+
+      <div class="es-panel-header">
+
+        <div>
+
+          <p class="es-eyebrow">
+            Independence
+          </p>
+
+          <h2>
+            This installation owns its services
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div class="es-setup-independence">
+
+        <p>
+          Eselram is designed so this business can run independently using its own Cloudflare account, database, domain, email provider and payment-provider accounts.
+        </p>
+
+        <p>
+          Provider credentials are not supplied by the Eselram software vendor. Each installation connects and controls its own services.
+        </p>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script type="module">
+    import { renderSidebar } from "/components/sidebar.js";
+    renderSidebar("setup");
+  </script>
+
+  <script src="/setup/setup.js"></script>
+
+</body>
+</html>
