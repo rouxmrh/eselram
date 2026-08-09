@@ -3193,3 +3193,31 @@ textarea:focus {
     align-items: flex-start;
   }
 }
+
+
+
+/* =======================================================
+   Independent Stripe settings — 022
+   ======================================================= */
+
+#tab-payments .es-integration-summary {
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+}
+
+#tab-payments .es-checkbox-row {
+  margin: 18px 0;
+}
+
+@media (max-width: 900px) {
+  #tab-payments .es-integration-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  #tab-payments .es-integration-summary {
+    grid-template-columns: 1fr;
+  }
+}
