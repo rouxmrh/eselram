@@ -3,6 +3,10 @@ import {
   hashSessionToken
 } from "../../../lib/auth.js";
 
+import {
+  decryptIntegrationSecret
+} from "../../../lib/integration-crypto.js";
+
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
   if (!token) return null;
@@ -228,27 +232,6 @@ export async function onRequestPost({
       return unauthorized();
     }
 
-    if (!env.RESEND_API_KEY) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "Email is not configured yet. Add the RESEND_API_KEY secret in Cloudflare."
-        },
-        { status: 503 }
-      );
-    }
-
-    if (!env.ESELRAM_EMAIL_FROM) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "Email sender is not configured yet. Add ESELRAM_EMAIL_FROM in Cloudflare."
-        },
-        { status: 503 }
-      );
-    }
 
     const body =
       await request.json();
@@ -261,6 +244,124 @@ export async function onRequestPost({
     if (!formRequestId) {
       return badRequest(
         "Form request id is required."
+      );
+    }
+
+    const integration =
+      await env.DB
+        .prepare(`
+          SELECT
+            encrypted_credentials,
+            config_json,
+            status
+          FROM business_integrations
+          WHERE
+            business_id = ?
+            AND integration_type = 'email'
+            AND provider = 'resend'
+          LIMIT 1
+        `)
+        .bind(
+          user.business_id
+        )
+        .first();
+
+    if (
+      !integration ||
+      !integration.encrypted_credentials
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Email is not configured. Connect the business's own Resend account in Settings → Email."
+        },
+        {
+          status: 503
+        }
+      );
+    }
+
+    if (
+      !String(
+        env.ESELRAM_ENCRYPTION_KEY || ""
+      ).trim()
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "This Eselram installation is missing ESELRAM_ENCRYPTION_KEY."
+        },
+        {
+          status: 503
+        }
+      );
+    }
+
+    let integrationConfig = {};
+    let integrationCredentials = {};
+
+    try {
+      integrationConfig =
+        JSON.parse(
+          integration.config_json || "{}"
+        );
+
+      integrationCredentials =
+        JSON.parse(
+          await decryptIntegrationSecret(
+            integration.encrypted_credentials,
+            env.ESELRAM_ENCRYPTION_KEY
+          )
+        );
+    } catch (error) {
+      console.error(
+        "Unable to read email integration:",
+        error
+      );
+
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "The saved email integration could not be read. Reconnect it in Settings → Email."
+        },
+        {
+          status: 503
+        }
+      );
+    }
+
+    const integrationApiKey =
+      String(
+        integrationCredentials.api_key || ""
+      ).trim();
+
+    const integrationFromName =
+      String(
+        integrationConfig.from_name || ""
+      ).trim();
+
+    const integrationFromEmail =
+      String(
+        integrationConfig.from_email || ""
+      ).trim();
+
+    if (
+      !integrationApiKey ||
+      !integrationFromName ||
+      !integrationFromEmail
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Email integration is incomplete. Check Settings → Email."
+        },
+        {
+          status: 503
+        }
       );
     }
 
@@ -428,7 +529,7 @@ export async function onRequestPost({
 
     const payload = {
       from:
-        env.ESELRAM_EMAIL_FROM,
+        `${integrationFromName} <${integrationFromEmail}>`,
       to: [email],
       subject,
       html:
@@ -460,7 +561,7 @@ export async function onRequestPost({
           method: "POST",
           headers: {
             Authorization:
-              `Bearer ${env.RESEND_API_KEY}`,
+              `Bearer ${integrationApiKey}`,
             "Content-Type":
               "application/json"
           },
