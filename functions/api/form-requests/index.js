@@ -147,6 +147,7 @@ export async function onRequestGet({ request, env }) {
           business_id = ?
           AND is_active = 1
           AND is_published = 1
+          AND is_client_sendable = 1
         ORDER BY
           template_type,
           name COLLATE NOCASE
@@ -273,13 +274,14 @@ export async function onRequestPost({ request, env }) {
           AND business_id = ?
           AND is_active = 1
           AND is_published = 1
+          AND is_client_sendable = 1
         LIMIT 1
       `)
       .bind(templateId, user.business_id)
       .first();
 
     if (!template) {
-      return badRequest("That clinical form is not currently published.");
+      return badRequest("That clinical form is not available to send to clients.");
     }
 
     let appointment = null;
