@@ -323,6 +323,251 @@
 </div>
 
 
+
+          <div
+            id="tab-payments"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+
+                <p class="es-eyebrow">
+                  Payments
+                </p>
+
+                <h2>
+                  Stripe
+                </h2>
+
+                <p class="es-muted-copy">
+                  Connect this business's own Stripe account. Stripe credentials are encrypted before they are stored.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div
+              id="stripeEncryptionWarning"
+              class="es-status error"
+              hidden
+            ></div>
+
+
+            <div class="es-integration-summary">
+
+              <div>
+
+                <span>
+                  Provider
+                </span>
+
+                <strong>
+                  Stripe
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Status
+                </span>
+
+                <strong id="stripeIntegrationStatus">
+                  Not configured
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Mode
+                </span>
+
+                <strong id="stripeIntegrationMode">
+                  —
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Default provider
+                </span>
+
+                <strong id="stripeDefaultStatus">
+                  No
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            <form id="stripeIntegrationForm">
+
+              <div class="es-form-grid">
+
+                <label>
+                  Publishable key
+
+                  <input
+                    id="stripePublishableKey"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="pk_test_… or pk_live_…"
+                  >
+
+                  <small class="es-field-help">
+                    Optional for now. It will be used by client-side Stripe payment interfaces.
+                  </small>
+                </label>
+
+
+                <label>
+                  Currency
+
+                  <select id="stripeCurrency">
+                    <option value="GBP">GBP – £</option>
+                    <option value="EUR">EUR – €</option>
+                    <option value="USD">USD – $</option>
+                    <option value="AUD">AUD – $</option>
+                    <option value="NZD">NZD – $</option>
+                    <option value="ZAR">ZAR – R</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <label>
+                Stripe secret or restricted API key
+
+                <input
+                  id="stripeSecretKey"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="sk_test_… / sk_live_… / rk_…"
+                >
+
+                <small
+                  id="stripeSecretKeyHelp"
+                  class="es-field-help"
+                >
+                  Paste a Stripe server-side key owned by this business.
+                </small>
+              </label>
+
+
+              <label>
+                Webhook signing secret
+
+                <input
+                  id="stripeWebhookSecret"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="whsec_…"
+                >
+
+                <small
+                  id="stripeWebhookSecretHelp"
+                  class="es-field-help"
+                >
+                  Optional at this stage. Add it when the Stripe webhook endpoint is enabled for live online payments.
+                </small>
+              </label>
+
+
+              <label class="es-checkbox-row">
+
+                <input
+                  id="stripeMakeDefault"
+                  type="checkbox"
+                  checked
+                >
+
+                <span>
+                  Make Stripe the default payment provider
+                </span>
+
+              </label>
+
+
+              <div
+                id="stripeIntegrationMessage"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <div class="es-settings-actions">
+
+                <button
+                  id="saveStripeIntegrationButton"
+                  class="es-button"
+                  type="submit"
+                >
+                  Save Stripe settings
+                </button>
+
+
+                <button
+                  id="testStripeIntegrationButton"
+                  class="es-secondary-button"
+                  type="button"
+                >
+                  Test connection
+                </button>
+
+
+                <button
+                  id="disconnectStripeIntegrationButton"
+                  class="es-secondary-button"
+                  type="button"
+                  hidden
+                >
+                  Disconnect Stripe
+                </button>
+
+              </div>
+
+            </form>
+
+
+            <div class="es-settings-divider"></div>
+
+
+            <div class="es-empty-state">
+
+              <strong>
+                Business-owned payments
+              </strong>
+
+              <span>
+                Stripe belongs to this business. Eselram stores the credentials encrypted and does not require an Eselram-vendor Stripe account.
+              </span>
+
+              <a
+                class="es-secondary-button"
+                href="/payments/"
+              >
+                Open payment records
+              </a>
+
+            </div>
+
+          </div>
+
           <div
             id="tab-email"
             class="es-settings-panel"
