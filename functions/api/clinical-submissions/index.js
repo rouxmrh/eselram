@@ -73,7 +73,7 @@ export async function onRequestGet({request,env}){
 
 async function getSubmissionDetail({id,user,env}){
   const submission=await env.DB.prepare(`
-    SELECT s.id,s.business_id,s.template_id,s.customer_id,s.appointment_id,s.submitted_by,s.status,s.client_name,s.client_email,s.submitted_at,s.reviewed_at,
+    SELECT s.id,s.business_id,s.template_id,s.customer_id,s.appointment_id,s.submitted_by,s.status,s.client_name,s.client_email,s.submitted_at,s.reviewed_at,s.template_version,s.template_snapshot_json,
       t.name AS template_name,t.template_type,t.description AS template_description,
       c.first_name AS customer_first_name,c.last_name AS customer_last_name,
       a.start_at AS appointment_start_at,sv.name AS service_name
@@ -87,27 +87,60 @@ async function getSubmissionDetail({id,user,env}){
 
   if(!submission)return Response.json({ok:false,error:"Clinical record not found."},{status:404});
 
-  const [sectionRows,fieldRows,answerRows,signatureRows,uploadRows]=await Promise.all([
-    env.DB.prepare(`SELECT id,title,description,sort_order FROM clinical_template_sections WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all(),
-    env.DB.prepare(`SELECT id,section_id,label,field_key,field_type,sort_order FROM clinical_template_fields WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all(),
+  const [answerRows,signatureRows,uploadRows]=await Promise.all([
     env.DB.prepare(`SELECT field_key,field_label,field_type,value_text,value_json FROM clinical_form_answers WHERE submission_id=? AND business_id=?`).bind(submission.id,user.business_id).all(),
     env.DB.prepare(`SELECT field_key,signature_data_url,created_at FROM clinical_form_signatures WHERE submission_id=? AND business_id=?`).bind(submission.id,user.business_id).all(),
     env.DB.prepare(`SELECT id,field_key,original_name,mime_type,size_bytes,storage_provider,created_at FROM clinical_form_uploads WHERE submission_id=? AND business_id=?`).bind(submission.id,user.business_id).all()
   ]);
 
   const answerMap=new Map((answerRows.results||[]).map(a=>[a.field_key,a]));
-  const sections=(sectionRows.results||[]).map(s=>({...s,fields:[]}));
-  const sectionMap=new Map(sections.map(s=>[s.id,s]));
-  for(const field of fieldRows.results||[]){
-    const section=sectionMap.get(field.section_id);if(!section)continue;
-    const answer=answerMap.get(field.field_key);
-    section.fields.push({...field,value:answer?.value_text||"",value_json:answer?.value_json||null});
+  const snapshot=parseJson(submission.template_snapshot_json,null);
+  let sections=[];
+
+  if(snapshot&&Array.isArray(snapshot.sections)){
+    sections=snapshot.sections.map((section,sectionIndex)=>({
+      id:`snapshot_section_${sectionIndex}`,
+      title:section.title||`Section ${sectionIndex+1}`,
+      description:section.description||null,
+      sort_order:Number(section.sort_order??sectionIndex),
+      fields:(Array.isArray(section.fields)?section.fields:[]).map((field,fieldIndex)=>{
+        const answer=answerMap.get(field.field_key);
+        return {
+          id:`snapshot_field_${sectionIndex}_${fieldIndex}`,
+          section_id:`snapshot_section_${sectionIndex}`,
+          label:field.label||answer?.field_label||"Field",
+          field_key:field.field_key,
+          field_type:field.field_type||answer?.field_type||"short_text",
+          sort_order:Number(field.sort_order??fieldIndex),
+          value:answer?.value_text||"",
+          value_json:answer?.value_json||null
+        };
+      })
+    }));
+  }else{
+    const [sectionRows,fieldRows]=await Promise.all([
+      env.DB.prepare(`SELECT id,title,description,sort_order FROM clinical_template_sections WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all(),
+      env.DB.prepare(`SELECT id,section_id,label,field_key,field_type,sort_order FROM clinical_template_fields WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all()
+    ]);
+
+    sections=(sectionRows.results||[]).map(s=>({...s,fields:[]}));
+    const sectionMap=new Map(sections.map(s=>[s.id,s]));
+    for(const field of fieldRows.results||[]){
+      const section=sectionMap.get(field.section_id);if(!section)continue;
+      const answer=answerMap.get(field.field_key);
+      section.fields.push({...field,value:answer?.value_text||"",value_json:answer?.value_json||null});
+    }
   }
 
   const customerName=submission.customer_id?`${submission.customer_first_name||""} ${submission.customer_last_name||""}`.trim():null;
-  const appointmentLabel=submission.appointment_id?`${submission.appointment_start_at||""}${submission.service_name?` · ${submission.service_name}`:""}`:null;
 
-  return Response.json({ok:true,submission:{...submission,customer_name:customerName,appointment_label:appointmentLabel,sections,signatures:signatureRows.results||[],uploads:uploadRows.results||[]}});
+  return Response.json({ok:true,submission:{...submission,customer_name:customerName,sections,signatures:signatureRows.results||[],uploads:uploadRows.results||[]}});
+}
+
+
+function parseJson(value,fallback){
+  if(!value)return fallback;
+  try{return JSON.parse(value)}catch{return fallback}
 }
 
 export async function onRequestPut({request,env}){
