@@ -77,6 +77,7 @@ export async function onRequestGet({ request, env }) {
           name,
           template_type,
           description,
+          version,
           is_active,
           is_default,
           is_published,
@@ -413,6 +414,7 @@ async function saveTemplateStructure({
             description = ?,
             is_active = ?,
             is_default = ?,
+            version = version + 1,
             updated_at = CURRENT_TIMESTAMP
           WHERE
             id = ?
