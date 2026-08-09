@@ -171,18 +171,19 @@ function renderHeader(
 
   if (sidebarUser) {
 
-  sidebarUser.innerHTML = `
-    <strong>
-      ${escapeHtml(
-        data.user?.name ||
-        ""
-      )}
-    </strong>
+    sidebarUser.innerHTML = `
+      <strong>
+        ${escapeHtml(
+          data.user?.name ||
+          ""
+        )}
+      </strong>
 
-    <span>
-      Owner
-    </span>
-  `;
+      <span>
+        Owner
+      </span>
+    `;
+  }
 }
 
 
@@ -754,6 +755,7 @@ logoutButton?.addEventListener(
     logoutButton.disabled =
       true;
 
+
     try {
 
       await fetch(
@@ -776,9 +778,6 @@ logoutButton?.addEventListener(
     }
   }
 );
-
-
-loadDashboard();
 
 
 loadDashboard();
