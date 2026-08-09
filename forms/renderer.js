@@ -1,6 +1,7 @@
 const params = new URLSearchParams(location.search);
 const templateId = String(params.get("template_id") || "").trim();
 const publicToken = String(params.get("token") || "").trim();
+const requestToken = String(params.get("request_token") || "").trim();
 const mode = String(params.get("mode") || "").trim().toLowerCase();
 const isPreview = mode === "preview";
 
@@ -26,7 +27,9 @@ async function loadForm() {
   try {
     const query = isPreview
       ? `template_id=${encodeURIComponent(templateId)}&mode=preview`
-      : `token=${encodeURIComponent(publicToken)}`;
+      : requestToken
+        ? `request_token=${encodeURIComponent(requestToken)}`
+        : `token=${encodeURIComponent(publicToken)}`;
 
     const response = await fetch(`/api/forms/public?${query}`, {
       headers: { Accept: "application/json" },
@@ -492,7 +495,12 @@ async function submitForm(event) {
   }
 
   const data = new FormData();
-  data.append("token", publicToken);
+
+  if (requestToken) {
+    data.append("request_token", requestToken);
+  } else {
+    data.append("token", publicToken);
+  }
 
   for (const section of formDefinition.template.sections || []) {
     for (const field of section.fields || []) {
