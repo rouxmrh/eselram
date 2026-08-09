@@ -80,6 +80,44 @@ const newCustomerBookingButton =
 
 
 let customers = [];
+
+let activeProfileCustomer = null;
+
+const customerSendFormDialog =
+  document.getElementById(
+    "customerSendFormDialog"
+  );
+
+const customerFormAppointment =
+  document.getElementById(
+    "customerFormAppointment"
+  );
+
+const customerFormTemplate =
+  document.getElementById(
+    "customerFormTemplate"
+  );
+
+const customerSendFormStatus =
+  document.getElementById(
+    "customerSendFormStatus"
+  );
+
+const customerGeneratedFormLinkWrap =
+  document.getElementById(
+    "customerGeneratedFormLinkWrap"
+  );
+
+const customerGeneratedFormLink =
+  document.getElementById(
+    "customerGeneratedFormLink"
+  );
+
+const customerFormRequests =
+  document.getElementById(
+    "customerFormRequests"
+  );
+
 let activeCustomer = null;
 
 
@@ -483,9 +521,366 @@ async function loadCustomerProfile(
 }
 
 
+
+document
+  .getElementById(
+    "sendCustomerFormButton"
+  )
+  ?.addEventListener(
+    "click",
+    openCustomerFormRequest
+  );
+
+document
+  .getElementById(
+    "closeCustomerSendFormDialog"
+  )
+  ?.addEventListener(
+    "click",
+    () => {
+      customerSendFormDialog.close();
+    }
+  );
+
+document
+  .getElementById(
+    "generateCustomerFormLinkButton"
+  )
+  ?.addEventListener(
+    "click",
+    generateCustomerFormLink
+  );
+
+document
+  .getElementById(
+    "copyCustomerGeneratedFormLink"
+  )
+  ?.addEventListener(
+    "click",
+    async () => {
+      if (
+        !customerGeneratedFormLink.value
+      ) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          customerGeneratedFormLink.value
+        );
+
+        showCustomerFormStatus(
+          "Secure form link copied.",
+          "success"
+        );
+      } catch {
+        customerGeneratedFormLink.select();
+        document.execCommand("copy");
+      }
+    }
+  );
+
+
+async function openCustomerFormRequest() {
+  if (!activeProfileCustomer) {
+    return;
+  }
+
+  document
+    .getElementById(
+      "customerSendFormTitle"
+    )
+    .textContent =
+      `Send form to ${activeProfileCustomer.first_name}`;
+
+  customerGeneratedFormLinkWrap.hidden =
+    true;
+
+  customerSendFormStatus.hidden =
+    true;
+
+  const appointments = [
+    ...(activeProfileCustomer.upcoming_bookings || []),
+    ...(activeProfileCustomer.booking_history || [])
+  ];
+
+  customerFormAppointment.innerHTML =
+    `<option value="">Customer only — no appointment</option>` +
+    appointments
+      .filter(
+        appointment =>
+          appointment.status !==
+          "cancelled"
+      )
+      .map(
+        appointment => `
+          <option value="${escapeHtml(appointment.id)}">
+            ${escapeHtml(
+              `${formatShortDate(appointment.start_at)} · ${appointment.service_name}`
+            )}
+          </option>
+        `
+      )
+      .join("");
+
+  if (
+    typeof customerSendFormDialog
+      .showModal ===
+    "function"
+  ) {
+    customerSendFormDialog.showModal();
+  }
+
+  await loadCustomerFormRequests();
+}
+
+
+async function loadCustomerFormRequests() {
+  if (!activeProfileCustomer) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `/api/form-requests?customer_id=${encodeURIComponent(activeProfileCustomer.id)}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to load forms."
+      );
+    }
+
+    customerFormTemplate.innerHTML =
+      `<option value="">Choose a form</option>` +
+      (data.templates || [])
+        .map(
+          template => `
+            <option value="${escapeHtml(template.id)}">
+              ${escapeHtml(template.name)}
+            </option>
+          `
+        )
+        .join("");
+
+    if (!(data.templates || []).length) {
+      showCustomerFormStatus(
+        "Publish at least one Clinical Template before sending a form.",
+        "error"
+      );
+    }
+
+    renderCustomerFormRequests(
+      data.requests || []
+    );
+  } catch (error) {
+    showCustomerFormStatus(
+      error.message ||
+      "Unable to load forms.",
+      "error"
+    );
+  }
+}
+
+
+function renderCustomerFormRequests(
+  requests
+) {
+  if (!requests.length) {
+    customerFormRequests.innerHTML = `
+      <div class="es-empty-state">
+        <strong>No client forms yet.</strong>
+      </div>
+    `;
+
+    return;
+  }
+
+  customerFormRequests.innerHTML =
+    requests
+      .map(
+        request => `
+          <div class="es-form-request-item">
+            <div class="es-form-request-item-main">
+              <strong>
+                ${escapeHtml(request.template_name)}
+              </strong>
+
+              <span>
+                ${
+                  request.service_name
+                    ? escapeHtml(
+                        `${request.service_name} · ${formatShortDate(request.appointment_start_at)}`
+                      )
+                    : "Customer form"
+                }
+              </span>
+            </div>
+
+            <span class="es-form-request-status ${escapeHtml(request.display_status)}">
+              ${escapeHtml(customerFormRequestStatus(request.display_status))}
+            </span>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+async function generateCustomerFormLink() {
+  if (!activeProfileCustomer) {
+    return;
+  }
+
+  const templateId =
+    customerFormTemplate.value;
+
+  if (!templateId) {
+    showCustomerFormStatus(
+      "Choose a form first.",
+      "error"
+    );
+
+    return;
+  }
+
+  const button =
+    document.getElementById(
+      "generateCustomerFormLinkButton"
+    );
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Generating…";
+
+  try {
+    const response =
+      await fetch(
+        "/api/form-requests",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              template_id:
+                templateId,
+              customer_id:
+                activeProfileCustomer.id,
+              appointment_id:
+                customerFormAppointment.value ||
+                null
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to generate form link."
+      );
+    }
+
+    customerGeneratedFormLink.value =
+      `${location.origin}${data.request.url_path}`;
+
+    customerGeneratedFormLinkWrap.hidden =
+      false;
+
+    showCustomerFormStatus(
+      data.reused
+        ? "Existing secure link ready to copy."
+        : "Secure form link created.",
+      "success"
+    );
+
+    await loadCustomerFormRequests();
+  } catch (error) {
+    showCustomerFormStatus(
+      error.message ||
+      "Unable to generate form link.",
+      "error"
+    );
+  } finally {
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Generate secure link";
+  }
+}
+
+
+function showCustomerFormStatus(
+  message,
+  type = ""
+) {
+  customerSendFormStatus.hidden =
+    false;
+
+  customerSendFormStatus.className =
+    `es-status ${type}`.trim();
+
+  customerSendFormStatus.textContent =
+    message;
+}
+
+
+function customerFormRequestStatus(
+  status
+) {
+  return {
+    created:
+      "Link created",
+    opened:
+      "Opened",
+    submitted:
+      "Completed",
+    reviewed:
+      "Reviewed",
+    revoked:
+      "Revoked"
+  }[status] ||
+  formatStatus(status);
+}
+
 function renderCustomerProfile(
   customer
 ) {
+
+  activeProfileCustomer =
+    customer;
 
   customerDrawerName.textContent =
     `${customer.first_name} ${customer.last_name}`;
