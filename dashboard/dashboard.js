@@ -752,7 +752,6 @@ logoutButton?.addEventListener(
     logoutButton.disabled =
       true;
 
-
     try {
 
       await fetch(
@@ -775,6 +774,9 @@ logoutButton?.addEventListener(
     }
   }
 );
+
+
+loadDashboard();
 
 
 loadDashboard();
