@@ -326,157 +326,28 @@
   class="es-settings-panel"
   hidden
 >
-
   <div class="es-panel-header">
-
     <div>
-      <p class="es-eyebrow">
-        Branding
-      </p>
-
-      <h2>
-        Appearance & display
-      </h2>
-
+      <p class="es-eyebrow">Branding</p>
+      <h2>Business branding</h2>
       <p class="es-muted-copy">
-        Control how Eselram looks and how dates and times are displayed.
+        Manage your logo, colours and client-facing form appearance in one place.
       </p>
     </div>
-
   </div>
 
-
-  <form id="brandingSettingsForm">
-
-    <label>
-      Primary colour
-
-      <div class="es-colour-field">
-
-        <input
-          id="settingsPrimaryColour"
-          type="color"
-          value="#365c50"
-          aria-label="Primary colour"
-        >
-
-        <input
-          id="settingsPrimaryColourText"
-          type="text"
-          value="#365c50"
-          maxlength="7"
-        >
-
-      </div>
-    </label>
-
-
-    <label>
-      Accent colour
-
-      <div class="es-colour-field">
-
-        <input
-          id="settingsAccentColour"
-          type="color"
-          value="#68706b"
-          aria-label="Accent colour"
-        >
-
-        <input
-          id="settingsAccentColourText"
-          type="text"
-          value="#68706b"
-          maxlength="7"
-        >
-
-      </div>
-    </label>
-
-
-    <div class="es-form-grid">
-
-      <label>
-        Theme
-
-        <select id="settingsTheme">
-
-          <option value="light">
-            Light
-          </option>
-
-          <option value="dark">
-            Dark
-          </option>
-
-          <option value="system">
-            Use device setting
-          </option>
-
-        </select>
-      </label>
-
-
-      <label>
-        Time format
-
-        <select id="settingsTimeFormat">
-
-          <option value="24">
-            24-hour
-          </option>
-
-          <option value="12">
-            12-hour
-          </option>
-
-        </select>
-      </label>
-
-    </div>
-
-
-    <label>
-      Date format
-
-      <select id="settingsDateFormat">
-
-        <option value="DD/MM/YYYY">
-          DD/MM/YYYY
-        </option>
-
-        <option value="MM/DD/YYYY">
-          MM/DD/YYYY
-        </option>
-
-        <option value="YYYY-MM-DD">
-          YYYY-MM-DD
-        </option>
-
-      </select>
-    </label>
-
-
-    <div
-      id="brandingStatus"
-      class="es-status"
-      hidden
-    ></div>
-
-
-    <button
-      id="saveBrandingButton"
-      class="es-button"
-      type="submit"
-    >
-      Save branding
-    </button>
-
-  </form>
-
+  <div class="es-empty-state">
+    <strong>Branding settings</strong>
+    <span>
+      Configure your business identity and preview how client-facing forms will look.
+    </span>
+    <a class="es-button" href="/settings/branding.html">
+      Manage branding
+    </a>
+  </div>
 </div>
 
-          <div
+<div
             id="tab-hours"
             class="es-settings-panel"
             hidden
