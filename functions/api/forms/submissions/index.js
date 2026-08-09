@@ -15,7 +15,10 @@ export async function onRequestPost({ request, env }) {
         SELECT
           id,
           business_id,
-          name
+          name,
+          template_type,
+          description,
+          version
         FROM clinical_templates
         WHERE
           public_token = ?
@@ -33,25 +36,85 @@ export async function onRequestPost({ request, env }) {
       );
     }
 
-    const fieldRows = await env.DB
-      .prepare(`
-        SELECT
-          label,
-          field_key,
-          field_type,
-          is_required,
-          condition_json
-        FROM clinical_template_fields
-        WHERE
-          business_id = ?
-          AND template_id = ?
-        ORDER BY sort_order ASC
-      `)
-      .bind(template.business_id, template.id)
-      .all();
+    const [sectionRows, fieldRows] = await Promise.all([
+      env.DB
+        .prepare(`
+          SELECT
+            id,
+            title,
+            description,
+            sort_order,
+            condition_json
+          FROM clinical_template_sections
+          WHERE
+            business_id = ?
+            AND template_id = ?
+          ORDER BY sort_order ASC
+        `)
+        .bind(template.business_id, template.id)
+        .all(),
+
+      env.DB
+        .prepare(`
+          SELECT
+            section_id,
+            label,
+            field_key,
+            field_type,
+            help_text,
+            placeholder,
+            options_json,
+            is_required,
+            sort_order,
+            condition_json
+          FROM clinical_template_fields
+          WHERE
+            business_id = ?
+            AND template_id = ?
+          ORDER BY sort_order ASC
+        `)
+        .bind(template.business_id, template.id)
+        .all()
+    ]);
 
     const fields = fieldRows.results || [];
     const fieldMap = new Map(fields.map(field => [field.field_key, field]));
+
+    const fieldsBySection = new Map();
+    for (const field of fields) {
+      fieldsBySection.set(
+        field.section_id,
+        [
+          ...(fieldsBySection.get(field.section_id) || []),
+          {
+            label: field.label,
+            field_key: field.field_key,
+            field_type: field.field_type,
+            help_text: field.help_text,
+            placeholder: field.placeholder,
+            options: parseJson(field.options_json, []),
+            is_required: field.is_required,
+            sort_order: field.sort_order,
+            condition: parseJson(field.condition_json, null)
+          }
+        ]
+      );
+    }
+
+    const templateSnapshot = {
+      id: template.id,
+      name: template.name,
+      template_type: template.template_type,
+      description: template.description || null,
+      version: Number(template.version || 1),
+      sections: (sectionRows.results || []).map(section => ({
+        title: section.title,
+        description: section.description || null,
+        sort_order: section.sort_order,
+        condition: parseJson(section.condition_json, null),
+        fields: fieldsBySection.get(section.id) || []
+      }))
+    };
 
     const answers = new Map();
     const signatures = new Map();
@@ -88,7 +151,6 @@ export async function onRequestPost({ request, env }) {
             { status: 400 }
           );
         }
-
         continue;
       }
 
@@ -99,7 +161,6 @@ export async function onRequestPost({ request, env }) {
             { status: 400 }
           );
         }
-
         continue;
       }
 
@@ -137,15 +198,19 @@ export async function onRequestPost({ request, env }) {
             template_id,
             public_token,
             submitted_by,
-            status
+            status,
+            template_version,
+            template_snapshot_json
           )
-          VALUES (?, ?, ?, ?, 'client', 'submitted')
+          VALUES (?, ?, ?, ?, 'client', 'submitted', ?, ?)
         `)
         .bind(
           submissionId,
           template.business_id,
           template.id,
-          token
+          token,
+          Number(template.version || 1),
+          JSON.stringify(templateSnapshot)
         )
     ];
 
@@ -225,10 +290,7 @@ export async function onRequestPost({ request, env }) {
 
     for (const [fieldKey, files] of uploads.entries()) {
       const field = fieldMap.get(fieldKey);
-
-      if (!field || field.field_type !== "file_upload") {
-        continue;
-      }
+      if (!field || field.field_type !== "file_upload") continue;
 
       for (const file of files) {
         if (file.size > 5 * 1024 * 1024) {
@@ -238,24 +300,16 @@ export async function onRequestPost({ request, env }) {
           );
         }
 
-        if (
-          ![
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "application/pdf"
-          ].includes(file.type)
-        ) {
+        if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) {
           return Response.json(
             { ok: false, error: `${file.name} has an unsupported file type.` },
             { status: 400 }
           );
         }
 
-        const safeName =
-          String(file.name || "upload")
-            .replace(/[^a-zA-Z0-9._-]+/g, "_")
-            .slice(0, 100);
+        const safeName = String(file.name || "upload")
+          .replace(/[^a-zA-Z0-9._-]+/g, "_")
+          .slice(0, 100);
 
         const storageKey =
           `${template.business_id}/${submissionId}/${fieldKey}/${crypto.randomUUID()}-${safeName}`;
@@ -263,11 +317,7 @@ export async function onRequestPost({ request, env }) {
         await env.FORM_UPLOADS.put(
           storageKey,
           await file.arrayBuffer(),
-          {
-            httpMetadata: {
-              contentType: file.type || "application/octet-stream"
-            }
-          }
+          { httpMetadata: { contentType: file.type || "application/octet-stream" } }
         );
 
         await env.DB
@@ -310,6 +360,15 @@ export async function onRequestPost({ request, env }) {
       { ok: false, error: "Unable to submit form." },
       { status: 500 }
     );
+  }
+}
+
+function parseJson(value, fallback) {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
   }
 }
 
