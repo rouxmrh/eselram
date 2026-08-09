@@ -81,6 +81,7 @@ export async function onRequestGet({ request, env }) {
           is_active,
           is_default,
           is_published,
+          is_client_sendable,
           public_token,
           published_at,
           created_at,
@@ -223,6 +224,7 @@ export async function onRequestPost({ request, env }) {
         description: starter.description,
         is_active: 1,
         is_default: 0,
+        is_client_sendable: starter.key === "general_consultation" ? 1 : 0,
         sections: structuredClone(starter.sections)
       };
 
@@ -414,6 +416,7 @@ async function saveTemplateStructure({
             description = ?,
             is_active = ?,
             is_default = ?,
+            is_client_sendable = ?,
             version = version + 1,
             updated_at = CURRENT_TIMESTAMP
           WHERE
@@ -426,6 +429,7 @@ async function saveTemplateStructure({
           payload.description || null,
           payload.is_active,
           payload.is_default,
+          payload.is_client_sendable,
           templateId,
           businessId
         )
@@ -461,9 +465,10 @@ async function saveTemplateStructure({
             template_type,
             description,
             is_active,
-            is_default
+            is_default,
+            is_client_sendable
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .bind(
           templateId,
@@ -472,7 +477,8 @@ async function saveTemplateStructure({
           payload.template_type,
           payload.description || null,
           payload.is_active,
-          payload.is_default
+          payload.is_default,
+          payload.is_client_sendable
         )
     );
   }
@@ -572,6 +578,7 @@ function validateTemplate(body) {
 
   const isActive = body.is_active === 0 ? 0 : 1;
   const isDefault = body.is_default === 1 ? 1 : 0;
+  const isClientSendable = body.is_client_sendable === 1 ? 1 : 0;
 
   const sections = Array.isArray(body.sections) ? body.sections : [];
 
@@ -650,6 +657,7 @@ function validateTemplate(body) {
       description,
       is_active: isActive,
       is_default: isDefault,
+      is_client_sendable: isClientSendable,
       sections: cleanSections
     }
   };
