@@ -12,3 +12,11 @@ BEGIN
     'Cannot delete a clinical template with historical submissions'
   );
 END;
+
+INSERT OR IGNORE INTO schema_migrations (
+  version
+)
+VALUES (
+  '015_clinical_integrity_cleanup'
+);
+
