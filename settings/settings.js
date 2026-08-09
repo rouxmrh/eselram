@@ -28,6 +28,11 @@ const hoursPanel =
     "tab-hours"
   );
 
+const paymentsPanel =
+  document.getElementById(
+    "tab-payments"
+  );
+
 const emailPanel =
   document.getElementById(
     "tab-email"
@@ -362,6 +367,7 @@ function showTab(tab) {
   businessPanel.hidden = true;
   brandingPanel.hidden = true;
   hoursPanel.hidden = true;
+  paymentsPanel.hidden = true;
   emailPanel.hidden = true;
   placeholderPanel.hidden = true;
 
@@ -377,6 +383,16 @@ function showTab(tab) {
   if (tab === "branding") {
 
     brandingPanel.hidden = false;
+
+    return;
+  }
+
+
+  if (tab === "payments") {
+
+    paymentsPanel.hidden = false;
+
+    loadStripeIntegration();
 
     return;
   }
@@ -466,6 +482,569 @@ window.addEventListener(
 );
 
 
+
+
+
+
+
+/* =======================================================
+   Independent Stripe integration
+   ======================================================= */
+
+const stripeIntegrationForm =
+  document.getElementById(
+    "stripeIntegrationForm"
+  );
+
+const stripeIntegrationMessage =
+  document.getElementById(
+    "stripeIntegrationMessage"
+  );
+
+const stripeIntegrationStatus =
+  document.getElementById(
+    "stripeIntegrationStatus"
+  );
+
+const stripeIntegrationMode =
+  document.getElementById(
+    "stripeIntegrationMode"
+  );
+
+const stripeDefaultStatus =
+  document.getElementById(
+    "stripeDefaultStatus"
+  );
+
+const stripeEncryptionWarning =
+  document.getElementById(
+    "stripeEncryptionWarning"
+  );
+
+const stripeSecretKeyHelp =
+  document.getElementById(
+    "stripeSecretKeyHelp"
+  );
+
+const stripeWebhookSecretHelp =
+  document.getElementById(
+    "stripeWebhookSecretHelp"
+  );
+
+const testStripeIntegrationButton =
+  document.getElementById(
+    "testStripeIntegrationButton"
+  );
+
+const disconnectStripeIntegrationButton =
+  document.getElementById(
+    "disconnectStripeIntegrationButton"
+  );
+
+
+async function loadStripeIntegration() {
+
+  stripeIntegrationMessage.hidden =
+    true;
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/integrations/payments/stripe",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    if (
+      response.status ===
+      401
+    ) {
+
+      window.location.href =
+        "/auth/login.html";
+
+      return;
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load Stripe settings."
+      );
+    }
+
+
+    const integration =
+      data.integration ||
+      {};
+
+
+    document
+      .getElementById(
+        "stripePublishableKey"
+      )
+      .value =
+        integration.publishable_key ||
+        "";
+
+
+    document
+      .getElementById(
+        "stripeCurrency"
+      )
+      .value =
+        integration.currency ||
+        document
+          .getElementById(
+            "currency"
+          )
+          ?.value ||
+        "GBP";
+
+
+    document
+      .getElementById(
+        "stripeSecretKey"
+      )
+      .value =
+        "";
+
+
+    document
+      .getElementById(
+        "stripeWebhookSecret"
+      )
+      .value =
+        "";
+
+
+    document
+      .getElementById(
+        "stripeMakeDefault"
+      )
+      .checked =
+        integration.is_default !==
+        false;
+
+
+    stripeSecretKeyHelp.textContent =
+      integration.has_secret_key
+        ? "A Stripe server-side key is already stored securely. Leave this blank to keep the existing key."
+        : "Paste a Stripe secret or restricted server-side key owned by this business.";
+
+
+    stripeWebhookSecretHelp.textContent =
+      integration.has_webhook_secret
+        ? "A webhook signing secret is already stored securely. Leave this blank to keep it."
+        : "Optional at this stage. Add it when the Stripe webhook endpoint is enabled.";
+
+
+    const labels = {
+      not_configured:
+        "Not configured",
+      configured:
+        "Configured — test required",
+      verified:
+        "Connected",
+      error:
+        "Connection error",
+      disabled:
+        "Disabled"
+    };
+
+
+    stripeIntegrationStatus.textContent =
+      labels[
+        integration.status
+      ] ||
+      integration.status ||
+      "Not configured";
+
+
+    stripeIntegrationMode.textContent =
+      integration.mode ===
+        "live"
+        ? "Live"
+        : integration.mode ===
+            "sandbox"
+          ? "Test"
+          : "—";
+
+
+    stripeDefaultStatus.textContent =
+      integration.is_default
+        ? "Yes"
+        : "No";
+
+
+    disconnectStripeIntegrationButton.hidden =
+      !integration.has_secret_key;
+
+
+    stripeEncryptionWarning.hidden =
+      data.encryption_ready;
+
+
+    if (!data.encryption_ready) {
+
+      stripeEncryptionWarning.textContent =
+        "This installation cannot save Stripe credentials until ESELRAM_ENCRYPTION_KEY is configured.";
+    }
+
+
+    if (integration.last_error) {
+
+      stripeIntegrationMessage.hidden =
+        false;
+
+      stripeIntegrationMessage.className =
+        "es-status error";
+
+      stripeIntegrationMessage.textContent =
+        integration.last_error;
+    }
+
+
+  } catch (error) {
+
+    stripeIntegrationMessage.hidden =
+      false;
+
+    stripeIntegrationMessage.className =
+      "es-status error";
+
+    stripeIntegrationMessage.textContent =
+      error.message ||
+      "Unable to load Stripe settings.";
+  }
+}
+
+
+stripeIntegrationForm
+  ?.addEventListener(
+    "submit",
+    async (event) => {
+
+      event.preventDefault();
+
+
+      const button =
+        document.getElementById(
+          "saveStripeIntegrationButton"
+        );
+
+
+      button.disabled =
+        true;
+
+
+      stripeIntegrationMessage.hidden =
+        false;
+
+      stripeIntegrationMessage.className =
+        "es-status";
+
+      stripeIntegrationMessage.textContent =
+        "Saving Stripe settings…";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/integrations/payments/stripe",
+            {
+              method:
+                "PUT",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Accept:
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  publishable_key:
+                    document
+                      .getElementById(
+                        "stripePublishableKey"
+                      )
+                      .value
+                      .trim(),
+
+                  secret_key:
+                    document
+                      .getElementById(
+                        "stripeSecretKey"
+                      )
+                      .value
+                      .trim(),
+
+                  webhook_secret:
+                    document
+                      .getElementById(
+                        "stripeWebhookSecret"
+                      )
+                      .value
+                      .trim(),
+
+                  currency:
+                    document
+                      .getElementById(
+                        "stripeCurrency"
+                      )
+                      .value,
+
+                  make_default:
+                    document
+                      .getElementById(
+                        "stripeMakeDefault"
+                      )
+                      .checked
+                })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Unable to save Stripe settings."
+          );
+        }
+
+
+        stripeIntegrationMessage.className =
+          "es-status success";
+
+        stripeIntegrationMessage.textContent =
+          "Stripe settings saved. Test the connection before using it.";
+
+
+        await loadStripeIntegration();
+
+
+      } catch (error) {
+
+        stripeIntegrationMessage.hidden =
+          false;
+
+        stripeIntegrationMessage.className =
+          "es-status error";
+
+        stripeIntegrationMessage.textContent =
+          error.message ||
+          "Unable to save Stripe settings.";
+
+      } finally {
+
+        button.disabled =
+          false;
+      }
+    }
+  );
+
+
+testStripeIntegrationButton
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      testStripeIntegrationButton.disabled =
+        true;
+
+      testStripeIntegrationButton.textContent =
+        "Testing…";
+
+
+      stripeIntegrationMessage.hidden =
+        false;
+
+      stripeIntegrationMessage.className =
+        "es-status";
+
+      stripeIntegrationMessage.textContent =
+        "Checking the Stripe connection…";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/integrations/payments/stripe",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Accept:
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  action:
+                    "test"
+                })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Stripe connection test failed."
+          );
+        }
+
+
+        stripeIntegrationMessage.className =
+          "es-status success";
+
+        stripeIntegrationMessage.textContent =
+          data.message ||
+          "Stripe connection verified.";
+
+
+        await loadStripeIntegration();
+
+
+      } catch (error) {
+
+        stripeIntegrationMessage.className =
+          "es-status error";
+
+        stripeIntegrationMessage.textContent =
+          error.message ||
+          "Stripe connection test failed.";
+
+      } finally {
+
+        testStripeIntegrationButton.disabled =
+          false;
+
+        testStripeIntegrationButton.textContent =
+          "Test connection";
+      }
+    }
+  );
+
+
+disconnectStripeIntegrationButton
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !confirm(
+          "Disconnect Stripe from this business? Pay at appointment will become the default payment method."
+        )
+      ) {
+        return;
+      }
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/integrations/payments/stripe",
+            {
+              method:
+                "DELETE",
+
+              headers: {
+                Accept:
+                  "application/json"
+              }
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Unable to disconnect Stripe."
+          );
+        }
+
+
+        stripeIntegrationMessage.hidden =
+          false;
+
+        stripeIntegrationMessage.className =
+          "es-status success";
+
+        stripeIntegrationMessage.textContent =
+          "Stripe disconnected. Pay at appointment is now the default.";
+
+
+        await loadStripeIntegration();
+
+
+      } catch (error) {
+
+        stripeIntegrationMessage.hidden =
+          false;
+
+        stripeIntegrationMessage.className =
+          "es-status error";
+
+        stripeIntegrationMessage.textContent =
+          error.message ||
+          "Unable to disconnect Stripe.";
+      }
+    }
+  );
 
 
 
