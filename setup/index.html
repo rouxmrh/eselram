@@ -16,7 +16,9 @@
   >
 </head>
 
-<body class="es-dashboard-shell">
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
 
   <aside
     id="appSidebar"
@@ -188,10 +190,15 @@
 
   </main>
 
+  </div>
+
 
   <script type="module">
     import { renderSidebar } from "/components/sidebar.js";
+    import { bindSharedLogout } from "/components/layout.js";
+
     renderSidebar("setup");
+    bindSharedLogout();
   </script>
 
   <script src="/setup/setup.js"></script>
