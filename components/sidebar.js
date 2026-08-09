@@ -5,43 +5,17 @@ export function renderSidebar(activePage) {
     return;
   }
 
-  const items = [
-    {
-      key: "dashboard",
-      label: "Overview",
-      href: "/dashboard/"
-    },
-    {
-      key: "bookings",
-      label: "Bookings",
-      href: "/bookings/"
-    },
-    {
-      key: "calendar",
-      label: "Calendar",
-      href: "/calendar/"
-    },
-    {
-      key: "customers",
-      label: "Customers",
-      href: "/customers/"
-    },
-    {
-      key: "services",
-      label: "Services",
-      href: "/services/"
-    },
-    {
-      key: "payments",
-      label: "Payments",
-      href: "/settings/#payments"
-    },
-    {
-      key: "settings",
-      label: "Settings",
-      href: "/settings/"
-    }
-  ];
+const items = [
+  { key: "dashboard", label: "Overview", href: "/dashboard/" },
+  { key: "bookings", label: "Bookings", href: "/bookings/" },
+  { key: "calendar", label: "Calendar", href: "/calendar/" },
+  { key: "customers", label: "Customers", href: "/customers/" },
+  { key: "services", label: "Services", href: "/services/" },
+  { key: "treatment-records", label: "Treatment Records", href: "/treatment-records/" },
+  { key: "clinical-records", label: "Clinical Records", href: "/clinical-submissions/" },
+  { key: "payments", label: "Payments", href: "/payments/" },
+  { key: "settings", label: "Settings", href: "/settings/" }
+];
 
   sidebar.innerHTML = `
     <div class="es-sidebar-brand">
