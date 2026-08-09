@@ -104,6 +104,7 @@ let bookings = [];
 let currentDetailBookingId = null;
 
 let currentFormRequestBooking = null;
+let currentGeneratedFormRequest = null;
 
 const sendFormDialog =
   document.getElementById("sendFormDialog");
@@ -1566,11 +1567,108 @@ document
   });
 
 
+document
+  .getElementById("emailGeneratedFormLink")
+  ?.addEventListener(
+    "click",
+    async () => {
+      if (!currentGeneratedFormRequest?.id) {
+        showBookingFormRequestStatus(
+          "Generate the secure consultation link first.",
+          "error"
+        );
+        return;
+      }
+
+      await sendBookingConsultationEmail(
+        currentGeneratedFormRequest.id
+      );
+    }
+  );
+
+
+async function sendBookingConsultationEmail(
+  formRequestId
+) {
+  const button =
+    document.getElementById(
+      "emailGeneratedFormLink"
+    );
+
+  if (button) {
+    button.disabled = true;
+    button.textContent =
+      "Sending…";
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/form-requests/email",
+        {
+          method:
+            "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              form_request_id:
+                formRequestId
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to send consultation email."
+      );
+    }
+
+    showBookingFormRequestStatus(
+      `Consultation emailed to ${data.email.to}.`,
+      "success"
+    );
+
+    if (currentFormRequestBooking) {
+      await loadBookingFormRequests(
+        currentFormRequestBooking.id
+      );
+    }
+  } catch (error) {
+    showBookingFormRequestStatus(
+      error.message ||
+      "Unable to send consultation email.",
+      "error"
+    );
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent =
+        "Send by email";
+    }
+  }
+}
+
+
 async function openBookingFormRequest(
   booking
 ) {
   currentFormRequestBooking =
     booking;
+
+  currentGeneratedFormRequest =
+    null;
 
   sendFormTitle.textContent =
     "Send client form";
@@ -1691,15 +1789,57 @@ function renderBookingFormRequests(
               <span>
                 Created ${formatFullDateTime(request.created_at)}
               </span>
+
+              <small>
+                ${
+                  request.email_status === "sent"
+                    ? `Email sent to ${escapeHtml(request.email_to || "")}${request.email_send_count > 1 ? ` · ${request.email_send_count} sends` : ""}`
+                    : request.email_status === "failed"
+                      ? "Last email attempt failed"
+                      : "Email not sent"
+                }
+              </small>
             </div>
 
-            <span class="es-form-request-status ${escapeHtml(request.display_status)}">
-              ${escapeHtml(formatFormRequestStatus(request.display_status))}
-            </span>
+            <div class="es-customer-appointment-actions">
+              ${
+                ["created", "opened"].includes(request.status)
+                  ? `
+                    <button
+                      type="button"
+                      class="es-secondary-button"
+                      data-resend-consultation="${escapeHtml(request.id)}"
+                    >
+                      ${request.email_status === "sent" ? "Resend email" : "Send email"}
+                    </button>
+                  `
+                  : ""
+              }
+
+              <span class="es-form-request-status ${escapeHtml(request.display_status)}">
+                ${escapeHtml(formatFormRequestStatus(request.display_status))}
+              </span>
+            </div>
           </div>
         `
       )
       .join("");
+
+  bookingFormRequests
+    .querySelectorAll(
+      "[data-resend-consultation]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () =>
+            sendBookingConsultationEmail(
+              button.dataset.resendConsultation
+            )
+        );
+      }
+    );
 }
 
 
@@ -1768,6 +1908,9 @@ async function generateBookingFormLink() {
         "Unable to generate form link."
       );
     }
+
+    currentGeneratedFormRequest =
+      data.request;
 
     generatedFormLink.value =
       `${location.origin}${data.request.url_path}`;
