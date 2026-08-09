@@ -82,6 +82,7 @@ const newCustomerBookingButton =
 let customers = [];
 
 let activeProfileCustomer = null;
+let currentCustomerGeneratedFormRequest = null;
 
 const customerSendFormDialog =
   document.getElementById(
@@ -581,10 +582,113 @@ document
   );
 
 
+document
+  .getElementById(
+    "emailCustomerGeneratedFormLink"
+  )
+  ?.addEventListener(
+    "click",
+    async () => {
+      if (
+        !currentCustomerGeneratedFormRequest?.id
+      ) {
+        showCustomerFormStatus(
+          "Generate the secure consultation link first.",
+          "error"
+        );
+        return;
+      }
+
+      await sendCustomerConsultationEmail(
+        currentCustomerGeneratedFormRequest.id
+      );
+    }
+  );
+
+
+async function sendCustomerConsultationEmail(
+  formRequestId
+) {
+  const button =
+    document.getElementById(
+      "emailCustomerGeneratedFormLink"
+    );
+
+  if (button) {
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Sending…";
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/form-requests/email",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              form_request_id:
+                formRequestId
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to send consultation email."
+      );
+    }
+
+    showCustomerFormStatus(
+      `Consultation emailed to ${data.email.to}.`,
+      "success"
+    );
+
+    await loadCustomerFormRequests();
+  } catch (error) {
+    showCustomerFormStatus(
+      error.message ||
+      "Unable to send consultation email.",
+      "error"
+    );
+  } finally {
+    if (button) {
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Send by email";
+    }
+  }
+}
+
+
 async function openCustomerFormRequest() {
   if (!activeProfileCustomer) {
     return;
   }
+
+  currentCustomerGeneratedFormRequest =
+    null;
 
   document
     .getElementById(
@@ -731,15 +835,58 @@ function renderCustomerFormRequests(
                     : "Customer form"
                 }
               </span>
+
+              <small>
+                ${
+                  request.email_status === "sent"
+                    ? `Email sent to ${escapeHtml(request.email_to || "")}${request.email_send_count > 1 ? ` · ${request.email_send_count} sends` : ""}`
+                    : request.email_status === "failed"
+                      ? "Last email attempt failed"
+                      : "Email not sent"
+                }
+              </small>
             </div>
 
-            <span class="es-form-request-status ${escapeHtml(request.display_status)}">
-              ${escapeHtml(customerFormRequestStatus(request.display_status))}
-            </span>
+            <div class="es-customer-appointment-actions">
+              ${
+                ["created", "opened"].includes(request.status)
+                  ? `
+                    <button
+                      type="button"
+                      class="es-secondary-button"
+                      data-customer-resend-consultation="${escapeHtml(request.id)}"
+                    >
+                      ${request.email_status === "sent" ? "Resend email" : "Send email"}
+                    </button>
+                  `
+                  : ""
+              }
+
+              <span class="es-form-request-status ${escapeHtml(request.display_status)}">
+                ${escapeHtml(customerFormRequestStatus(request.display_status))}
+              </span>
+            </div>
           </div>
         `
       )
       .join("");
+
+  customerFormRequests
+    .querySelectorAll(
+      "[data-customer-resend-consultation]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () =>
+            sendCustomerConsultationEmail(
+              button.dataset
+                .customerResendConsultation
+            )
+        );
+      }
+    );
 }
 
 
@@ -811,6 +958,9 @@ async function generateCustomerFormLink() {
         "Unable to generate form link."
       );
     }
+
+    currentCustomerGeneratedFormRequest =
+      data.request;
 
     customerGeneratedFormLink.value =
       `${location.origin}${data.request.url_path}`;
