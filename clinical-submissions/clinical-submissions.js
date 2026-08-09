@@ -117,7 +117,12 @@ function renderMeta(){
     ["Submitted by",formatStatus(s.submitted_by)],
     ["Form",s.template_name||"Clinical form"],
     ["Customer",s.customer_name||"Not assigned"],
-    ["Appointment",s.appointment_label||"Not assigned"]
+    [
+      "Appointment",
+      s.appointment_id
+        ? `${formatDateTime(s.appointment_start_at)}${s.service_name ? ` · ${s.service_name}` : ""}`
+        : "Not assigned"
+    ]
   ].map(([l,v])=>`<div class="es-clinical-record-meta-item"><span>${escapeHtml(l)}</span><strong>${escapeHtml(v)}</strong></div>`).join("");
 }
 
