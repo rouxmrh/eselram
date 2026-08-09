@@ -34,9 +34,13 @@ export async function onRequestGet({ request, env }) {
     const mode = String(url.searchParams.get("mode") || "").trim();
     const templateId = String(url.searchParams.get("template_id") || "").trim();
     const token = String(url.searchParams.get("token") || "").trim();
+    const requestToken = String(
+      url.searchParams.get("request_token") || ""
+    ).trim();
 
     let template = null;
     let businessId = null;
+    let formRequest = null;
 
     if (mode === "preview") {
       const user = await getAuthenticatedUser(request, env);
@@ -75,6 +79,74 @@ export async function onRequestGet({ request, env }) {
         .first();
 
       businessId = user.business_id;
+    } else if (requestToken) {
+      formRequest = await env.DB
+        .prepare(`
+          SELECT
+            r.id,
+            r.business_id,
+            r.template_id,
+            r.customer_id,
+            r.appointment_id,
+            r.status,
+            r.expires_at,
+
+            t.name,
+            t.description,
+            t.template_type,
+            t.is_published,
+            t.public_token
+
+          FROM clinical_form_requests r
+
+          JOIN clinical_templates t
+            ON t.id = r.template_id
+
+          WHERE
+            r.request_token = ?
+            AND r.status IN ('created', 'opened')
+            AND datetime(r.expires_at) > datetime('now')
+            AND t.is_published = 1
+            AND t.is_active = 1
+
+          LIMIT 1
+        `)
+        .bind(requestToken)
+        .first();
+
+      if (formRequest) {
+        template = {
+          id: formRequest.template_id,
+          business_id: formRequest.business_id,
+          name: formRequest.name,
+          description: formRequest.description,
+          template_type: formRequest.template_type,
+          is_published: formRequest.is_published,
+          public_token: formRequest.public_token
+        };
+
+        businessId = formRequest.business_id;
+
+        if (formRequest.status === "created") {
+          await env.DB
+            .prepare(`
+              UPDATE clinical_form_requests
+              SET
+                status = 'opened',
+                opened_at = COALESCE(
+                  opened_at,
+                  CURRENT_TIMESTAMP
+                )
+              WHERE
+                id = ?
+                AND status = 'created'
+            `)
+            .bind(formRequest.id)
+            .run();
+
+          formRequest.status = "opened";
+        }
+      }
     } else {
       if (!token) {
         return Response.json(
@@ -213,6 +285,14 @@ export async function onRequestGet({ request, env }) {
     return Response.json({
       ok: true,
       preview: mode === "preview",
+      request: formRequest
+        ? {
+            id: formRequest.id,
+            customer_id: formRequest.customer_id,
+            appointment_id: formRequest.appointment_id,
+            status: formRequest.status
+          }
+        : null,
       business: {
         id: business?.id,
         name: business?.name || "Business",
