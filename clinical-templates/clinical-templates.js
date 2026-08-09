@@ -282,8 +282,8 @@ function renderEditor() {
       ${
         activeTemplate.id
           ? `
-            <button id="deleteTemplateButton" class="es-secondary-button" type="button">
-              Delete template
+            <button id="archiveTemplateButton" class="es-secondary-button" type="button">
+              Archive template
             </button>
           `
           : ""
@@ -611,9 +611,9 @@ function bindEditorEvents() {
     copyButton.addEventListener("click", copyPublicLink);
   }
 
-  const deleteButton = document.getElementById("deleteTemplateButton");
-  if (deleteButton) {
-    deleteButton.addEventListener("click", deleteTemplate);
+  const archiveButton = document.getElementById("archiveTemplateButton");
+  if (archiveButton) {
+    archiveButton.addEventListener("click", archiveTemplate);
   }
 }
 
@@ -814,31 +814,41 @@ async function saveTemplate() {
   }
 }
 
-async function deleteTemplate() {
+async function archiveTemplate() {
   if (!activeTemplate?.id) return;
 
-  if (!confirm("Delete this clinical template?")) return;
+  if (!confirm("Archive this clinical template? It will no longer be active or publicly available, but historical clinical records will be kept.")) {
+    return;
+  }
 
   try {
-    const response = await fetch(
-      `/api/clinical-templates?id=${encodeURIComponent(activeTemplate.id)}`,
-      {
-        method: "DELETE",
-        headers: { Accept: "application/json" }
-      }
-    );
+    const response = await fetch("/api/clinical-templates", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        action: "archive",
+        id: activeTemplate.id
+      })
+    });
 
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Unable to delete template.");
+      throw new Error(data.error || "Unable to archive template.");
     }
+
+    templateStatus.hidden = false;
+    templateStatus.className = "es-status success";
+    templateStatus.textContent = "Clinical template archived.";
 
     activeTemplate = null;
     await loadTemplates();
     renderEditor();
   } catch (error) {
-    showPageError(error.message || "Unable to delete template.");
+    showPageError(error.message || "Unable to archive template.");
   }
 }
 
