@@ -14,6 +14,7 @@ const items = [
   { key: "treatment-records", label: "Treatment Records", href: "/treatment-records/" },
   { key: "clinical-records", label: "Clinical Records", href: "/clinical-submissions/" },
   { key: "payments", label: "Payments", href: "/payments/" },
+  { key: "setup", label: "Setup", href: "/setup/" },
   { key: "settings", label: "Settings", href: "/settings/" }
 ];
 
