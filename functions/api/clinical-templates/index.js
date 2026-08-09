@@ -300,6 +300,33 @@ export async function onRequestPut({ request, env }) {
       );
     }
 
+    if (body.action === "archive") {
+      await env.DB
+        .prepare(`
+          UPDATE clinical_templates
+          SET
+            is_active = 0,
+            is_default = 0,
+            is_published = 0,
+            published_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+            AND business_id = ?
+        `)
+        .bind(templateId, user.business_id)
+        .run();
+
+      return Response.json({
+        ok: true,
+        template: {
+          id: templateId,
+          is_active: 0,
+          is_default: 0,
+          is_published: 0
+        }
+      });
+    }
+
     const validation = validateTemplate(body);
 
     if (!validation.ok) {
@@ -329,37 +356,20 @@ export async function onRequestPut({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  try {
-    const user = await getUserContext(request, env);
+  const user = await getUserContext(request, env);
 
-    if (!user) return unauthorized();
+  if (!user) return unauthorized();
 
-    const id = String(
-      new URL(request.url).searchParams.get("id") || ""
-    ).trim();
-
-    if (!id) {
-      return badRequest("Template id is required.");
+  return Response.json(
+    {
+      ok: false,
+      error:
+        "Clinical templates cannot be permanently deleted. Archive the template instead."
+    },
+    {
+      status: 405
     }
-
-    await env.DB
-      .prepare(`
-        DELETE FROM clinical_templates
-        WHERE id = ?
-          AND business_id = ?
-      `)
-      .bind(id, user.business_id)
-      .run();
-
-    return Response.json({ ok: true });
-  } catch (error) {
-    console.error("Clinical template deletion failed:", error);
-
-    return Response.json(
-      { ok: false, error: "Unable to delete clinical template." },
-      { status: 500 }
-    );
-  }
+  );
 }
 
 async function saveTemplateStructure({
