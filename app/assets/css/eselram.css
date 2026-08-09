@@ -2790,7 +2790,7 @@ textarea:focus {
 
 .es-form-request-link {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
   margin-top: 16px;
 }
@@ -2857,4 +2857,18 @@ textarea:focus {
   .es-form-request-item {
     grid-template-columns: 1fr;
   }
+}
+
+
+.es-form-request-item .es-customer-appointment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.es-form-request-item .es-secondary-button {
+  min-height: 32px;
+  padding: 7px 10px;
+  font-size: 11px;
 }
