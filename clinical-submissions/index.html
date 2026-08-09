@@ -8,20 +8,10 @@
 </head>
 <body class="es-dashboard-body">
   <div class="es-dashboard-layout">
-    <aside class="es-sidebar">
-      <div class="es-sidebar-brand">ESELRAM</div>
-      <nav class="es-sidebar-nav">
-        <a href="/dashboard/">Overview</a>
-        <a href="/bookings/">Bookings</a>
-        <a href="/calendar/">Calendar</a>
-        <a href="/customers/">Customers</a>
-        <a href="/services/">Services</a>
-        <a href="/treatment-records/">Treatment Records</a>
-        <a href="/clinical-submissions/" class="active">Clinical Records</a>
-        <a href="/payments/">Payments</a>
-        <a href="/settings/">Settings</a>
-      </nav>
-    </aside>
+    <aside
+  id="appSidebar"
+  class="es-sidebar"
+></aside>
 
     <main class="es-dashboard-main">
       <header class="es-dashboard-header">
@@ -92,6 +82,11 @@
     </div>
   </aside>
 
+  <script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("PAGE-KEY");
+</script>
+  
   <script src="/clinical-submissions/clinical-submissions.js"></script>
 </body>
 </html>
