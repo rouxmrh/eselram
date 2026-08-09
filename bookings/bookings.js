@@ -1990,6 +1990,212 @@ function getBooking(id) {
    Booking details
    ======================================================= */
 
+
+
+/* =======================================================
+   Stripe Checkout payment links
+   ======================================================= */
+
+const paymentLinkDialog =
+  document.getElementById(
+    "paymentLinkDialog"
+  );
+
+const paymentLinkStatus =
+  document.getElementById(
+    "paymentLinkStatus"
+  );
+
+const paymentLinkResult =
+  document.getElementById(
+    "paymentLinkResult"
+  );
+
+const generatedPaymentLink =
+  document.getElementById(
+    "generatedPaymentLink"
+  );
+
+const openPaymentLink =
+  document.getElementById(
+    "openPaymentLink"
+  );
+
+const paymentLinkContext =
+  document.getElementById(
+    "paymentLinkContext"
+  );
+
+
+document
+  .getElementById(
+    "closePaymentLinkDialog"
+  )
+  ?.addEventListener(
+    "click",
+    () =>
+      paymentLinkDialog.close()
+  );
+
+
+document
+  .getElementById(
+    "copyPaymentLink"
+  )
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !generatedPaymentLink.value
+      ) {
+        return;
+      }
+
+
+      try {
+
+        await navigator.clipboard.writeText(
+          generatedPaymentLink.value
+        );
+
+      } catch {
+
+        generatedPaymentLink.select();
+
+        document.execCommand(
+          "copy"
+        );
+      }
+
+
+      paymentLinkStatus.hidden =
+        false;
+
+      paymentLinkStatus.className =
+        "es-status success";
+
+      paymentLinkStatus.textContent =
+        "Payment link copied.";
+    }
+  );
+
+
+async function createStripePaymentLink(
+  booking
+) {
+
+  paymentLinkResult.hidden =
+    true;
+
+  paymentLinkStatus.hidden =
+    false;
+
+  paymentLinkStatus.className =
+    "es-status";
+
+  paymentLinkStatus.textContent =
+    "Creating secure Stripe Checkout…";
+
+
+  paymentLinkContext.textContent =
+    `${booking.first_name} ${booking.last_name} · ${booking.service_name}`;
+
+
+  if (
+    typeof paymentLinkDialog
+      .showModal === "function"
+  ) {
+
+    paymentLinkDialog.showModal();
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/payments/stripe/checkout",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              appointment_id:
+                booking.id
+            })
+        }
+      );
+
+
+    if (
+      response.status === 401
+    ) {
+
+      window.location.href =
+        "/auth/login.html";
+
+      return;
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to create payment link."
+      );
+    }
+
+
+    generatedPaymentLink.value =
+      data.checkout.url;
+
+
+    openPaymentLink.href =
+      data.checkout.url;
+
+
+    paymentLinkResult.hidden =
+      false;
+
+    paymentLinkStatus.className =
+      "es-status success";
+
+    paymentLinkStatus.textContent =
+      `${formatMoney(
+        data.checkout.amount_minor
+      )} Checkout created for ${data.checkout.customer_email}.`;
+
+
+  } catch (error) {
+
+    paymentLinkStatus.className =
+      "es-status error";
+
+    paymentLinkStatus.textContent =
+      error.message ||
+      "Unable to create payment link.";
+  }
+}
+
+
 function showBookingDetails(
   booking
 ) {
@@ -2089,6 +2295,14 @@ function showBookingDetails(
       booking.status !== "cancelled"
         ? `
           <button
+            id="detailPaymentLinkButton"
+            class="es-button"
+            type="button"
+          >
+            Create payment link
+          </button>
+
+          <button
             id="detailSendFormButton"
             class="es-button"
             type="button"
@@ -2129,6 +2343,28 @@ function showBookingDetails(
         : ""
     }
   `;
+
+  const detailPaymentLinkButton =
+    document.getElementById(
+      "detailPaymentLinkButton"
+    );
+
+
+  if (detailPaymentLinkButton) {
+
+    detailPaymentLinkButton.addEventListener(
+      "click",
+      () => {
+
+        bookingDetailsDialog.close();
+
+        createStripePaymentLink(
+          booking
+        );
+      }
+    );
+  }
+
 
   const detailSendFormButton =
     document.getElementById(
