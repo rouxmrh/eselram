@@ -3221,3 +3221,62 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+
+
+/* =======================================================
+   Stripe Checkout — 023
+   ======================================================= */
+
+.es-copy-field {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.es-copy-field .es-secondary-button {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.es-public-payment-body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--es-bg);
+  color: var(--es-text);
+}
+
+.es-public-payment-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.es-public-payment-card {
+  width: min(
+    680px,
+    100%
+  );
+  padding: 42px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-lg);
+  background: var(--es-surface);
+  box-shadow: var(--es-shadow);
+}
+
+.es-public-payment-card h1 {
+  margin: 6px 0 14px;
+}
+
+@media (max-width: 600px) {
+  .es-copy-field {
+    grid-template-columns: 1fr;
+  }
+
+  .es-public-payment-card {
+    padding: 28px 22px;
+  }
+}
