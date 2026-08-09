@@ -745,7 +745,7 @@ function escapeHtml(
 }
 
 
-logoutButton.addEventListener(
+logoutButton?.addEventListener(
   "click",
   async () => {
 
