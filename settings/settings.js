@@ -639,6 +639,15 @@ async function loadStripeIntegration() {
 
     document
       .getElementById(
+        "stripeWebhookUrl"
+      )
+      .value =
+        integration.webhook_url ||
+        "";
+
+
+    document
+      .getElementById(
         "stripeMakeDefault"
       )
       .checked =
@@ -737,6 +746,45 @@ async function loadStripeIntegration() {
       "Unable to load Stripe settings.";
   }
 }
+
+
+
+
+document
+  .getElementById(
+    "copyStripeWebhookUrl"
+  )
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      const input =
+        document.getElementById(
+          "stripeWebhookUrl"
+        );
+
+
+      if (!input?.value) {
+        return;
+      }
+
+
+      try {
+
+        await navigator.clipboard.writeText(
+          input.value
+        );
+
+      } catch {
+
+        input.select();
+
+        document.execCommand(
+          "copy"
+        );
+      }
+    }
+  );
 
 
 stripeIntegrationForm
