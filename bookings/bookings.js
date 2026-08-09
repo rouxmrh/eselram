@@ -102,6 +102,33 @@ const bookingDetailActions =
 let services = [];
 let bookings = [];
 let currentDetailBookingId = null;
+
+let currentFormRequestBooking = null;
+
+const sendFormDialog =
+  document.getElementById("sendFormDialog");
+
+const sendFormTitle =
+  document.getElementById("sendFormTitle");
+
+const sendFormContext =
+  document.getElementById("sendFormContext");
+
+const sendFormTemplate =
+  document.getElementById("sendFormTemplate");
+
+const sendFormStatus =
+  document.getElementById("sendFormStatus");
+
+const generatedFormLinkWrap =
+  document.getElementById("generatedFormLinkWrap");
+
+const generatedFormLink =
+  document.getElementById("generatedFormLink");
+
+const bookingFormRequests =
+  document.getElementById("bookingFormRequests");
+
 let customerSearchTimer = null;
 
 
@@ -1503,6 +1530,310 @@ function bindBookingRowActions() {
 }
 
 
+
+/* =======================================================
+   Secure client form links
+   ======================================================= */
+
+document
+  .getElementById("closeSendFormDialog")
+  ?.addEventListener("click", () => {
+    sendFormDialog.close();
+  });
+
+document
+  .getElementById("generateFormLinkButton")
+  ?.addEventListener("click", generateBookingFormLink);
+
+document
+  .getElementById("copyGeneratedFormLink")
+  ?.addEventListener("click", async () => {
+    if (!generatedFormLink.value) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        generatedFormLink.value
+      );
+
+      showBookingFormRequestStatus(
+        "Secure form link copied.",
+        "success"
+      );
+    } catch {
+      generatedFormLink.select();
+      document.execCommand("copy");
+    }
+  });
+
+
+async function openBookingFormRequest(
+  booking
+) {
+  currentFormRequestBooking =
+    booking;
+
+  sendFormTitle.textContent =
+    "Send client form";
+
+  sendFormContext.textContent =
+    `${booking.first_name} ${booking.last_name} · ${booking.service_name} · ${formatFullDate(booking.start_at)}`;
+
+  sendFormTemplate.innerHTML =
+    `<option value="">Loading forms…</option>`;
+
+  bookingFormRequests.innerHTML =
+    `<div class="es-empty-state">Loading form history…</div>`;
+
+  generatedFormLinkWrap.hidden =
+    true;
+
+  sendFormStatus.hidden =
+    true;
+
+  if (
+    typeof sendFormDialog.showModal ===
+    "function"
+  ) {
+    sendFormDialog.showModal();
+  }
+
+  await loadBookingFormRequests(
+    booking.id
+  );
+}
+
+
+async function loadBookingFormRequests(
+  appointmentId
+) {
+  try {
+    const response =
+      await fetch(
+        `/api/form-requests?appointment_id=${encodeURIComponent(appointmentId)}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to load forms."
+      );
+    }
+
+    sendFormTemplate.innerHTML =
+      `<option value="">Choose a form</option>` +
+      (data.templates || [])
+        .map(
+          template => `
+            <option value="${escapeHtml(template.id)}">
+              ${escapeHtml(template.name)}
+            </option>
+          `
+        )
+        .join("");
+
+    if (!(data.templates || []).length) {
+      showBookingFormRequestStatus(
+        "Publish at least one Clinical Template before sending a form.",
+        "error"
+      );
+    }
+
+    renderBookingFormRequests(
+      data.requests || []
+    );
+  } catch (error) {
+    showBookingFormRequestStatus(
+      error.message ||
+      "Unable to load forms.",
+      "error"
+    );
+  }
+}
+
+
+function renderBookingFormRequests(
+  requests
+) {
+  if (!requests.length) {
+    bookingFormRequests.innerHTML = `
+      <div class="es-empty-state">
+        <strong>No forms sent for this appointment yet.</strong>
+      </div>
+    `;
+
+    return;
+  }
+
+  bookingFormRequests.innerHTML =
+    requests
+      .map(
+        request => `
+          <div class="es-form-request-item">
+            <div class="es-form-request-item-main">
+              <strong>
+                ${escapeHtml(request.template_name)}
+              </strong>
+
+              <span>
+                Created ${formatFullDateTime(request.created_at)}
+              </span>
+            </div>
+
+            <span class="es-form-request-status ${escapeHtml(request.display_status)}">
+              ${escapeHtml(formatFormRequestStatus(request.display_status))}
+            </span>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+async function generateBookingFormLink() {
+  if (!currentFormRequestBooking) {
+    return;
+  }
+
+  const templateId =
+    sendFormTemplate.value;
+
+  if (!templateId) {
+    showBookingFormRequestStatus(
+      "Choose a form first.",
+      "error"
+    );
+
+    return;
+  }
+
+  const button =
+    document.getElementById(
+      "generateFormLinkButton"
+    );
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Generating…";
+
+  try {
+    const response =
+      await fetch(
+        "/api/form-requests",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              template_id:
+                templateId,
+              appointment_id:
+                currentFormRequestBooking.id
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to generate form link."
+      );
+    }
+
+    generatedFormLink.value =
+      `${location.origin}${data.request.url_path}`;
+
+    generatedFormLinkWrap.hidden =
+      false;
+
+    showBookingFormRequestStatus(
+      data.reused
+        ? "Existing secure link ready to copy."
+        : "Secure form link created.",
+      "success"
+    );
+
+    await loadBookingFormRequests(
+      currentFormRequestBooking.id
+    );
+  } catch (error) {
+    showBookingFormRequestStatus(
+      error.message ||
+      "Unable to generate form link.",
+      "error"
+    );
+  } finally {
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Generate secure link";
+  }
+}
+
+
+function showBookingFormRequestStatus(
+  message,
+  type = ""
+) {
+  sendFormStatus.hidden =
+    false;
+
+  sendFormStatus.className =
+    `es-status ${type}`.trim();
+
+  sendFormStatus.textContent =
+    message;
+}
+
+
+function formatFormRequestStatus(
+  status
+) {
+  return {
+    created:
+      "Link created",
+    opened:
+      "Opened",
+    submitted:
+      "Completed",
+    reviewed:
+      "Reviewed",
+    revoked:
+      "Revoked"
+  }[status] ||
+  formatStatus(status);
+}
+
 function getBooking(id) {
 
   return bookings.find(
@@ -1610,10 +1941,24 @@ function showBookingDetails(
   `;
 
 
-  bookingDetailActions.innerHTML =
-    booking.status ===
-      "confirmed"
-      ? `
+  bookingDetailActions.innerHTML = `
+    ${
+      booking.status !== "cancelled"
+        ? `
+          <button
+            id="detailSendFormButton"
+            class="es-button"
+            type="button"
+          >
+            Send form
+          </button>
+        `
+        : ""
+    }
+
+    ${
+      booking.status === "confirmed"
+        ? `
         <button
           id="detailEditButton"
           class="es-secondary-button"
@@ -1637,8 +1982,25 @@ function showBookingDetails(
         >
           Cancel booking
         </button>
-      `
-      : "";
+        `
+        : ""
+    }
+  `;
+
+  const detailSendFormButton =
+    document.getElementById(
+      "detailSendFormButton"
+    );
+
+  if (detailSendFormButton) {
+    detailSendFormButton.addEventListener(
+      "click",
+      () => {
+        bookingDetailsDialog.close();
+        openBookingFormRequest(booking);
+      }
+    );
+  }
 
 
   if (
