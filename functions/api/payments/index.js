@@ -194,10 +194,10 @@ export async function onRequestGet({
                           AND (
                             r.provider_reference =
                               'refund:' || p.id
-                            OR r.notes LIKE
-                              '%original_payment=' ||
-                              p.id ||
-                              '%'
+                            OR instr(
+                              COALESCE(r.notes, ''),
+                              'original_payment=' || p.id
+                            ) > 0
                           )
                       ),
                       0
@@ -298,7 +298,11 @@ export async function onRequestGet({
                       a.id
                     AND p.business_id =
                       a.business_id
-                    AND p.status = 'paid'
+                    AND p.status IN (
+                      'paid',
+                      'partially_refunded',
+                      'refunded'
+                    )
                 ),
                 0
               ) AS paid_minor
@@ -398,7 +402,11 @@ export async function onRequestGet({
 
             WHERE
               business_id = ?
-              AND status = 'paid'
+              AND status IN (
+                'paid',
+                'partially_refunded',
+                'refunded'
+              )
               AND strftime(
                 '%Y-%m',
                 COALESCE(
@@ -1049,13 +1057,16 @@ async function createRefund({
           AND (
             provider_reference =
               ?
-            OR notes LIKE ?
+            OR instr(
+              COALESCE(notes, ''),
+              ?
+            ) > 0
           )
       `)
       .bind(
         user.business_id,
         `refund:${paymentId}`,
-        `%original_payment=${paymentId}%`
+        `original_payment=${paymentId}`
       )
       .first();
 
