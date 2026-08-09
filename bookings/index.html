@@ -592,6 +592,85 @@
 
   </dialog>
 
+  <dialog
+    id="sendFormDialog"
+    class="es-form-request-dialog"
+  >
+    <div class="es-form-request-dialog-inner">
+
+      <div class="es-booking-dialog-header">
+        <div>
+          <p class="es-eyebrow">Client form</p>
+          <h2 id="sendFormTitle">Send form</h2>
+        </div>
+
+        <button
+          id="closeSendFormDialog"
+          class="es-dialog-close"
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <p id="sendFormContext" class="es-muted-copy"></p>
+
+      <label>
+        Published form
+        <select id="sendFormTemplate">
+          <option value="">Choose a form</option>
+        </select>
+      </label>
+
+      <div
+        id="sendFormStatus"
+        class="es-status"
+        hidden
+      ></div>
+
+      <button
+        id="generateFormLinkButton"
+        class="es-button"
+        type="button"
+      >
+        Generate secure link
+      </button>
+
+      <div
+        id="generatedFormLinkWrap"
+        class="es-form-request-link"
+        hidden
+      >
+        <input
+          id="generatedFormLink"
+          type="text"
+          readonly
+          aria-label="Generated client form link"
+        >
+
+        <button
+          id="copyGeneratedFormLink"
+          class="es-secondary-button"
+          type="button"
+        >
+          Copy link
+        </button>
+      </div>
+
+      <div class="es-settings-divider"></div>
+
+      <p class="es-eyebrow">Form history</p>
+
+      <div
+        id="bookingFormRequests"
+        class="es-form-request-list"
+      ></div>
+
+    </div>
+  </dialog>
+
+
   <script type="module">
   import { renderSidebar } from "/components/sidebar.js";
   renderSidebar("bookings");
