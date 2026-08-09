@@ -592,6 +592,103 @@
 
   </dialog>
 
+
+
+  <dialog
+    id="paymentLinkDialog"
+    class="es-booking-dialog"
+  >
+
+    <div class="es-booking-dialog-inner">
+
+      <div class="es-booking-dialog-header">
+
+        <div>
+
+          <p class="es-eyebrow">
+            Stripe Checkout
+          </p>
+
+          <h2>
+            Customer payment link
+          </h2>
+
+        </div>
+
+        <button
+          id="closePaymentLinkDialog"
+          class="es-dialog-close"
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <p
+        id="paymentLinkContext"
+        class="es-muted-copy"
+      ></p>
+
+
+      <div
+        id="paymentLinkStatus"
+        class="es-status"
+        hidden
+      ></div>
+
+
+      <div
+        id="paymentLinkResult"
+        hidden
+      >
+
+        <label>
+          Secure Stripe Checkout link
+
+          <div class="es-copy-field">
+
+            <input
+              id="generatedPaymentLink"
+              type="text"
+              readonly
+            >
+
+            <button
+              id="copyPaymentLink"
+              class="es-secondary-button"
+              type="button"
+            >
+              Copy link
+            </button>
+
+          </div>
+        </label>
+
+
+        <div class="es-dialog-actions">
+
+          <a
+            id="openPaymentLink"
+            class="es-button"
+            href="#"
+            target="_blank"
+            rel="noopener"
+          >
+            Open test checkout
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </dialog>
+
+
   <dialog
     id="sendFormDialog"
     class="es-form-request-dialog"
