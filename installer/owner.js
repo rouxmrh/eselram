@@ -162,7 +162,7 @@ form.addEventListener(
 
 
       window.location.href =
-        "/dashboard/";
+        "/setup/";
 
 
     } catch (error) {
