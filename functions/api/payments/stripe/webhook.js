@@ -1,5 +1,6 @@
 import {
-  getBusinessStripeIntegration
+  getBusinessStripeIntegration,
+  stripeRequest
 } from "../../../../lib/stripe-business.js";
 
 
@@ -330,6 +331,287 @@ async function updatePaymentFromSession({
 }
 
 
+async function getCheckoutSessionForRefund({
+  integration,
+  refund
+}) {
+
+  let paymentIntentId =
+    typeof refund?.payment_intent === "string"
+      ? refund.payment_intent
+      : refund?.payment_intent?.id || "";
+
+
+  if (
+    !paymentIntentId &&
+    refund?.charge
+  ) {
+
+    const chargeId =
+      typeof refund.charge === "string"
+        ? refund.charge
+        : refund.charge?.id || "";
+
+
+    if (chargeId) {
+
+      const chargeResult =
+        await stripeRequest({
+          secretKey: integration.secretKey,
+          path: `/v1/charges/${encodeURIComponent(chargeId)}`
+        });
+
+
+      if (chargeResult.response.ok) {
+        paymentIntentId =
+          typeof chargeResult.data?.payment_intent === "string"
+            ? chargeResult.data.payment_intent
+            : chargeResult.data?.payment_intent?.id || "";
+      }
+    }
+  }
+
+
+  if (!paymentIntentId) {
+    return null;
+  }
+
+
+  const result =
+    await stripeRequest({
+      secretKey: integration.secretKey,
+      path:
+        `/v1/checkout/sessions?payment_intent=${encodeURIComponent(paymentIntentId)}&limit=1`
+    });
+
+
+  if (!result.response.ok) {
+    return null;
+  }
+
+
+  return result.data?.data?.[0] || null;
+}
+
+
+async function refreshOriginalPaymentRefundStatus({
+  env,
+  businessId,
+  paymentId
+}) {
+
+  const row =
+    await env.DB
+      .prepare(`
+        SELECT
+          p.amount_minor,
+          COALESCE(
+            (
+              SELECT SUM(r.amount_minor)
+              FROM payments r
+              WHERE
+                r.business_id = p.business_id
+                AND r.payment_type = 'refund'
+                AND r.status = 'paid'
+                AND r.notes LIKE ?
+            ),
+            0
+          ) AS refunded_minor
+        FROM payments p
+        WHERE
+          p.id = ?
+          AND p.business_id = ?
+        LIMIT 1
+      `)
+      .bind(
+        `%original_payment=${paymentId}%`,
+        paymentId,
+        businessId
+      )
+      .first();
+
+
+  if (!row) {
+    return;
+  }
+
+
+  const amount = Number(row.amount_minor || 0);
+  const refunded = Number(row.refunded_minor || 0);
+
+  const status =
+    refunded <= 0
+      ? "paid"
+      : refunded >= amount
+        ? "refunded"
+        : "partially_refunded";
+
+
+  await env.DB
+    .prepare(`
+      UPDATE payments
+      SET
+        status = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE
+        id = ?
+        AND business_id = ?
+    `)
+    .bind(
+      status,
+      paymentId,
+      businessId
+    )
+    .run();
+}
+
+
+async function updatePaymentFromRefund({
+  env,
+  integration,
+  refund,
+  businessId
+}) {
+
+  const refundId = String(refund?.id || "").trim();
+
+  if (!refundId) {
+    return;
+  }
+
+
+  const session =
+    await getCheckoutSessionForRefund({
+      integration,
+      refund
+    });
+
+
+  const paymentId =
+    String(session?.metadata?.payment_id || "").trim();
+
+  const metadataBusinessId =
+    String(session?.metadata?.business_id || "").trim();
+
+
+  if (
+    !paymentId ||
+    metadataBusinessId !== businessId
+  ) {
+    return;
+  }
+
+
+  const original =
+    await env.DB
+      .prepare(`
+        SELECT
+          id,
+          appointment_id,
+          customer_id,
+          provider,
+          payment_method,
+          amount_minor,
+          currency
+        FROM payments
+        WHERE
+          id = ?
+          AND business_id = ?
+        LIMIT 1
+      `)
+      .bind(
+        paymentId,
+        businessId
+      )
+      .first();
+
+
+  if (!original) {
+    return;
+  }
+
+
+  const stripeStatus =
+    String(refund?.status || "").toLowerCase();
+
+  const localStatus =
+    stripeStatus === "succeeded"
+      ? "paid"
+      : stripeStatus === "failed" || stripeStatus === "canceled"
+        ? "failed"
+        : "pending";
+
+  const amountMinor =
+    Math.max(
+      0,
+      Number(refund?.amount || 0)
+    );
+
+  const localRefundId =
+    `stripe_refund_${refundId}`;
+
+  const notes =
+    `original_payment=${paymentId} · Stripe refund ${refundId}`;
+
+
+  await env.DB
+    .prepare(`
+      INSERT INTO payments (
+        id,
+        business_id,
+        appointment_id,
+        customer_id,
+        provider,
+        payment_type,
+        amount_minor,
+        currency,
+        status,
+        provider_reference,
+        paid_at,
+        payment_method,
+        notes,
+        updated_at
+      )
+      VALUES (
+        ?, ?, ?, ?, 'stripe', 'refund', ?, ?, ?, ?,
+        CASE WHEN ? = 'paid' THEN CURRENT_TIMESTAMP ELSE NULL END,
+        ?, ?, CURRENT_TIMESTAMP
+      )
+      ON CONFLICT(id) DO UPDATE SET
+        amount_minor = excluded.amount_minor,
+        status = excluded.status,
+        paid_at = CASE
+          WHEN excluded.status = 'paid'
+          THEN COALESCE(payments.paid_at, CURRENT_TIMESTAMP)
+          ELSE payments.paid_at
+        END,
+        notes = excluded.notes,
+        updated_at = CURRENT_TIMESTAMP
+    `)
+    .bind(
+      localRefundId,
+      businessId,
+      original.appointment_id || null,
+      original.customer_id || null,
+      amountMinor,
+      String(refund?.currency || original.currency || "GBP").toUpperCase(),
+      localStatus,
+      refundId,
+      localStatus,
+      original.payment_method || "card",
+      notes
+    )
+    .run();
+
+
+  await refreshOriginalPaymentRefundStatus({
+    env,
+    businessId,
+    paymentId
+  });
+}
+
+
 export async function onRequestPost({
   request,
   env
@@ -458,6 +740,20 @@ export async function onRequestPost({
               true
           });
         }
+
+        break;
+
+
+      case "refund.created":
+      case "refund.updated":
+      case "refund.failed":
+
+        await updatePaymentFromRefund({
+          env,
+          integration,
+          refund: session,
+          businessId
+        });
 
         break;
 
