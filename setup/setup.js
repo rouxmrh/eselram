@@ -110,6 +110,11 @@ async function loadSetupHealth() {
     );
 
 
+    renderSidebarUser(
+      data.user
+    );
+
+
     renderChecklist(
       data.items || []
     );
@@ -140,6 +145,35 @@ async function loadSetupHealth() {
       </div>
     `;
   }
+}
+
+
+function renderSidebarUser(user) {
+
+  const sidebarUser =
+    document.getElementById(
+      "sidebarUser"
+    );
+
+  if (!sidebarUser) {
+    return;
+  }
+
+  const name =
+    String(
+      user?.name ||
+      ""
+    ).trim();
+
+  sidebarUser.innerHTML = `
+    <strong>
+      ${escapeHtml(name || "Owner")}
+    </strong>
+
+    <span>
+      Owner
+    </span>
+  `;
 }
 
 
@@ -226,7 +260,10 @@ function renderChecklist(items) {
           return `
             <article class="es-setup-check ${stateClass}">
 
-              <div class="es-setup-check-icon">
+              <div
+                class="es-setup-check-icon"
+                aria-hidden="true"
+              >
                 ${
                   entry.complete
                     ? "✓"
