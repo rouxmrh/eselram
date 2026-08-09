@@ -22,70 +22,10 @@
 
   <div class="es-dashboard-layout">
 
-    <aside class="es-sidebar">
-
-      <div class="es-sidebar-brand">
-        ESELRAM
-      </div>
-
-      <nav class="es-sidebar-nav">
-
-        <a href="/dashboard/" class="active">
-          Overview
-        </a>
-
-        <a href="/bookings/">
-          Bookings
-        </a>
-
-        <a href="/calendar/">
-          Calendar
-        </a>
-
-        <a href="/customers/">
-          Customers
-        </a>
-
-        <a href="/services/">
-          Services
-        </a>
-
-        <a href="/treatment-records/">
-          Treatment Records
-        </a>
-
-        <a href="/clinical-submissions/">
-          Clinical Records
-        </a>
-
-        <a href="/payments/">
-          Payments
-        </a>
-
-        <a href="/settings/">
-          Settings
-        </a>
-
-      </nav>
-
-
-      <div class="es-sidebar-footer">
-
-        <div id="sidebarUser">
-          Loading…
-        </div>
-
-        <button
-          id="logoutButton"
-          class="es-logout-button"
-          type="button"
-        >
-          Sign out
-        </button>
-
-      </div>
-
-    </aside>
+<aside
+  id="appSidebar"
+  class="es-sidebar"
+></aside>
 
 
     <main class="es-dashboard-main">
@@ -496,6 +436,10 @@
 
   </div>
 
+  <script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("PAGE-KEY");
+</script>
 
   <script src="/dashboard/dashboard.js"></script>
 
