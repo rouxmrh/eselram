@@ -413,7 +413,10 @@ async function refreshOriginalPaymentRefundStatus({
                 r.business_id = p.business_id
                 AND r.payment_type = 'refund'
                 AND r.status = 'paid'
-                AND r.notes LIKE ?
+                AND instr(
+                  COALESCE(r.notes, ''),
+                  ?
+                ) > 0
             ),
             0
           ) AS refunded_minor
@@ -424,7 +427,7 @@ async function refreshOriginalPaymentRefundStatus({
         LIMIT 1
       `)
       .bind(
-        `%original_payment=${paymentId}%`,
+        `original_payment=${paymentId}`,
         paymentId,
         businessId
       )
