@@ -782,7 +782,8 @@ export async function onRequestPost({
             SELECT
               id,
               customer_id,
-              price_minor
+              price_minor,
+              status
 
             FROM appointments
 
@@ -814,6 +815,112 @@ export async function onRequestPost({
 
         return badRequest(
           "Appointment does not belong to the selected customer."
+        );
+      }
+
+
+      if (
+        String(
+          appointment.status ||
+          ""
+        ).toLowerCase() ===
+          "cancelled"
+      ) {
+
+        return badRequest(
+          "A payment cannot be recorded against a cancelled appointment."
+        );
+      }
+
+
+      const paymentSummary =
+        await env.DB
+          .prepare(`
+            SELECT
+              COALESCE(
+                SUM(
+                  CASE
+                    WHEN
+                      payment_type = 'refund'
+                    THEN -ABS(amount_minor)
+
+                    WHEN
+                      payment_type != 'refund'
+                      AND status IN (
+                        'paid',
+                        'partially_refunded',
+                        'refunded'
+                      )
+                    THEN amount_minor
+
+                    ELSE 0
+                  END
+                ),
+                0
+              ) AS net_paid_minor
+
+            FROM payments
+
+            WHERE
+              business_id = ?
+              AND appointment_id = ?
+              AND status IN (
+                'paid',
+                'partially_refunded',
+                'refunded'
+              )
+          `)
+          .bind(
+            user.business_id,
+            appointmentId
+          )
+          .first();
+
+
+      const appointmentPriceMinor =
+        Number(
+          appointment.price_minor ||
+          0
+        );
+
+
+      const netPaidMinor =
+        Number(
+          paymentSummary?.net_paid_minor ||
+          0
+        );
+
+
+      const outstandingMinor =
+        Math.max(
+          appointmentPriceMinor -
+          netPaidMinor,
+          0
+        );
+
+
+      if (
+        outstandingMinor <= 0
+      ) {
+
+        return badRequest(
+          "This appointment has already been paid in full."
+        );
+      }
+
+
+      if (
+        amountMinor >
+        outstandingMinor
+      ) {
+
+        return badRequest(
+          `Payment cannot exceed the remaining outstanding balance of ${
+            (
+              outstandingMinor /
+              100
+            ).toFixed(2)
+          }.`
         );
       }
     }
