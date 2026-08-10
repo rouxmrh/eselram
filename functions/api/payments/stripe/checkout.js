@@ -162,14 +162,19 @@ async function getNetPaid(
           COALESCE(
             SUM(
               CASE
-                WHEN status = 'paid'
-                THEN amount_minor
-
-                WHEN status IN (
-                  'refunded',
-                  'partially_refunded'
-                )
+                WHEN
+                  payment_type = 'refund'
+                  AND status = 'paid'
                 THEN -ABS(amount_minor)
+
+                WHEN
+                  payment_type != 'refund'
+                  AND status IN (
+                    'paid',
+                    'refunded',
+                    'partially_refunded'
+                  )
+                THEN amount_minor
 
                 ELSE 0
               END
@@ -197,6 +202,153 @@ async function getNetPaid(
       0
     )
   );
+}
+
+
+async function getReusablePendingCheckout({
+  env,
+  integration,
+  businessId,
+  appointmentId
+}) {
+
+  const pending =
+    await env.DB
+      .prepare(`
+        SELECT
+          id,
+          payment_type,
+          amount_minor,
+          currency,
+          provider_reference
+
+        FROM payments
+
+        WHERE
+          business_id = ?
+          AND appointment_id = ?
+          AND provider = 'stripe'
+          AND status = 'pending'
+          AND provider_reference IS NOT NULL
+          AND provider_reference != ''
+
+        ORDER BY
+          datetime(created_at) DESC
+
+        LIMIT 1
+      `)
+      .bind(
+        businessId,
+        appointmentId
+      )
+      .first();
+
+
+  if (!pending) {
+    return null;
+  }
+
+
+  const sessionResult =
+    await stripeRequest({
+      secretKey:
+        integration.secretKey,
+      path:
+        `/v1/checkout/sessions/${encodeURIComponent(
+          pending.provider_reference
+        )}`
+    });
+
+
+  if (
+    sessionResult.response.ok &&
+    sessionResult.data?.status === "open" &&
+    sessionResult.data?.url
+  ) {
+
+    return {
+      payment_id:
+        pending.id,
+      session_id:
+        sessionResult.data.id,
+      url:
+        sessionResult.data.url,
+      amount_minor:
+        Number(
+          pending.amount_minor ||
+          0
+        ),
+      currency:
+        String(
+          pending.currency ||
+          "GBP"
+        ).toUpperCase(),
+      payment_type:
+        pending.payment_type
+    };
+  }
+
+
+  if (
+    sessionResult.response.ok &&
+    (
+      sessionResult.data?.status === "expired" ||
+      sessionResult.data?.status === "complete"
+    )
+  ) {
+
+    await env.DB
+      .prepare(`
+        UPDATE payments
+
+        SET
+          status =
+            CASE
+              WHEN ? = 'complete'
+                   AND ? = 'paid'
+              THEN 'paid'
+              ELSE 'failed'
+            END,
+          paid_at =
+            CASE
+              WHEN ? = 'complete'
+                   AND ? = 'paid'
+              THEN COALESCE(
+                paid_at,
+                CURRENT_TIMESTAMP
+              )
+              ELSE paid_at
+            END,
+          notes =
+            CASE
+              WHEN ? = 'complete'
+                   AND ? = 'paid'
+              THEN 'Stripe Checkout payment confirmed while checking existing session'
+              ELSE 'Stripe Checkout session is no longer payable'
+            END,
+          updated_at =
+            CURRENT_TIMESTAMP
+
+        WHERE
+          id = ?
+          AND business_id = ?
+          AND status = 'pending'
+      `)
+      .bind(
+        sessionResult.data.status,
+        sessionResult.data.payment_status,
+        sessionResult.data.status,
+        sessionResult.data.payment_status,
+        sessionResult.data.status,
+        sessionResult.data.payment_status,
+        pending.id,
+        businessId
+      )
+      .run();
+  }
+
+
+  return null;
 }
 
 
@@ -402,6 +554,31 @@ export async function onRequestPost({
       return badRequest(
         "Test the Stripe connection in Settings → Payments before creating Checkout links."
       );
+    }
+
+
+    const reusableCheckout =
+      await getReusablePendingCheckout({
+        env,
+        integration,
+        businessId:
+          user.business_id,
+        appointmentId:
+          appointment.id
+      });
+
+
+    if (reusableCheckout) {
+
+      return Response.json({
+        ok: true,
+        reused: true,
+        checkout: {
+          ...reusableCheckout,
+          customer_email:
+            appointment.email
+        }
+      });
     }
 
 
