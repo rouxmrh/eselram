@@ -301,6 +301,26 @@ function setMinimumDate() {
    Services
    ======================================================= */
 
+function refreshServiceOptionLabels(packageServiceId = "") {
+
+  for (const service of services) {
+    const option = Array.from(serviceSelect.options).find(
+      (item) => item.value === service.id
+    );
+
+    if (!option) continue;
+
+    const packageCovered =
+      packageServiceId &&
+      service.id === packageServiceId;
+
+    option.textContent = packageCovered
+      ? `${service.name} · ${service.duration_minutes} min · Covered by package`
+      : `${service.name} · ${service.duration_minutes} min · ${formatMoney(service.price_minor)}`;
+  }
+}
+
+
 async function loadServices() {
 
   try {
@@ -396,6 +416,8 @@ async function loadServices() {
           .join("")
       }
     `;
+
+    refreshServiceOptionLabels();
 
 
   } catch (error) {
@@ -2853,6 +2875,17 @@ function resetBookingForm(
   selectedCustomerId.value =
     "";
 
+  customerPackageId.value =
+    "";
+
+  packageBookingNotice.hidden =
+    true;
+
+  packageBookingNotice.textContent =
+    "";
+
+  refreshServiceOptionLabels();
+
   selectedCustomer.hidden =
     true;
 
@@ -3219,6 +3252,10 @@ async function openPackageBooking(
 
   serviceSelect.value =
     item.service_id;
+
+  refreshServiceOptionLabels(
+    item.service_id
+  );
 
   document.getElementById(
     "firstName"
