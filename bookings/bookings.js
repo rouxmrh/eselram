@@ -1270,6 +1270,7 @@ function renderBookings() {
           booking.email,
           booking.phone,
           booking.service_name,
+          booking.package_name,
           booking.status,
           formatStatus(
             booking.status
@@ -2727,6 +2728,24 @@ function openBookingForm(
       "";
 
 
+    if (
+      booking.customer_package_id
+    ) {
+      customerPackageId.value =
+        booking.customer_package_id;
+
+      packageBookingNotice.hidden =
+        false;
+
+      packageBookingNotice.textContent =
+        `${booking.package_name || "Package"} · this appointment is covered by the package.`;
+
+      refreshServiceOptionLabels(
+        booking.service_id
+      );
+    }
+
+
     document
       .getElementById(
         "bookingFormEyebrow"
@@ -2749,6 +2768,11 @@ function openBookingForm(
 
     serviceSelect.value =
       booking.service_id;
+
+    serviceSelect.disabled =
+      Boolean(
+        booking.customer_package_id
+      );
 
 
     const parts =
@@ -2883,6 +2907,9 @@ function resetBookingForm(
 
   packageBookingNotice.textContent =
     "";
+
+  serviceSelect.disabled =
+    false;
 
   refreshServiceOptionLabels();
 
