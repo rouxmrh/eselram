@@ -11,40 +11,161 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const PUBLIC_CHECKOUT_KEY = "eselram_public_checkout_pending";
 
+function pendingFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+
+  const appointmentId =
+    params.get("pending_appointment_id") || "";
+
+  const paymentId =
+    params.get("pending_payment_id") || "";
+
+  if (!appointmentId || !paymentId) {
+    return null;
+  }
+
+  return {
+    appointment_id: appointmentId,
+    payment_id: paymentId,
+    session_id:
+      params.get("pending_session_id") || "",
+    service_id:
+      params.get("pending_service_id") || "",
+    date:
+      params.get("pending_date") || "",
+    time:
+      params.get("pending_time") || ""
+  };
+}
+
 function savePendingCheckout(checkout, booking) {
+  const pending = {
+    appointment_id: booking?.id || "",
+    payment_id: checkout?.payment_id || "",
+    session_id: checkout?.session_id || "",
+    service_id: state.service?.id || "",
+    date: state.date || "",
+    time: state.time || "",
+    created_at: Date.now()
+  };
+
   sessionStorage.setItem(
     PUBLIC_CHECKOUT_KEY,
-    JSON.stringify({
-      appointment_id: booking?.id || "",
-      payment_id: checkout?.payment_id || "",
-      session_id: checkout?.session_id || "",
-      service_id: state.service?.id || "",
-      date: state.date || "",
-      time: state.time || "",
-      created_at: Date.now()
-    })
+    JSON.stringify(pending)
+  );
+
+  localStorage.setItem(
+    PUBLIC_CHECKOUT_KEY,
+    JSON.stringify(pending)
+  );
+
+  // Replace the current Eselram history entry BEFORE leaving for Stripe.
+  // Browser Back will therefore return to a URL that contains everything
+  // needed to release the provisional appointment.
+  const url = new URL(window.location.href);
+  url.searchParams.set(
+    "pending_appointment_id",
+    pending.appointment_id
+  );
+  url.searchParams.set(
+    "pending_payment_id",
+    pending.payment_id
+  );
+  url.searchParams.set(
+    "pending_session_id",
+    pending.session_id
+  );
+  url.searchParams.set(
+    "pending_service_id",
+    pending.service_id
+  );
+  url.searchParams.set(
+    "pending_date",
+    pending.date
+  );
+  url.searchParams.set(
+    "pending_time",
+    pending.time
+  );
+
+  history.replaceState(
+    history.state,
+    "",
+    url.toString()
   );
 }
 
 function getPendingCheckout() {
-  try {
-    return JSON.parse(
-      sessionStorage.getItem(PUBLIC_CHECKOUT_KEY) || "null"
-    );
-  } catch {
-    return null;
+  const fromUrl = pendingFromUrl();
+  if (fromUrl) {
+    return fromUrl;
   }
+
+  for (const store of [
+    sessionStorage,
+    localStorage
+  ]) {
+    try {
+      const value =
+        JSON.parse(
+          store.getItem(
+            PUBLIC_CHECKOUT_KEY
+          ) || "null"
+        );
+
+      if (
+        value?.appointment_id &&
+        value?.payment_id
+      ) {
+        return value;
+      }
+    } catch {
+      // Ignore malformed cached state.
+    }
+  }
+
+  return null;
 }
 
 function clearPendingCheckout() {
-  sessionStorage.removeItem(PUBLIC_CHECKOUT_KEY);
+  sessionStorage.removeItem(
+    PUBLIC_CHECKOUT_KEY
+  );
+
+  localStorage.removeItem(
+    PUBLIC_CHECKOUT_KEY
+  );
+
+  const url = new URL(window.location.href);
+
+  [
+    "pending_appointment_id",
+    "pending_payment_id",
+    "pending_session_id",
+    "pending_service_id",
+    "pending_date",
+    "pending_time"
+  ].forEach(
+    (key) =>
+      url.searchParams.delete(key)
+  );
+
+  history.replaceState(
+    history.state,
+    "",
+    `${url.pathname}${
+      url.search
+    }${url.hash}`
+  );
 }
 
 function resetConfirmButton() {
   const button = $("#confirmBooking");
   if (!button) return;
+
   button.disabled = false;
-  button.textContent = "Confirm booking";
+  button.textContent =
+    "Confirm booking";
 }
 
 function money(minor, currency = "GBP", locale = "en-GB") {
@@ -143,7 +264,22 @@ function renderServices() {
 
   const services = state.config?.services || [];
   if (!services.length) {
-    container.innerHTML = `<div class="message">No online services are available yet.</div>`;
+    const bookingEnabled =
+      state.config
+        ?.booking_rules
+        ?.enabled !==
+      false;
+
+    container.innerHTML = `
+      <div class="message">
+        ${
+          bookingEnabled
+            ? "No online services are available yet."
+            : "Online booking is currently unavailable."
+        }
+      </div>
+    `;
+
     return;
   }
 
@@ -219,7 +355,9 @@ async function loadSlots() {
     }
 
     if (!(data.slots || []).length) {
-      statusEl.textContent = "No times are available on this date. Try another day.";
+      statusEl.textContent =
+        data.reason ||
+        "No times are available on this date. Try another day.";
       return;
     }
 
@@ -451,9 +589,30 @@ async function init() {
     const dd = String(today.getDate()).padStart(2, "0");
     $("#bookingDate").min = `${yyyy}-${mm}-${dd}`;
 
-    const max = new Date(today);
-    max.setDate(max.getDate() + 90);
-    $("#bookingDate").max = `${max.getFullYear()}-${String(max.getMonth()+1).padStart(2,"0")}-${String(max.getDate()).padStart(2,"0")}`;
+    const maxAdvanceDays =
+      Math.max(
+        1,
+        Number(
+          data.booking_rules
+            ?.max_advance_days ||
+          90
+        )
+      );
+
+    const max =
+      new Date(today);
+
+    max.setDate(
+      max.getDate() +
+      maxAdvanceDays
+    );
+
+    $("#bookingDate").max =
+      `${max.getFullYear()}-${String(
+        max.getMonth() + 1
+      ).padStart(2, "0")}-${String(
+        max.getDate()
+      ).padStart(2, "0")}`;
 
     // A fresh load of /book/ in this tab after leaving Stripe means the
     // customer has returned without completing the hosted Checkout.
@@ -502,16 +661,38 @@ $$('[data-back]').forEach((button) => {
   button.addEventListener("click", () => setStep(Number(button.dataset.back)));
 });
 
-window.addEventListener("pageshow", () => {
-  // Any return to /book/ while this tab still has an unpaid Checkout marker
-  // means the customer has left Stripe without completing the hosted payment.
-  // Chrome does not always report back/forward restores as event.persisted,
-  // so do not depend on BFCache detection here.
-  if (getPendingCheckout()) {
-    releaseReturnedCheckout();
-  } else {
-    resetConfirmButton();
-  }
-});
+let releaseInProgress = false;
 
-document.addEventListener("DOMContentLoaded", init);
+async function cleanupPendingCheckoutOnFreshBookingPage() {
+  const pending = getPendingCheckout();
+
+  if (
+    releaseInProgress ||
+    !pending?.appointment_id ||
+    !pending?.payment_id
+  ) {
+    resetConfirmButton();
+    return;
+  }
+
+  releaseInProgress = true;
+
+  try {
+    await releaseReturnedCheckout();
+  } finally {
+    releaseInProgress = false;
+  }
+}
+
+// Stripe remains in the SAME tab.
+// Successful payment is redirected automatically by Stripe to /book/success/.
+// We deliberately do not depend on browser Back/history events for correctness.
+// If an unpaid customer later returns to /book/, this fresh page load cleans up
+// their provisional Checkout. The backend expiry remains the final safety net.
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+    await init();
+    await cleanupPendingCheckoutOnFreshBookingPage();
+  }
+);
