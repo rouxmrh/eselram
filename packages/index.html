@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Packages | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+
+  <style>
+    .es-package-stats {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .es-package-stat {
+      padding:18px;
+      border:1px solid var(--es-border);
+      border-radius:var(--es-radius-md);
+      background:var(--es-surface);
+    }
+
+    .es-package-stat span {
+      display:block;
+      color:var(--es-muted);
+      font-size:12px;
+    }
+
+    .es-package-stat strong {
+      display:block;
+      margin-top:7px;
+      font-size:24px;
+    }
+
+    .es-package-tabs {
+      display:flex;
+      gap:8px;
+      margin-bottom:18px;
+    }
+
+    .es-package-tab {
+      padding:9px 14px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:var(--es-surface);
+      cursor:pointer;
+    }
+
+    .es-package-tab.active {
+      border-color:var(--es-primary);
+      color:var(--es-primary);
+    }
+
+    .es-package-grid {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .es-package-card {
+      padding:18px;
+      border:1px solid var(--es-border);
+      border-radius:var(--es-radius-md);
+      background:var(--es-surface);
+    }
+
+    .es-package-card-head {
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:flex-start;
+    }
+
+    .es-package-card h3 {
+      margin:0 0 5px;
+    }
+
+    .es-package-meta {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin:12px 0;
+      color:var(--es-muted);
+      font-size:12px;
+    }
+
+    .es-package-progress {
+      height:8px;
+      overflow:hidden;
+      border-radius:999px;
+      background:#edf0ec;
+      margin:10px 0 7px;
+    }
+
+    .es-package-progress span {
+      display:block;
+      height:100%;
+      background:var(--es-primary);
+    }
+
+    .es-package-actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:16px;
+    }
+
+    .es-package-form-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .es-package-status {
+      display:inline-flex;
+      padding:5px 9px;
+      border-radius:999px;
+      background:#f2f4f0;
+      font-size:11px;
+      font-weight:700;
+      text-transform:capitalize;
+    }
+
+    .es-package-dialog {
+      width:min(560px,94vw);
+      border:1px solid var(--es-border);
+      border-radius:var(--es-radius-lg);
+      background:var(--es-surface);
+      padding:0;
+    }
+
+    .es-package-dialog::backdrop {
+      background:rgba(20,25,22,.35);
+    }
+
+    .es-package-dialog-inner {
+      padding:26px;
+    }
+
+    @media(max-width:800px) {
+      .es-package-grid,
+      .es-package-form-grid,
+      .es-package-stats {
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+
+<body class="es-dashboard-body">
+<div class="es-dashboard-layout">
+  <aside id="appSidebar" class="es-sidebar"></aside>
+
+  <main class="es-dashboard-main">
+    <header class="es-dashboard-header">
+      <div>
+        <p class="es-eyebrow">Sales & sessions</p>
+        <h1>Packages & courses</h1>
+        <p class="es-lead">
+          Sell and track prepaid sessions without charging each covered appointment again.
+        </p>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button id="newTemplateButton" class="es-secondary-button" type="button">
+          New package
+        </button>
+        <button id="assignPackageButton" class="es-button" type="button">
+          Assign package
+        </button>
+      </div>
+    </header>
+
+    <div class="es-package-stats">
+      <div class="es-package-stat">
+        <span>Active customer packages</span>
+        <strong id="activePackageCount">0</strong>
+      </div>
+      <div class="es-package-stat">
+        <span>Sessions available</span>
+        <strong id="availableSessionCount">0</strong>
+      </div>
+      <div class="es-package-stat">
+        <span>Package balances outstanding</span>
+        <strong id="packageOutstanding">£0.00</strong>
+      </div>
+    </div>
+
+    <section class="es-dashboard-panel">
+      <div class="es-package-tabs">
+        <button class="es-package-tab active" data-package-view="customers" type="button">
+          Customer packages
+        </button>
+        <button class="es-package-tab" data-package-view="templates" type="button">
+          Package templates
+        </button>
+      </div>
+
+      <div id="customerPackagesView">
+        <div id="customerPackagesList" class="es-package-grid"></div>
+      </div>
+
+      <div id="packageTemplatesView" hidden>
+        <div id="packageTemplatesList" class="es-package-grid"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="templateDialog" class="es-package-dialog">
+  <div class="es-package-dialog-inner">
+    <h2 id="templateDialogTitle">New package</h2>
+
+    <form id="templateForm">
+      <input id="templateId" type="hidden">
+
+      <label>
+        Package name
+        <input id="templateName" type="text" required placeholder="e.g. 6 Session Course">
+      </label>
+
+      <label>
+        Service
+        <select id="templateService" required></select>
+      </label>
+
+      <div class="es-package-form-grid">
+        <label>
+          Number of sessions
+          <input id="templateSessions" type="number" min="1" step="1" required>
+        </label>
+
+        <label>
+          Package price
+          <input id="templatePrice" type="number" min="0" step="0.01" required>
+        </label>
+      </div>
+
+      <div class="es-package-form-grid">
+        <label>
+          Suggested deposit
+          <input id="templateDeposit" type="number" min="0" step="0.01" value="0">
+        </label>
+
+        <label>
+          Valid for
+          <input id="templateValidity" type="number" min="1" step="1" placeholder="Days (optional)">
+        </label>
+      </div>
+
+      <label>
+        Description
+        <textarea id="templateDescription" maxlength="1000"></textarea>
+      </label>
+
+      <label style="display:flex;gap:8px;align-items:center;">
+        <input id="templateActive" type="checkbox" checked>
+        Package is active
+      </label>
+
+      <div id="templateStatus" class="es-status" hidden></div>
+
+      <div class="es-form-actions">
+        <button class="es-button" type="submit">Save package</button>
+        <button id="closeTemplateDialog" class="es-secondary-button" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="assignDialog" class="es-package-dialog">
+  <div class="es-package-dialog-inner">
+    <h2>Assign package to customer</h2>
+
+    <form id="assignForm">
+      <label>
+        Customer
+        <select id="assignCustomer" required></select>
+      </label>
+
+      <label>
+        Package
+        <select id="assignTemplate" required></select>
+      </label>
+
+      <label>
+        Starts on
+        <input id="assignStartsOn" type="date">
+      </label>
+
+      <label>
+        Notes
+        <textarea id="assignNotes" maxlength="1000"></textarea>
+      </label>
+
+      <div id="assignStatus" class="es-status" hidden></div>
+
+      <div class="es-form-actions">
+        <button class="es-button" type="submit">Assign package</button>
+        <button id="closeAssignDialog" class="es-secondary-button" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="paymentDialog" class="es-package-dialog">
+  <div class="es-package-dialog-inner">
+    <h2 id="paymentDialogTitle">Record package payment</h2>
+
+    <form id="packagePaymentForm">
+      <input id="paymentPackageId" type="hidden">
+
+      <label>
+        Amount
+        <input id="packagePaymentAmount" type="number" min="0.01" step="0.01" required>
+      </label>
+
+      <label>
+        Payment method
+        <select id="packagePaymentMethod">
+          <option value="card">Card</option>
+          <option value="cash">Cash</option>
+          <option value="bank_transfer">Bank transfer</option>
+          <option value="paypal">PayPal</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+
+      <label>
+        Reference
+        <input id="packagePaymentReference" type="text">
+      </label>
+
+      <label>
+        Notes
+        <textarea id="packagePaymentNotes" maxlength="1000"></textarea>
+      </label>
+
+      <div id="packagePaymentStatus" class="es-status" hidden></div>
+
+      <div class="es-form-actions">
+        <button class="es-button" type="submit">Save payment</button>
+        <button id="closePaymentDialog" class="es-secondary-button" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("packages");
+</script>
+<script src="/packages/packages.js"></script>
+</body>
+</html>
