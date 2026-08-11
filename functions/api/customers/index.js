@@ -1,4 +1,5 @@
 
+
 import {
   readSessionToken,
   hashSessionToken
@@ -831,6 +832,30 @@ export async function onRequestGet({
 
 
       for (
+        const item of
+        packageList
+      ) {
+        const sessions =
+          packageSessionsById[
+            item.id
+          ] ||
+          [];
+
+        item.sessions =
+          sessions.map(
+            (session, index) => ({
+              ...session,
+              session_number:
+                index + 1
+            })
+          );
+      }
+
+
+      const timeline = [];
+
+
+      for (
         const payment of
         paymentList
       ) {
@@ -873,30 +898,6 @@ export async function onRequestGet({
             null
         });
       }
-
-
-      for (
-        const item of
-        packageList
-      ) {
-        const sessions =
-          packageSessionsById[
-            item.id
-          ] ||
-          [];
-
-        item.sessions =
-          sessions.map(
-            (session, index) => ({
-              ...session,
-              session_number:
-                index + 1
-            })
-          );
-      }
-
-
-      const timeline = [];
 
 
       for (
