@@ -24,7 +24,11 @@ const EXPECTED_MIGRATIONS = [
   "017_form_requests",
   "018_client_sendable_templates",
   "019_consultation_email_delivery",
-  "020_independent_integrations"
+  "020_independent_integrations",
+  "021_customer_communications",
+  "022_customer_self_service",
+  "023_service_form_rules",
+  "024_customer_photos"
 ];
 
 
@@ -489,11 +493,10 @@ export async function onRequestGet({
 
 
     const storageRequired =
-      uploadFields > 0;
+      true;
 
 
     const storageComplete =
-      !storageRequired ||
       Boolean(
         env.FORM_UPLOADS
       );
@@ -736,25 +739,25 @@ export async function onRequestGet({
         key:
           "storage",
         label:
-          "File storage",
+          "Photo & file storage",
         complete:
           storageComplete,
         status:
-          !storageRequired
-            ? "Not required yet"
-            : storageComplete
-              ? "Ready"
-              : "Missing binding",
+          storageComplete
+            ? "Connected"
+            : "Missing binding",
         detail:
-          !storageRequired
-            ? "No active clinical form currently requires file uploads."
-            : storageComplete
-              ? "FORM_UPLOADS storage binding is available."
-              : `${uploadFields} active upload field(s) require the FORM_UPLOADS storage binding.`,
+          storageComplete
+            ? `FORM_UPLOADS R2 storage is connected${
+                uploadFields
+                  ? ` · ${uploadFields} active clinical upload field(s)`
+                  : ""
+              }.`
+            : "Connect a buyer-owned Cloudflare R2 bucket using the FORM_UPLOADS binding for customer photos and form uploads.",
         href:
           null,
         required:
-          storageRequired
+          true
       }),
 
 
