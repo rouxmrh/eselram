@@ -254,7 +254,10 @@ export async function onRequestGet({
             WHERE
               a.customer_id = ?
               AND a.business_id = ?
-              AND a.status != 'cancelled'
+              AND a.status IN (
+                'pending',
+                'confirmed'
+              )
               AND datetime(a.start_at)
                   >= datetime('now')
 
@@ -307,12 +310,18 @@ export async function onRequestGet({
               a.customer_id = ?
               AND a.business_id = ?
               AND (
-                datetime(a.start_at)
-                    < datetime('now')
-                OR a.status IN (
+                a.status IN (
                   'completed',
                   'cancelled',
                   'no_show'
+                )
+                OR (
+                  a.status IN (
+                    'pending',
+                    'confirmed'
+                  )
+                  AND datetime(a.start_at)
+                      < datetime('now')
                 )
               )
 
@@ -442,6 +451,7 @@ export async function onRequestGet({
                 r.opened_at,
                 r.submitted_at,
                 r.email_status,
+                r.request_token,
 
                 t.name AS template_name,
                 t.template_type,
@@ -857,7 +867,11 @@ export async function onRequestGet({
 
       for (
         const payment of
-        paymentList
+        paymentList.filter(
+          (item) =>
+            item.status !==
+            "failed"
+        )
       ) {
         timeline.push({
           id:
