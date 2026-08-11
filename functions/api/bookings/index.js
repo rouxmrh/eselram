@@ -555,7 +555,13 @@ async function getAppointment(
         c.phone,
 
         s.name AS service_name,
-        s.duration_minutes
+        s.duration_minutes,
+
+        cp.id AS customer_package_id,
+        cp.name_snapshot AS package_name,
+        cp.status AS package_status,
+        cp.expires_on AS package_expires_on,
+        cp.service_id AS package_service_id
 
       FROM appointments a
 
@@ -566,6 +572,16 @@ async function getAppointment(
       JOIN services s
         ON s.id =
            a.service_id
+
+      LEFT JOIN customer_package_appointments cpa
+        ON cpa.appointment_id =
+           a.id
+
+      LEFT JOIN customer_packages cp
+        ON cp.id =
+           cpa.customer_package_id
+        AND cp.business_id =
+            a.business_id
 
       WHERE
         a.id = ?
@@ -1083,6 +1099,48 @@ export async function onRequestPost({
       return badRequest(
         "An email address or phone number is required."
       );
+    }
+
+
+    const linkedPackageId =
+      String(
+        existing.customer_package_id ||
+        ""
+      ).trim();
+
+
+    if (linkedPackageId) {
+      if (
+        serviceId !==
+          existing.package_service_id
+      ) {
+        return conflict(
+          "A package appointment cannot be changed to a different service."
+        );
+      }
+
+
+      if (
+        existing.package_status ===
+          "cancelled" ||
+        existing.package_status ===
+          "expired"
+      ) {
+        return conflict(
+          "This package is no longer active, so the appointment cannot be rescheduled."
+        );
+      }
+
+
+      if (
+        existing.package_expires_on &&
+        date >
+          existing.package_expires_on
+      ) {
+        return conflict(
+          "The new appointment date is after this package expires."
+        );
+      }
     }
 
 
@@ -1750,26 +1808,32 @@ export async function onRequestPut({
 
 
     const priceMinor =
-      Number(
-        availability
-          .service
-          .price_minor ||
-        0
-      );
+      linkedPackageId
+        ? 0
+        : Number(
+            availability
+              .service
+              .price_minor ||
+            0
+          );
 
 
     const depositDueMinor =
-      availability
-        .service
-        .payment_timing ===
-          "online_deposit"
-        ? Number(
+      linkedPackageId
+        ? 0
+        : (
             availability
               .service
-              .deposit_minor ||
-            0
-          )
-        : 0;
+              .payment_timing ===
+                "online_deposit"
+              ? Number(
+                  availability
+                    .service
+                    .deposit_minor ||
+                  0
+                )
+              : 0
+          );
 
 
     await env.DB.batch([
@@ -1868,7 +1932,17 @@ export async function onRequestPut({
         end_at:
           endAt,
         status:
-          existing.status
+          existing.status,
+        customer_package_id:
+          linkedPackageId ||
+          null,
+        package_name:
+          existing.package_name ||
+          null,
+        price_minor:
+          priceMinor,
+        deposit_due_minor:
+          depositDueMinor
       }
     });
 
