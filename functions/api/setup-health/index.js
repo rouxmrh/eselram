@@ -28,7 +28,8 @@ const EXPECTED_MIGRATIONS = [
   "021_customer_communications",
   "022_customer_self_service",
   "023_service_form_rules",
-  "024_customer_photos"
+  "024_customer_photos",
+  "025_packages_courses"
 ];
 
 
