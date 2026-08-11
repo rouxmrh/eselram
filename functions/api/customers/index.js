@@ -1,3 +1,4 @@
+
 import {
   readSessionToken,
   hashSessionToken
@@ -570,6 +571,152 @@ export async function onRequestGet({
         [];
 
 
+      const packageRows =
+        await env.DB
+          .prepare(`
+            SELECT
+              cp.id,
+              cp.name_snapshot,
+              cp.service_id,
+              cp.sessions_total,
+              cp.price_minor,
+              cp.status,
+              cp.starts_on,
+              cp.expires_on,
+              cp.created_at,
+
+              s.name AS service_name,
+
+              (
+                SELECT COUNT(*)
+                FROM customer_package_appointments cpa
+                JOIN appointments a
+                  ON a.id =
+                     cpa.appointment_id
+                WHERE
+                  cpa.customer_package_id =
+                    cp.id
+                  AND a.status =
+                    'completed'
+              ) AS sessions_completed,
+
+              (
+                SELECT COUNT(*)
+                FROM customer_package_appointments cpa
+                JOIN appointments a
+                  ON a.id =
+                     cpa.appointment_id
+                WHERE
+                  cpa.customer_package_id =
+                    cp.id
+                  AND a.status IN (
+                    'confirmed',
+                    'pending'
+                  )
+              ) AS sessions_booked,
+
+              (
+                SELECT COALESCE(
+                  SUM(
+                    CASE
+                      WHEN p.payment_type = 'refund' AND p.status = 'paid'
+                        THEN -ABS(p.amount_minor)
+                      WHEN p.payment_type != 'refund'
+                           AND p.status IN ('paid', 'partially_refunded', 'refunded')
+                        THEN ABS(p.amount_minor)
+                      ELSE 0
+                    END
+                  ),
+                  0
+                )
+                FROM customer_package_payments cpp
+                JOIN payments p
+                  ON p.id =
+                     cpp.payment_id
+                WHERE
+                  cpp.customer_package_id =
+                    cp.id
+              ) AS paid_minor
+
+            FROM customer_packages cp
+
+            JOIN services s
+              ON s.id =
+                 cp.service_id
+
+            WHERE
+              cp.business_id = ?
+              AND cp.customer_id = ?
+
+            ORDER BY
+              CASE cp.status
+                WHEN 'active' THEN 0
+                WHEN 'completed' THEN 1
+                ELSE 2
+              END,
+              datetime(cp.created_at) DESC
+          `)
+          .bind(
+            user.business_id,
+            id
+          )
+          .all();
+
+
+      const packageList =
+        (
+          packageRows.results ||
+          []
+        ).map(
+          (item) => ({
+            ...item,
+            sessions_completed:
+              Number(
+                item.sessions_completed ||
+                0
+              ),
+            sessions_booked:
+              Number(
+                item.sessions_booked ||
+                0
+              ),
+            sessions_available_to_book:
+              Math.max(
+                Number(
+                  item.sessions_total ||
+                  0
+                ) -
+                Number(
+                  item.sessions_completed ||
+                  0
+                ) -
+                Number(
+                  item.sessions_booked ||
+                  0
+                ),
+                0
+              ),
+            paid_minor:
+              Number(
+                item.paid_minor ||
+                0
+              ),
+            outstanding_minor:
+              Math.max(
+                Number(
+                  item.price_minor ||
+                  0
+                ) -
+                Number(
+                  item.paid_minor ||
+                  0
+                ),
+                0
+              )
+          })
+        );
+
+
       const timeline = [];
 
 
@@ -703,6 +850,29 @@ export async function onRequestGet({
       }
 
 
+      for (
+        const item of
+        packageList
+      ) {
+        timeline.push({
+          id:
+            `package:${item.id}`,
+          event_type:
+            "package",
+          event_date:
+            item.starts_on ||
+            item.created_at,
+          title:
+            item.name_snapshot,
+          subtitle:
+            item.status,
+          service_name:
+            item.service_name ||
+            null
+        });
+      }
+
+
       timeline.sort(
         (a, b) =>
           String(
@@ -745,6 +915,9 @@ export async function onRequestGet({
 
           payments:
             paymentList,
+
+          packages:
+            packageList,
 
           timeline,
 
