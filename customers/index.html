@@ -504,7 +504,15 @@
     }
 
     .es-customer-appointment-action {
+      width: auto !important;
+      min-width: 0;
       white-space: nowrap;
+      justify-self: end;
+      align-self: center;
+    }
+
+    .es-customer-appointment-main .es-customer-action {
+      width: auto !important;
     }
 
     .es-customer-package-sessions {
@@ -607,6 +615,15 @@
     }
 
     @media (max-width: 700px) {
+      .es-customer-appointment {
+        grid-template-columns: 78px minmax(0, 1fr) auto;
+      }
+
+      .es-customer-appointment-action {
+        grid-column: 2 / -1;
+        justify-self: start;
+      }
+
       .es-customers-toolbar {
         align-items: stretch;
         flex-direction: column;
