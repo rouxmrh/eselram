@@ -298,6 +298,425 @@ export async function onRequestGet({
           .all();
 
 
+      const [
+        clinicalRecords,
+        treatmentRecords,
+        formRequests,
+        photoRows,
+        paymentRows
+      ] =
+        await Promise.all([
+
+          env.DB
+            .prepare(`
+              SELECT
+                cs.id,
+                cs.template_id,
+                cs.appointment_id,
+                cs.status,
+                cs.submitted_by,
+                cs.submitted_at,
+                cs.reviewed_at,
+
+                ct.name AS template_name,
+                ct.template_type,
+                ct.is_client_sendable,
+
+                a.start_at AS appointment_start_at,
+                sv.name AS service_name
+
+              FROM clinical_form_submissions cs
+
+              JOIN clinical_templates ct
+                ON ct.id =
+                   cs.template_id
+
+              LEFT JOIN appointments a
+                ON a.id =
+                   cs.appointment_id
+
+              LEFT JOIN services sv
+                ON sv.id =
+                   a.service_id
+
+              WHERE
+                cs.business_id = ?
+                AND cs.customer_id = ?
+
+              ORDER BY
+                datetime(
+                  cs.submitted_at
+                ) DESC
+            `)
+            .bind(
+              user.business_id,
+              id
+            )
+            .all(),
+
+
+          env.DB
+            .prepare(`
+              SELECT
+                tr.id,
+                tr.appointment_id,
+                tr.service_id,
+                tr.status,
+                tr.treatment_date,
+                tr.practitioner_name,
+                tr.treatment_area,
+                tr.device_name,
+                tr.next_treatment_date,
+                tr.created_at,
+
+                s.name AS service_name,
+                a.start_at AS appointment_start_at
+
+              FROM treatment_records tr
+
+              LEFT JOIN services s
+                ON s.id =
+                   tr.service_id
+
+              LEFT JOIN appointments a
+                ON a.id =
+                   tr.appointment_id
+
+              WHERE
+                tr.business_id = ?
+                AND tr.customer_id = ?
+
+              ORDER BY
+                date(
+                  tr.treatment_date
+                ) DESC,
+                datetime(
+                  tr.created_at
+                ) DESC
+            `)
+            .bind(
+              user.business_id,
+              id
+            )
+            .all(),
+
+
+          env.DB
+            .prepare(`
+              SELECT
+                r.id,
+                r.template_id,
+                r.appointment_id,
+                r.status,
+                r.created_at,
+                r.opened_at,
+                r.submitted_at,
+                r.email_status,
+
+                t.name AS template_name,
+                t.template_type,
+
+                a.start_at AS appointment_start_at,
+                s.name AS service_name
+
+              FROM clinical_form_requests r
+
+              JOIN clinical_templates t
+                ON t.id =
+                   r.template_id
+
+              LEFT JOIN appointments a
+                ON a.id =
+                   r.appointment_id
+
+              LEFT JOIN services s
+                ON s.id =
+                   a.service_id
+
+              WHERE
+                r.business_id = ?
+                AND r.customer_id = ?
+
+              ORDER BY
+                datetime(
+                  r.created_at
+                ) DESC
+            `)
+            .bind(
+              user.business_id,
+              id
+            )
+            .all(),
+
+
+          env.DB
+            .prepare(`
+              SELECT
+                p.id,
+                p.appointment_id,
+                p.service_id,
+                p.treatment_record_id,
+                p.photo_type,
+                p.original_name,
+                p.mime_type,
+                p.size_bytes,
+                p.taken_at,
+                p.notes,
+                p.created_at,
+
+                s.name AS service_name,
+                a.start_at AS appointment_start_at
+
+              FROM customer_photos p
+
+              LEFT JOIN services s
+                ON s.id =
+                   p.service_id
+
+              LEFT JOIN appointments a
+                ON a.id =
+                   p.appointment_id
+
+              WHERE
+                p.business_id = ?
+                AND p.customer_id = ?
+
+              ORDER BY
+                COALESCE(
+                  p.taken_at,
+                  p.created_at
+                ) DESC
+            `)
+            .bind(
+              user.business_id,
+              id
+            )
+            .all(),
+
+
+          env.DB
+            .prepare(`
+              SELECT
+                p.id,
+                p.appointment_id,
+                p.payment_type,
+                p.amount_minor,
+                p.currency,
+                p.status,
+                p.created_at,
+
+                s.name AS service_name,
+                a.start_at AS appointment_start_at
+
+              FROM payments p
+
+              LEFT JOIN appointments a
+                ON a.id =
+                   p.appointment_id
+
+              LEFT JOIN services s
+                ON s.id =
+                   a.service_id
+
+              WHERE
+                p.business_id = ?
+                AND p.customer_id = ?
+
+              ORDER BY
+                datetime(
+                  p.created_at
+                ) DESC
+            `)
+            .bind(
+              user.business_id,
+              id
+            )
+            .all()
+        ]);
+
+
+      const photoList =
+        (
+          photoRows.results ||
+          []
+        ).map(
+          (photo) => ({
+            ...photo,
+            content_url:
+              `/api/customer-photos?photo_id=${encodeURIComponent(
+                photo.id
+              )}&content=1`
+          })
+        );
+
+
+      const clinicalList =
+        clinicalRecords.results ||
+        [];
+
+
+      const treatmentList =
+        treatmentRecords.results ||
+        [];
+
+
+      const requestList =
+        formRequests.results ||
+        [];
+
+
+      const paymentList =
+        paymentRows.results ||
+        [];
+
+
+      const timeline = [];
+
+
+      for (
+        const appointment of [
+          ...(upcoming.results || []),
+          ...(history.results || [])
+        ]
+      ) {
+        timeline.push({
+          id:
+            `appointment:${appointment.id}`,
+          event_type:
+            "appointment",
+          event_date:
+            appointment.start_at,
+          title:
+            appointment.service_name ||
+            "Appointment",
+          subtitle:
+            appointment.status,
+          appointment_id:
+            appointment.id,
+          service_name:
+            appointment.service_name ||
+            null
+        });
+      }
+
+
+      for (
+        const record of
+        clinicalList
+      ) {
+        timeline.push({
+          id:
+            `clinical:${record.id}`,
+          event_type:
+            record.template_type ===
+              "patch_test"
+              ? "patch_test"
+              : (
+                  record.is_client_sendable ===
+                    1
+                    ? "client_form"
+                    : "clinical_record"
+                ),
+          event_date:
+            record.submitted_at,
+          title:
+            record.template_name ||
+            "Clinical form",
+          subtitle:
+            record.status,
+          record_id:
+            record.id,
+          appointment_id:
+            record.appointment_id ||
+            null,
+          service_name:
+            record.service_name ||
+            null
+        });
+      }
+
+
+      for (
+        const record of
+        treatmentList
+      ) {
+        timeline.push({
+          id:
+            `treatment:${record.id}`,
+          event_type:
+            "treatment_record",
+          event_date:
+            record.treatment_date ||
+            record.created_at,
+          title:
+            record.service_name
+              ? `${record.service_name} treatment`
+              : "Treatment record",
+          subtitle:
+            record.status,
+          record_id:
+            record.id,
+          appointment_id:
+            record.appointment_id ||
+            null,
+          service_name:
+            record.service_name ||
+            null
+        });
+      }
+
+
+      for (
+        const photo of
+        photoList
+      ) {
+        timeline.push({
+          id:
+            `photo:${photo.id}`,
+          event_type:
+            "photo",
+          event_date:
+            photo.taken_at ||
+            photo.created_at,
+          title:
+            `${
+              photo.photo_type
+                .replaceAll(
+                  "_",
+                  " "
+                )
+            } photo`,
+          subtitle:
+            photo.service_name ||
+            "Customer photo",
+          photo_id:
+            photo.id,
+          content_url:
+            photo.content_url,
+          appointment_id:
+            photo.appointment_id ||
+            null,
+          service_name:
+            photo.service_name ||
+            null
+        });
+      }
+
+
+      timeline.sort(
+        (a, b) =>
+          String(
+            b.event_date ||
+            ""
+          ).localeCompare(
+            String(
+              a.event_date ||
+              ""
+            )
+          )
+      );
+
+
       return Response.json({
         ok: true,
 
@@ -310,7 +729,43 @@ export async function onRequestGet({
 
           booking_history:
             history.results ||
-            []
+            [],
+
+          clinical_records:
+            clinicalList,
+
+          treatment_records:
+            treatmentList,
+
+          form_requests:
+            requestList,
+
+          photos:
+            photoList,
+
+          payments:
+            paymentList,
+
+          timeline,
+
+          record_counts: {
+            clinical:
+              clinicalList.length,
+            treatments:
+              treatmentList.length,
+            photos:
+              photoList.length,
+            forms_outstanding:
+              requestList.filter(
+                (request) =>
+                  [
+                    "created",
+                    "opened"
+                  ].includes(
+                    request.status
+                  )
+              ).length
+          }
         }
       });
     }
