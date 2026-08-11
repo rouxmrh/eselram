@@ -60,6 +60,69 @@ function unauthorized() {
 }
 
 
+
+function parseBooleanSetting(value, fallback = true) {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  return String(value) === "1" ||
+    String(value).toLowerCase() === "true";
+}
+
+function parseJsonSetting(value, fallback) {
+  if (!value) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+async function upsertSetting({
+  env,
+  businessId,
+  key,
+  value,
+  type
+}) {
+  await env.DB
+    .prepare(`
+      INSERT INTO business_settings (
+        id,
+        business_id,
+        setting_key,
+        setting_value,
+        value_type
+      )
+      VALUES (?, ?, ?, ?, ?)
+
+      ON CONFLICT(
+        business_id,
+        setting_key
+      )
+
+      DO UPDATE SET
+        setting_value =
+          excluded.setting_value,
+        value_type =
+          excluded.value_type,
+        updated_at =
+          CURRENT_TIMESTAMP
+    `)
+    .bind(
+      `set_${crypto.randomUUID()}`,
+      businessId,
+      key,
+      value,
+      type
+    )
+    .run();
+}
+
 export async function onRequestGet({
   request,
   env
@@ -119,6 +182,44 @@ export async function onRequestGet({
           user.business_id
         )
         .all();
+
+
+    const bookingSettings =
+      await env.DB
+        .prepare(`
+          SELECT
+            setting_key,
+            setting_value
+
+          FROM business_settings
+
+          WHERE
+            business_id = ?
+            AND setting_key IN (
+              'public_booking_enabled',
+              'public_booking_minimum_notice_hours',
+              'public_booking_max_advance_days',
+              'public_booking_blocked_dates'
+            )
+        `)
+        .bind(
+          user.business_id
+        )
+        .all();
+
+
+    const bookingSettingsMap =
+      Object.fromEntries(
+        (
+          bookingSettings.results ||
+          []
+        ).map(
+          (row) => [
+            row.setting_key,
+            row.setting_value
+          ]
+        )
+      );
 
 
     const rows =
@@ -189,6 +290,36 @@ export async function onRequestGet({
             ?.booking_buffer_after_minutes ||
           0
         ),
+
+      public_booking_rules: {
+        enabled:
+          parseBooleanSetting(
+            bookingSettingsMap
+              .public_booking_enabled,
+            true
+          ),
+
+        minimum_notice_hours:
+          Number(
+            bookingSettingsMap
+              .public_booking_minimum_notice_hours ??
+            2
+          ),
+
+        max_advance_days:
+          Number(
+            bookingSettingsMap
+              .public_booking_max_advance_days ??
+            90
+          ),
+
+        blocked_dates:
+          parseJsonSetting(
+            bookingSettingsMap
+              .public_booking_blocked_dates,
+            []
+          )
+      },
 
       hours:
         defaults
@@ -264,6 +395,31 @@ export async function onRequestPut({
       );
 
 
+    const publicBookingEnabled =
+      body.public_booking_enabled !==
+      false;
+
+
+    const minimumNoticeHours =
+      Number(
+        body.public_booking_minimum_notice_hours
+      );
+
+
+    const maxAdvanceDays =
+      Number(
+        body.public_booking_max_advance_days
+      );
+
+
+    const blockedDates =
+      Array.isArray(
+        body.blocked_dates
+      )
+        ? body.blocked_dates
+        : [];
+
+
     const validIntervals = [
       5,
       10,
@@ -285,6 +441,144 @@ export async function onRequestPut({
       45,
       60
     ];
+
+
+    const validMinimumNoticeHours = [
+      0,
+      1,
+      2,
+      4,
+      12,
+      24,
+      48,
+      72,
+      168
+    ];
+
+
+    const validAdvanceDays = [
+      7,
+      14,
+      30,
+      60,
+      90,
+      180,
+      365
+    ];
+
+
+    if (
+      !validMinimumNoticeHours.includes(
+        minimumNoticeHours
+      )
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Invalid minimum booking notice."
+        },
+        {
+          status: 400
+        }
+      );
+    }
+
+
+    if (
+      !validAdvanceDays.includes(
+        maxAdvanceDays
+      )
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Invalid maximum booking window."
+        },
+        {
+          status: 400
+        }
+      );
+    }
+
+
+    if (
+      blockedDates.length > 366
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Too many blocked dates."
+        },
+        {
+          status: 400
+        }
+      );
+    }
+
+
+    const cleanBlockedDates = [];
+    const seenBlockedDates =
+      new Set();
+
+
+    for (
+      const item of blockedDates
+    ) {
+      const date =
+        String(
+          item?.date ||
+          ""
+        ).trim();
+
+      const reason =
+        String(
+          item?.reason ||
+          ""
+        )
+          .trim()
+          .slice(0, 200);
+
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(
+          date
+        )
+      ) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Blocked dates must use a valid date."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      if (
+        seenBlockedDates.has(
+          date
+        )
+      ) {
+        continue;
+      }
+
+      seenBlockedDates.add(date);
+
+      cleanBlockedDates.push({
+        date,
+        reason
+      });
+    }
+
+
+    cleanBlockedDates.sort(
+      (a, b) =>
+        a.date.localeCompare(b.date)
+    );
 
 
     if (
@@ -450,6 +744,66 @@ export async function onRequestPut({
         user.business_id
       )
       .run();
+
+
+    await upsertSetting({
+      env,
+      businessId:
+        user.business_id,
+      key:
+        "public_booking_enabled",
+      value:
+        publicBookingEnabled
+          ? "1"
+          : "0",
+      type:
+        "boolean"
+    });
+
+
+    await upsertSetting({
+      env,
+      businessId:
+        user.business_id,
+      key:
+        "public_booking_minimum_notice_hours",
+      value:
+        String(
+          minimumNoticeHours
+        ),
+      type:
+        "number"
+    });
+
+
+    await upsertSetting({
+      env,
+      businessId:
+        user.business_id,
+      key:
+        "public_booking_max_advance_days",
+      value:
+        String(
+          maxAdvanceDays
+        ),
+      type:
+        "number"
+    });
+
+
+    await upsertSetting({
+      env,
+      businessId:
+        user.business_id,
+      key:
+        "public_booking_blocked_dates",
+      value:
+        JSON.stringify(
+          cleanBlockedDates
+        ),
+      type:
+        "json"
+    });
 
 
     for (const day of hours) {
