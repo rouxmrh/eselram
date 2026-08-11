@@ -647,6 +647,13 @@ export async function onRequestPost({
         ""
       ).trim();
 
+
+    const customerPackageId =
+      String(
+        body.customer_package_id ||
+        ""
+      ).trim();
+
     const provider =
       String(
         body.provider ||
@@ -772,6 +779,111 @@ export async function onRequestPost({
       return badRequest(
         "Customer not found."
       );
+    }
+
+
+    let customerPackage = null;
+
+
+    if (customerPackageId) {
+      customerPackage =
+        await env.DB
+          .prepare(`
+            SELECT
+              cp.id,
+              cp.customer_id,
+              cp.price_minor,
+              cp.status,
+
+              (
+                SELECT COALESCE(
+                  SUM(
+                    CASE
+                      WHEN p.payment_type = 'refund' AND p.status = 'paid'
+                        THEN -ABS(p.amount_minor)
+                      WHEN p.payment_type != 'refund'
+                           AND p.status IN ('paid', 'partially_refunded', 'refunded')
+                        THEN ABS(p.amount_minor)
+                      ELSE 0
+                    END
+                  ),
+                  0
+                )
+                FROM customer_package_payments cpp
+                JOIN payments p
+                  ON p.id = cpp.payment_id
+                WHERE cpp.customer_package_id = cp.id
+              ) AS paid_minor
+
+            FROM customer_packages cp
+
+            WHERE
+              cp.id = ?
+              AND cp.business_id = ?
+
+            LIMIT 1
+          `)
+          .bind(
+            customerPackageId,
+            user.business_id
+          )
+          .first();
+
+
+      if (!customerPackage) {
+        return badRequest(
+          "Customer package not found."
+        );
+      }
+
+
+      if (
+        customerPackage.customer_id !==
+          customerId
+      ) {
+        return badRequest(
+          "Package does not belong to the selected customer."
+        );
+      }
+
+
+      if (
+        customerPackage.status ===
+          "cancelled" ||
+        customerPackage.status ===
+          "expired"
+      ) {
+        return badRequest(
+          "A payment cannot be recorded against this package."
+        );
+      }
+
+
+      const packageOutstanding =
+        Math.max(
+          Number(
+            customerPackage.price_minor ||
+            0
+          ) -
+          Number(
+            customerPackage.paid_minor ||
+            0
+          ),
+          0
+        );
+
+
+      if (
+        amountMinor >
+          packageOutstanding
+      ) {
+        return badRequest(
+          `Payment cannot exceed the remaining package balance of ${(
+            packageOutstanding /
+            100
+          ).toFixed(2)}.`
+        );
+      }
     }
 
 
@@ -1029,6 +1141,23 @@ export async function onRequestPost({
         notes || null
       )
       .run();
+
+
+    if (customerPackageId) {
+      await env.DB
+        .prepare(`
+          INSERT INTO customer_package_payments (
+            customer_package_id,
+            payment_id
+          )
+          VALUES (?, ?)
+        `)
+        .bind(
+          customerPackageId,
+          id
+        )
+        .run();
+    }
 
 
     if (appointmentId) {
