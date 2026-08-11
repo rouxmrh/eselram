@@ -1102,48 +1102,6 @@ export async function onRequestPost({
     }
 
 
-    const linkedPackageId =
-      String(
-        existing.customer_package_id ||
-        ""
-      ).trim();
-
-
-    if (linkedPackageId) {
-      if (
-        serviceId !==
-          existing.package_service_id
-      ) {
-        return conflict(
-          "A package appointment cannot be changed to a different service."
-        );
-      }
-
-
-      if (
-        existing.package_status ===
-          "cancelled" ||
-        existing.package_status ===
-          "expired"
-      ) {
-        return conflict(
-          "This package is no longer active, so the appointment cannot be rescheduled."
-        );
-      }
-
-
-      if (
-        existing.package_expires_on &&
-        date >
-          existing.package_expires_on
-      ) {
-        return conflict(
-          "The new appointment date is after this package expires."
-        );
-      }
-    }
-
-
     const availability =
       await getAvailableSlots({
         env,
@@ -1756,6 +1714,48 @@ export async function onRequestPut({
       return badRequest(
         "An email address or phone number is required."
       );
+    }
+
+
+    const linkedPackageId =
+      String(
+        existing.customer_package_id ||
+        ""
+      ).trim();
+
+
+    if (linkedPackageId) {
+      if (
+        serviceId !==
+          existing.package_service_id
+      ) {
+        return conflict(
+          "A package appointment cannot be changed to a different service."
+        );
+      }
+
+
+      if (
+        existing.package_status ===
+          "cancelled" ||
+        existing.package_status ===
+          "expired"
+      ) {
+        return conflict(
+          "This package is no longer active, so the appointment cannot be rescheduled."
+        );
+      }
+
+
+      if (
+        existing.package_expires_on &&
+        date >
+          existing.package_expires_on
+      ) {
+        return conflict(
+          "The new appointment date is after this package expires."
+        );
+      }
     }
 
 
