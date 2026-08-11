@@ -228,13 +228,27 @@ export async function onRequestGet({
               a.price_minor,
               a.deposit_due_minor,
               s.id AS service_id,
-              s.name AS service_name
+              s.name AS service_name,
+
+              cp.id AS customer_package_id,
+              cp.name_snapshot AS package_name,
+              cp.sessions_total AS package_sessions_total
 
             FROM appointments a
 
             JOIN services s
               ON s.id =
                  a.service_id
+
+            LEFT JOIN customer_package_appointments cpa
+              ON cpa.appointment_id =
+                 a.id
+
+            LEFT JOIN customer_packages cp
+              ON cp.id =
+                 cpa.customer_package_id
+              AND cp.business_id =
+                  a.business_id
 
             WHERE
               a.customer_id = ?
@@ -266,13 +280,27 @@ export async function onRequestGet({
               a.price_minor,
               a.deposit_due_minor,
               s.id AS service_id,
-              s.name AS service_name
+              s.name AS service_name,
+
+              cp.id AS customer_package_id,
+              cp.name_snapshot AS package_name,
+              cp.sessions_total AS package_sessions_total
 
             FROM appointments a
 
             JOIN services s
               ON s.id =
                  a.service_id
+
+            LEFT JOIN customer_package_appointments cpa
+              ON cpa.appointment_id =
+                 a.id
+
+            LEFT JOIN customer_packages cp
+              ON cp.id =
+                 cpa.customer_package_id
+              AND cp.business_id =
+                  a.business_id
 
             WHERE
               a.customer_id = ?
@@ -507,7 +535,12 @@ export async function onRequestGet({
                 p.created_at,
 
                 s.name AS service_name,
-                a.start_at AS appointment_start_at
+                a.start_at AS appointment_start_at,
+
+                cp.id AS customer_package_id,
+                cp.name_snapshot AS package_name,
+                cp.service_id AS package_service_id,
+                ps.name AS package_service_name
 
               FROM payments p
 
@@ -518,6 +551,18 @@ export async function onRequestGet({
               LEFT JOIN services s
                 ON s.id =
                    a.service_id
+
+              LEFT JOIN customer_package_payments cpp
+                ON cpp.payment_id =
+                   p.id
+
+              LEFT JOIN customer_packages cp
+                ON cp.id =
+                   cpp.customer_package_id
+
+              LEFT JOIN services ps
+                ON ps.id =
+                   cp.service_id
 
               WHERE
                 p.business_id = ?
@@ -663,6 +708,49 @@ export async function onRequestGet({
           .all();
 
 
+      const packageSessionRows =
+        await env.DB
+          .prepare(`
+            SELECT
+              cpa.customer_package_id,
+
+              a.id AS appointment_id,
+              a.status,
+              a.start_at,
+              a.end_at,
+              a.price_minor,
+              a.deposit_due_minor,
+
+              s.name AS service_name
+
+            FROM customer_package_appointments cpa
+
+            JOIN customer_packages cp
+              ON cp.id =
+                 cpa.customer_package_id
+
+            JOIN appointments a
+              ON a.id =
+                 cpa.appointment_id
+
+            JOIN services s
+              ON s.id =
+                 a.service_id
+
+            WHERE
+              cp.business_id = ?
+              AND cp.customer_id = ?
+
+            ORDER BY
+              datetime(a.start_at) ASC
+          `)
+          .bind(
+            user.business_id,
+            id
+          )
+          .all();
+
+
       const packageList =
         (
           packageRows.results ||
@@ -717,6 +805,97 @@ export async function onRequestGet({
         );
 
 
+      const packageSessionsById =
+        {};
+
+
+      for (
+        const session of
+        packageSessionRows.results ||
+        []
+      ) {
+        if (
+          !packageSessionsById[
+            session.customer_package_id
+          ]
+        ) {
+          packageSessionsById[
+            session.customer_package_id
+          ] = [];
+        }
+
+        packageSessionsById[
+          session.customer_package_id
+        ].push(session);
+      }
+
+
+      for (
+        const payment of
+        paymentList
+      ) {
+        timeline.push({
+          id:
+            `payment:${payment.id}`,
+          event_type:
+            "payment",
+          event_date:
+            payment.created_at,
+          title:
+            payment.customer_package_id
+              ? `Package payment · ${
+                  payment.package_name ||
+                  "Package"
+                }`
+              : `Payment${
+                  payment.service_name
+                    ? ` · ${payment.service_name}`
+                    : ""
+                }`,
+          subtitle:
+            payment.status,
+          amount_minor:
+            Number(
+              payment.amount_minor ||
+              0
+            ),
+          payment_type:
+            payment.payment_type,
+          appointment_id:
+            payment.appointment_id ||
+            null,
+          customer_package_id:
+            payment.customer_package_id ||
+            null,
+          service_name:
+            payment.package_service_name ||
+            payment.service_name ||
+            null
+        });
+      }
+
+
+      for (
+        const item of
+        packageList
+      ) {
+        const sessions =
+          packageSessionsById[
+            item.id
+          ] ||
+          [];
+
+        item.sessions =
+          sessions.map(
+            (session, index) => ({
+              ...session,
+              session_number:
+                index + 1
+            })
+          );
+      }
+
+
       const timeline = [];
 
 
@@ -726,22 +905,112 @@ export async function onRequestGet({
           ...(history.results || [])
         ]
       ) {
+        let packageSessionNumber =
+          null;
+
+
+        if (
+          appointment.customer_package_id
+        ) {
+          const packageItem =
+            packageList.find(
+              (item) =>
+                item.id ===
+                appointment.customer_package_id
+            );
+
+          const packageSession =
+            packageItem
+              ?.sessions
+              ?.find(
+                (session) =>
+                  session.appointment_id ===
+                  appointment.id
+              );
+
+          packageSessionNumber =
+            packageSession
+              ?.session_number ||
+            null;
+        }
+
+
         timeline.push({
           id:
             `appointment:${appointment.id}`,
           event_type:
-            "appointment",
+            appointment.customer_package_id
+              ? "package_session"
+              : "appointment",
           event_date:
             appointment.start_at,
           title:
-            appointment.service_name ||
-            "Appointment",
+            appointment.customer_package_id
+              ? `${
+                  appointment.package_name ||
+                  appointment.service_name ||
+                  "Package"
+                }${
+                  packageSessionNumber
+                    ? ` · Session ${packageSessionNumber}/${appointment.package_sessions_total}`
+                    : ""
+                }`
+              : (
+                  appointment.service_name ||
+                  "Appointment"
+                ),
           subtitle:
             appointment.status,
           appointment_id:
             appointment.id,
+          customer_package_id:
+            appointment.customer_package_id ||
+            null,
           service_name:
             appointment.service_name ||
+            null,
+          package_name:
+            appointment.package_name ||
+            null,
+          session_number:
+            packageSessionNumber
+        });
+      }
+
+
+      for (
+        const request of
+        requestList.filter(
+          (item) =>
+            [
+              "created",
+              "opened"
+            ].includes(
+              item.status
+            )
+        )
+      ) {
+        timeline.push({
+          id:
+            `form_request:${request.id}`,
+          event_type:
+            "form_request",
+          event_date:
+            request.opened_at ||
+            request.created_at,
+          title:
+            request.template_name ||
+            "Client form",
+          subtitle:
+            request.status ===
+              "opened"
+              ? "opened"
+              : "outstanding",
+          appointment_id:
+            request.appointment_id ||
+            null,
+          service_name:
+            request.service_name ||
             null
         });
       }
@@ -887,6 +1156,94 @@ export async function onRequestGet({
       );
 
 
+      const packageOutstandingMinor =
+        packageList.reduce(
+          (total, item) =>
+            total +
+            Number(
+              item.status ===
+                "active"
+                ? item.outstanding_minor ||
+                  0
+                : 0
+            ),
+          0
+        );
+
+
+      const appointmentOutstandingMinor =
+        [
+          ...(upcoming.results || []),
+          ...(history.results || [])
+        ]
+          .filter(
+            (appointment) =>
+              !appointment.customer_package_id &&
+              appointment.status !==
+                "cancelled"
+          )
+          .reduce(
+            (total, appointment) => {
+              const appointmentPayments =
+                paymentList.filter(
+                  (payment) =>
+                    payment.appointment_id ===
+                    appointment.id
+                );
+
+              const netPaid =
+                appointmentPayments.reduce(
+                  (sum, payment) => {
+                    const amount =
+                      Math.abs(
+                        Number(
+                          payment.amount_minor ||
+                          0
+                        )
+                      );
+
+                    if (
+                      payment.payment_type ===
+                        "refund" &&
+                      payment.status ===
+                        "paid"
+                    ) {
+                      return sum - amount;
+                    }
+
+                    if (
+                      payment.payment_type !==
+                        "refund" &&
+                      [
+                        "paid",
+                        "partially_refunded",
+                        "refunded"
+                      ].includes(
+                        payment.status
+                      )
+                    ) {
+                      return sum + amount;
+                    }
+
+                    return sum;
+                  },
+                  0
+                );
+
+              return total +
+                Math.max(
+                  Number(
+                    appointment.price_minor ||
+                    0
+                  ) -
+                  netPaid,
+                  0
+                );
+            },
+            0
+          );
+
+
       return Response.json({
         ok: true,
 
@@ -918,6 +1275,21 @@ export async function onRequestGet({
 
           packages:
             packageList,
+
+          financial_summary: {
+            total_paid_minor:
+              Number(
+                customer.total_paid_minor ||
+                0
+              ),
+            package_outstanding_minor:
+              packageOutstandingMinor,
+            appointment_outstanding_minor:
+              appointmentOutstandingMinor,
+            total_outstanding_minor:
+              packageOutstandingMinor +
+              appointmentOutstandingMinor
+          },
 
           timeline,
 
