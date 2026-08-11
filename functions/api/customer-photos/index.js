@@ -79,6 +79,60 @@ function storageUnavailable() {
   );
 }
 
+async function detectImageMime(
+  file
+) {
+  const head =
+    new Uint8Array(
+      await file
+        .slice(
+          0,
+          16
+        )
+        .arrayBuffer()
+    );
+
+  if (
+    head.length >= 3 &&
+    head[0] === 0xff &&
+    head[1] === 0xd8 &&
+    head[2] === 0xff
+  ) {
+    return "image/jpeg";
+  }
+
+  if (
+    head.length >= 8 &&
+    head[0] === 0x89 &&
+    head[1] === 0x50 &&
+    head[2] === 0x4e &&
+    head[3] === 0x47 &&
+    head[4] === 0x0d &&
+    head[5] === 0x0a &&
+    head[6] === 0x1a &&
+    head[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+
+  if (
+    head.length >= 12 &&
+    head[0] === 0x52 &&
+    head[1] === 0x49 &&
+    head[2] === 0x46 &&
+    head[3] === 0x46 &&
+    head[8] === 0x57 &&
+    head[9] === 0x45 &&
+    head[10] === 0x42 &&
+    head[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+
+  return null;
+}
+
+
 async function getPhoto({
   env,
   businessId,
@@ -366,7 +420,7 @@ export async function onRequestPost({
         ""
       ).trim();
 
-    const appointmentId =
+    let appointmentId =
       String(
         form.get(
           "appointment_id"
@@ -455,11 +509,19 @@ export async function onRequestPost({
     }
 
     if (
-      file.size >
-      8 * 1024 * 1024
+      file.size <= 0
     ) {
       return badRequest(
-        "Photo must be 8 MB or smaller."
+        "The selected photo is empty."
+      );
+    }
+
+    if (
+      file.size >
+      10 * 1024 * 1024
+    ) {
+      return badRequest(
+        "Photo must be 10 MB or smaller after optimisation."
       );
     }
 
@@ -469,7 +531,24 @@ export async function onRequestPost({
       "image/webp"
     ];
 
+    const detectedMimeType =
+      await detectImageMime(
+        file
+      );
+
     if (
+      !detectedMimeType ||
+      !validMimeTypes.includes(
+        detectedMimeType
+      )
+    ) {
+      return badRequest(
+        "Photo content must be a genuine JPG, PNG or WebP image."
+      );
+    }
+
+    if (
+      file.type &&
       !validMimeTypes.includes(
         file.type
       )
@@ -478,6 +557,9 @@ export async function onRequestPost({
         "Photo must be JPG, PNG or WebP."
       );
     }
+
+    const safeMimeType =
+      detectedMimeType;
 
     const customer =
       await env.DB
@@ -575,17 +657,39 @@ export async function onRequestPost({
         );
       }
 
-      serviceId =
-        treatment.service_id ||
-        serviceId;
+      if (
+        appointmentId &&
+        treatment.appointment_id &&
+        treatment.appointment_id !==
+          appointmentId
+      ) {
+        return badRequest(
+          "The selected appointment and treatment record are unrelated. Choose matching records."
+        );
+      }
+
+      if (
+        serviceId &&
+        treatment.service_id &&
+        serviceId !==
+          treatment.service_id
+      ) {
+        return badRequest(
+          "The selected appointment and treatment record belong to different services."
+        );
+      }
 
       if (
         !appointmentId &&
         treatment.appointment_id
       ) {
-        // Keep the treatment link as the source of truth.
-        // Appointment remains optional in the photo record.
+        appointmentId =
+          treatment.appointment_id;
       }
+
+      serviceId =
+        treatment.service_id ||
+        serviceId;
     }
 
     const safeName =
@@ -614,7 +718,7 @@ export async function onRequestPost({
       {
         httpMetadata: {
           contentType:
-            file.type
+            safeMimeType
         }
       }
     );
@@ -658,7 +762,7 @@ export async function onRequestPost({
           storageKey,
           file.name ||
           safeName,
-          file.type,
+          safeMimeType,
           file.size,
           takenAt,
           notes,
