@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Communications | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+<body class="es-dashboard-body">
+  <div class="es-dashboard-layout">
+    <aside id="appSidebar" class="es-sidebar"></aside>
+
+    <main class="es-dashboard-main">
+      <header class="es-dashboard-header">
+        <div>
+          <p class="es-eyebrow">Customer communication</p>
+          <h1>Communications</h1>
+          <p class="es-lead">
+            Review booking confirmations, reminders, cancellations and appointment updates sent by this installation.
+          </p>
+        </div>
+      </header>
+
+      <section class="es-dashboard-panel">
+        <div class="es-panel-header">
+          <div>
+            <p class="es-eyebrow">Delivery log</p>
+            <h2>Email history</h2>
+          </div>
+
+          <div class="es-form-actions" style="margin-top:0;">
+            <button id="runRemindersButton" class="es-secondary-button" type="button">
+              Run reminder check now
+            </button>
+
+            <button id="refreshCommunicationsButton" class="es-secondary-button" type="button">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div id="communicationsStatus" class="es-status" hidden></div>
+        <div id="communicationsList" class="es-payments-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import { renderSidebar } from "/components/sidebar.js";
+    renderSidebar("communications");
+  </script>
+
+  <script src="/communications/communications.js"></script>
+</body>
+</html>
