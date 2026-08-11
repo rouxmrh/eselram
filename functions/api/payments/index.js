@@ -1,4 +1,8 @@
 import {
+  runServiceFormAutomation
+} from "../../lib/form-automation.js";
+
+import {
   readSessionToken,
   hashSessionToken
 } from "../../../lib/auth.js";
@@ -1025,6 +1029,22 @@ export async function onRequestPost({
         notes || null
       )
       .run();
+
+
+    if (appointmentId) {
+      await runServiceFormAutomation({
+        env,
+        businessId:
+          user.business_id,
+        appointmentId,
+        triggerEvent:
+          "payment_received",
+        baseUrl:
+          new URL(request.url).origin,
+        createdByUserId:
+          user.user_id
+      });
+    }
 
 
     return Response.json({
