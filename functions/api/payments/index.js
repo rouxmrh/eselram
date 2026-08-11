@@ -1,6 +1,6 @@
 import {
   runServiceFormAutomation
-} from "../../lib/form-automation.js";
+} from "../../../lib/form-automation.js";
 
 import {
   readSessionToken,
