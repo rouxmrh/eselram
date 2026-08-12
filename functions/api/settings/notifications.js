@@ -173,6 +173,19 @@ export async function onRequestPut({
       72
     ];
 
+    const formReminderHours =
+      Number(
+        body.form_reminder_hours_after
+      );
+
+    const allowedFormHours = [
+      24,
+      48,
+      72,
+      120,
+      168
+    ];
+
     if (
       !allowedHours.includes(
         reminderHours
@@ -183,6 +196,23 @@ export async function onRequestPut({
           ok: false,
           error:
             "Invalid reminder timing."
+        },
+        {
+          status: 400
+        }
+      );
+    }
+
+    if (
+      !allowedFormHours.includes(
+        formReminderHours
+      )
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Invalid form reminder timing."
         },
         {
           status: 400
@@ -234,6 +264,34 @@ export async function onRequestPut({
         user.business_id,
         "notifications_reschedule_enabled",
         body.reschedule_enabled
+          ? "1"
+          : "0",
+        "boolean"
+      ),
+
+      upsert(
+        env,
+        user.business_id,
+        "notifications_form_reminder_enabled",
+        body.form_reminder_enabled
+          ? "1"
+          : "0",
+        "boolean"
+      ),
+
+      upsert(
+        env,
+        user.business_id,
+        "notifications_form_reminder_hours_after",
+        formReminderHours,
+        "number"
+      ),
+
+      upsert(
+        env,
+        user.business_id,
+        "notifications_payment_receipt_enabled",
+        body.payment_receipt_enabled
           ? "1"
           : "0",
         "boolean"
