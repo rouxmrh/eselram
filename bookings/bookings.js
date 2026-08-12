@@ -2485,7 +2485,7 @@ async function sendExistingConsultationFormFromBooking(booking) {
         },
         body: JSON.stringify({
           form_request_id: request.id,
-          reminder: true
+          force: true
         })
       }
     );
@@ -2499,8 +2499,8 @@ async function sendExistingConsultationFormFromBooking(booking) {
     }
 
     window.alert(
-      sendData.duplicate || sendData.skipped
-        ? "The consultation form reminder has already been sent."
+      sendData.skipped
+        ? "The consultation form is no longer available to send."
         : "Consultation form sent successfully."
     );
   } catch (error) {
