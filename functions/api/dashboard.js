@@ -309,7 +309,11 @@ export async function onRequestGet({
               c.last_name,
 
               s.id AS service_id,
-              s.name AS service_name
+              CASE
+                WHEN a.booking_kind = 'consultation'
+                  THEN 'Consultation · ' || s.name
+                ELSE s.name
+              END AS service_name
 
             FROM appointments a
 
@@ -353,7 +357,11 @@ export async function onRequestGet({
               c.last_name,
 
               s.id AS service_id,
-              s.name AS service_name
+              CASE
+                WHEN a.booking_kind = 'consultation'
+                  THEN 'Consultation · ' || s.name
+                ELSE s.name
+              END AS service_name
 
             FROM appointments a
 
@@ -404,7 +412,11 @@ export async function onRequestGet({
                 ' ' ||
                 c.last_name ||
                 ' · ' ||
-                s.name AS detail,
+                CASE
+                  WHEN a.booking_kind = 'consultation'
+                    THEN 'Consultation · ' || s.name
+                  ELSE s.name
+                END AS detail,
 
                 a.created_at AS occurred_at
 
