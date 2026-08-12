@@ -1375,6 +1375,33 @@ export async function onRequestPost({
     }
 
 
+    try {
+      await sendAppointmentCommunication({
+        env,
+        businessId:
+          user.business_id,
+        appointmentId,
+        type:
+          "booking_confirmation",
+        uniqueKey:
+          `booking_confirmation:${appointmentId}`,
+        baseUrl:
+          new URL(request.url).origin
+      });
+    } catch (emailError) {
+      /*
+       * A communication failure must never undo a valid booking.
+       * sendAppointmentCommunication records its own failed delivery
+       * whenever possible; this catch protects the booking response
+       * from any unexpected email-layer exception.
+       */
+      console.error(
+        "Automatic booking confirmation failed:",
+        emailError
+      );
+    }
+
+
     return Response.json({
       ok: true,
       booking: {
