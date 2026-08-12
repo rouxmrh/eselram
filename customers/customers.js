@@ -779,7 +779,8 @@ document
 
 
 async function sendCustomerConsultationEmail(
-  formRequestId
+  formRequestId,
+  forceResend = false
 ) {
   const button =
     document.getElementById(
@@ -812,7 +813,9 @@ async function sendCustomerConsultationEmail(
           body:
             JSON.stringify({
               form_request_id:
-                formRequestId
+                formRequestId,
+              force:
+                forceResend === true
             })
         }
       );
@@ -1056,7 +1059,8 @@ function renderCustomerFormRequests(
           () =>
             sendCustomerConsultationEmail(
               button.dataset
-                .customerResendConsultation
+                .customerResendConsultation,
+              true
             )
         );
       }
