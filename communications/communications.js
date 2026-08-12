@@ -18,6 +18,35 @@ const runButton =
     "runRemindersButton"
   );
 
+const automationSummary =
+  document.getElementById(
+    "communicationsAutomationSummary"
+  );
+
+const typeFilter =
+  document.getElementById(
+    "communicationsTypeFilter"
+  );
+
+const statusFilter =
+  document.getElementById(
+    "communicationsStatusFilter"
+  );
+
+let rows = [];
+let settings = {};
+
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
 function formatDate(value) {
   if (!value) return "—";
 
@@ -43,6 +72,38 @@ function formatDate(value) {
   }
 }
 
+
+function money(
+  minor,
+  currency = "GBP"
+) {
+  try {
+    return new Intl.NumberFormat(
+      "en-GB",
+      {
+        style: "currency",
+        currency:
+          String(
+            currency ||
+            "GBP"
+          ).toUpperCase()
+      }
+    ).format(
+      Number(
+        minor ||
+        0
+      ) /
+      100
+    );
+  } catch {
+    return `${currency} ${(
+      Number(minor || 0) /
+      100
+    ).toFixed(2)}`;
+  }
+}
+
+
 function label(type) {
   const labels = {
     booking_confirmation:
@@ -52,7 +113,15 @@ function label(type) {
     cancellation_confirmation:
       "Cancellation",
     reschedule_confirmation:
-      "Appointment updated"
+      "Appointment updated",
+    client_form_request:
+      "Client form sent",
+    client_form_reminder:
+      "Client form reminder",
+    payment_receipt:
+      "Payment confirmation",
+    package_payment_confirmation:
+      "Package payment confirmation"
   };
 
   return labels[type] ||
@@ -60,20 +129,184 @@ function label(type) {
     "Email";
 }
 
-function render(rows) {
+
+function group(type) {
+  if (
+    [
+      "client_form_request",
+      "client_form_reminder"
+    ].includes(type)
+  ) {
+    return "forms";
+  }
+
+  if (
+    [
+      "payment_receipt",
+      "package_payment_confirmation"
+    ].includes(type)
+  ) {
+    return "payments";
+  }
+
+  return "appointment";
+}
+
+
+function contextText(row) {
+  if (row.package_name) {
+    return row.package_name;
+  }
+
+  if (row.form_name) {
+    return row.form_name;
+  }
+
+  if (row.service_name) {
+    return row.service_name;
+  }
+
+  return "—";
+}
+
+
+function detailText(row) {
+  if (
+    row.payment_id &&
+    row.payment_amount_minor !==
+      null &&
+    row.payment_amount_minor !==
+      undefined
+  ) {
+    return money(
+      row.payment_amount_minor,
+      row.payment_currency
+    );
+  }
+
+  if (row.start_at) {
+    return formatDate(
+      row.start_at
+    );
+  }
+
+  return "—";
+}
+
+
+function renderAutomationSummary() {
+  if (!automationSummary) {
+    return;
+  }
+
+  const items = [
+    [
+      "Booking confirmations",
+      settings.booking_confirmation_enabled !==
+        false
+        ? "On"
+        : "Off"
+    ],
+    [
+      "Appointment reminders",
+      settings.reminder_enabled !==
+        false
+        ? `${
+            settings.reminder_hours_before ||
+            24
+          }h before`
+        : "Off"
+    ],
+    [
+      "Outstanding form reminder",
+      settings.form_reminder_enabled !==
+        false
+        ? `Once after ${
+            settings.form_reminder_hours_after ||
+            48
+          }h`
+        : "Off"
+    ],
+    [
+      "Payment confirmations",
+      settings.payment_receipt_enabled !==
+        false
+        ? "On"
+        : "Off"
+    ],
+    [
+      "Cancellations",
+      settings.cancellation_enabled !==
+        false
+        ? "On"
+        : "Off"
+    ],
+    [
+      "Reschedules",
+      settings.reschedule_enabled !==
+        false
+        ? "On"
+        : "Off"
+    ]
+  ];
+
+  automationSummary.innerHTML =
+    items
+      .map(
+        ([name, value]) => `
+          <div class="es-service-row">
+            <div>
+              <strong>${escapeHtml(name)}</strong>
+            </div>
+            <span class="es-customer-status">
+              ${escapeHtml(value)}
+            </span>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+function render() {
   list.innerHTML = "";
 
-  if (!rows.length) {
+  const selectedType =
+    typeFilter?.value ||
+    "";
+
+  const selectedStatus =
+    statusFilter?.value ||
+    "";
+
+  const filtered =
+    rows.filter(
+      (row) =>
+        (
+          !selectedType ||
+          group(
+            row.communication_type
+          ) ===
+            selectedType
+        ) &&
+        (
+          !selectedStatus ||
+          row.status ===
+            selectedStatus
+        )
+    );
+
+  if (!filtered.length) {
     list.innerHTML = `
       <div class="es-empty-state">
-        <strong>No communications yet</strong>
-        <span>Automatic customer emails will appear here after they are sent.</span>
+        <strong>No matching communications</strong>
+        <span>Automatic customer emails will appear here after they are processed.</span>
       </div>
     `;
     return;
   }
 
-  rows.forEach(
+  filtered.forEach(
     (row) => {
       const item =
         document.createElement(
@@ -94,40 +327,79 @@ function render(rows) {
 
       item.innerHTML = `
         <div class="es-payment-cell">
-          <strong>${label(row.communication_type)}</strong>
-          <span>${formatDate(row.sent_at || row.created_at)}</span>
+          <strong>${escapeHtml(
+            label(
+              row.communication_type
+            )
+          )}</strong>
+          <span>${escapeHtml(
+            formatDate(
+              row.sent_at ||
+              row.created_at
+            )
+          )}</span>
         </div>
 
         <div class="es-payment-cell">
-          <strong>${customer}</strong>
-          <span>${row.recipient}</span>
+          <strong>${escapeHtml(
+            customer
+          )}</strong>
+          <span>${escapeHtml(
+            row.recipient
+          )}</span>
         </div>
 
         <div class="es-payment-cell">
-          <strong>${row.service_name || "—"}</strong>
-          <span>${row.start_at ? formatDate(row.start_at) : "—"}</span>
+          <strong>${escapeHtml(
+            contextText(
+              row
+            )
+          )}</strong>
+          <span>${escapeHtml(
+            detailText(
+              row
+            )
+          )}</span>
         </div>
 
         <div class="es-payment-cell">
-          <span class="es-payment-status es-payment-status-${row.status}">
-            ${row.status}
+          <span class="es-payment-status es-payment-status-${escapeHtml(
+            row.status
+          )}">
+            ${escapeHtml(
+              row.status
+            )}
           </span>
-          <small>${row.provider || "resend"}</small>
+          <small>${escapeHtml(
+            row.provider ||
+            "resend"
+          )}</small>
         </div>
 
         <div class="es-payment-cell">
-          <strong>${row.subject || "—"}</strong>
-          <small>${row.error_details || row.provider_reference || ""}</small>
+          <strong>${escapeHtml(
+            row.subject ||
+            "—"
+          )}</strong>
+          <small>${escapeHtml(
+            row.error_details ||
+            row.provider_reference ||
+            ""
+          )}</small>
         </div>
       `;
 
-      list.appendChild(item);
+      list.appendChild(
+        item
+      );
     }
   );
 }
 
+
 async function loadCommunications() {
-  statusBox.hidden = true;
+  statusBox.hidden =
+    true;
 
   try {
     const response =
@@ -143,7 +415,10 @@ async function loadCommunications() {
         }
       );
 
-    if (response.status === 401) {
+    if (
+      response.status ===
+      401
+    ) {
       window.location.href =
         "/auth/login.html";
       return;
@@ -162,19 +437,43 @@ async function loadCommunications() {
       );
     }
 
-    render(
+    rows =
       data.communications ||
-      []
-    );
+      [];
+
+    settings =
+      data.settings ||
+      {};
+
+    renderAutomationSummary();
+    render();
   } catch (error) {
-    statusBox.hidden = false;
+    statusBox.hidden =
+      false;
+
     statusBox.className =
       "es-status error";
+
     statusBox.textContent =
       error.message ||
       "Unable to load communications.";
   }
 }
+
+
+typeFilter
+  ?.addEventListener(
+    "change",
+    render
+  );
+
+
+statusFilter
+  ?.addEventListener(
+    "change",
+    render
+  );
+
 
 refreshButton
   ?.addEventListener(
@@ -182,24 +481,30 @@ refreshButton
     loadCommunications
   );
 
+
 runButton
   ?.addEventListener(
     "click",
     async () => {
-      runButton.disabled = true;
+      runButton.disabled =
+        true;
 
-      statusBox.hidden = false;
+      statusBox.hidden =
+        false;
+
       statusBox.className =
         "es-status";
+
       statusBox.textContent =
-        "Checking for due reminders…";
+        "Checking appointment and form reminders…";
 
       try {
         const response =
           await fetch(
             "/api/communications",
             {
-              method: "POST",
+              method:
+                "POST",
               headers: {
                 "Content-Type":
                   "application/json",
@@ -231,7 +536,16 @@ runButton
           "es-status success";
 
         statusBox.textContent =
-          `Reminder check complete. Sent ${data.sent || 0}; failed ${data.failed || 0}.`;
+          `Automation check complete. Appointment reminders sent ${
+            data.appointment_reminders?.sent ||
+            0
+          }; form reminders sent ${
+            data.form_reminders?.sent ||
+            0
+          }; failed ${
+            data.failed ||
+            0
+          }.`;
 
         await loadCommunications();
       } catch (error) {
@@ -242,9 +556,11 @@ runButton
           error.message ||
           "Unable to run reminders.";
       } finally {
-        runButton.disabled = false;
+        runButton.disabled =
+          false;
       }
     }
   );
+
 
 loadCommunications();
