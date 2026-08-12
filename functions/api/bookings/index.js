@@ -7,6 +7,10 @@ import {
   hashSessionToken
 } from "../../../lib/auth.js";
 
+import {
+  findAvailableConsultationCredit
+} from "../../../lib/consultation-credit.js";
+
 
 async function getUserContext(
   request,
@@ -546,6 +550,7 @@ async function getAppointment(
         a.deposit_due_minor,
         a.booking_source,
         a.booking_kind,
+        a.consultation_credit_minor,
         a.customer_notes,
         a.internal_notes,
         a.created_at,
@@ -879,6 +884,7 @@ export async function onRequestGet({
             a.deposit_due_minor,
             a.booking_source,
             a.booking_kind,
+            a.consultation_credit_minor,
             a.customer_notes AS notes,
             a.internal_notes,
             a.created_at,
@@ -1322,6 +1328,33 @@ export async function onRequestPost({
           );
 
 
+    let consultationCreditSourceAppointmentId = null;
+    let consultationCreditMinor = 0;
+
+    if (!customerPackage && priceMinor > 0) {
+      const availableCredit =
+        await findAvailableConsultationCredit({
+          env,
+          businessId: user.business_id,
+          customerId: customer.id,
+          serviceId
+        });
+
+      consultationCreditSourceAppointmentId =
+        availableCredit.source_appointment_id;
+
+      consultationCreditMinor = Math.min(
+        Number(availableCredit.available_minor || 0),
+        priceMinor
+      );
+    }
+
+    const netDepositDueMinor = Math.max(
+      depositDueMinor - consultationCreditMinor,
+      0
+    );
+
+
     await env.DB
       .prepare(`
         INSERT INTO appointments (
@@ -1335,7 +1368,9 @@ export async function onRequestPost({
           price_minor,
           deposit_due_minor,
           booking_source,
-          customer_notes
+          customer_notes,
+          consultation_credit_source_appointment_id,
+          consultation_credit_minor
         )
 
         VALUES (
@@ -1343,7 +1378,7 @@ export async function onRequestPost({
           'confirmed',
           ?, ?, ?, ?,
           'admin',
-          ?
+          ?, ?, ?
         )
       `)
       .bind(
@@ -1354,8 +1389,10 @@ export async function onRequestPost({
         startAt,
         endAt,
         priceMinor,
-        depositDueMinor,
-        notes || null
+        netDepositDueMinor,
+        notes || null,
+        consultationCreditSourceAppointmentId,
+        consultationCreditMinor
       )
       .run();
 
