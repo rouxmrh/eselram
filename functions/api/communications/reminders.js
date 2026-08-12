@@ -2,6 +2,10 @@ import {
   runDueReminders
 } from "../../../lib/communications.js";
 
+import {
+  runDueFormReminders
+} from "../../../lib/form-automation.js";
+
 function safeEqual(a, b) {
   const left =
     String(a || "");
@@ -72,14 +76,52 @@ export async function onRequestPost({
       );
     }
 
-    const result =
+    const appointmentResult =
       await runDueReminders({
         env
       });
 
+    const formResult =
+      await runDueFormReminders({
+        env,
+        baseUrl:
+          env.ESELRAM_BASE_URL ||
+          null
+      });
+
     return Response.json({
       ok: true,
-      ...result
+      checked:
+        Number(
+          appointmentResult.checked ||
+          0
+        ) +
+        Number(
+          formResult.checked ||
+          0
+        ),
+      sent:
+        Number(
+          appointmentResult.sent ||
+          0
+        ) +
+        Number(
+          formResult.sent ||
+          0
+        ),
+      failed:
+        Number(
+          appointmentResult.failed ||
+          0
+        ) +
+        Number(
+          formResult.failed ||
+          0
+        ),
+      appointment_reminders:
+        appointmentResult,
+      form_reminders:
+        formResult
     });
   } catch (error) {
     console.error(
