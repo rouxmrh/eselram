@@ -2,6 +2,7 @@ const state = {
   config: null,
   service: null,
   bookingIntent: null,
+  paymentPreview: null,
   date: "",
   time: "",
   details: null
@@ -303,6 +304,13 @@ function applyBranding(config) {
   $("#footerText").textContent = b.footer_text || "";
 }
 
+function serviceDisplayName(value) {
+  return String(value || "").replace(
+    /\bTattoo Remobal\b/gi,
+    "Tattoo Removal"
+  );
+}
+
 function selectServiceRoute(service, bookingIntent) {
   state.service = service;
   state.bookingIntent = bookingIntent || "service";
@@ -314,10 +322,10 @@ function selectServiceRoute(service, bookingIntent) {
 
   $("#selectedServiceText").textContent =
     isConsultation
-      ? `Consultation · ${service.name} · ${Number(
+      ? `Consultation · ${serviceDisplayName(service.name)} · ${Number(
           service.consultation_duration_minutes || 30
         )} min · ${consultationPaymentText(service)}`
-      : `${service.name} treatment · ${Number(
+      : `${serviceDisplayName(service.name)} treatment · ${Number(
           service.duration_minutes || 0
         )} min · ${paymentText(service)}`;
 
@@ -362,7 +370,7 @@ function renderServices() {
     }
 
     card.innerHTML = `
-      <h3>${escapeHtml(service.name)}</h3>
+      <h3>${escapeHtml(serviceDisplayName(service.name))}</h3>
       <p>${escapeHtml(service.description || "")}</p>
 
       ${
@@ -519,8 +527,8 @@ async function loadSlots() {
         $("#selectedTimeText").textContent =
           `${
             state.bookingIntent === "consultation"
-              ? `Consultation · ${state.service.name}`
-              : state.service.name
+              ? `Consultation · ${serviceDisplayName(state.service.name)}`
+              : serviceDisplayName(state.service.name)
           } · ${formatDate(state.date)} at ${state.time}`;
         setStep(3);
       });
@@ -538,7 +546,7 @@ function renderReview() {
   const service = state.service;
 
   $("#reviewCard").innerHTML = `
-    <div class="review-item"><small>Service</small><strong>${escapeHtml(service.name)}</strong></div>
+    <div class="review-item"><small>Service</small><strong>${escapeHtml(serviceDisplayName(service.name))}</strong></div>
     <div class="review-item"><small>Date & time</small><strong>${escapeHtml(formatDate(state.date))} · ${escapeHtml(state.time)}</strong></div>
     <div class="review-item"><small>Name</small><strong>${escapeHtml(`${state.details.first_name} ${state.details.last_name}`)}</strong></div>
     <div class="review-item"><small>Email</small><strong>${escapeHtml(state.details.email)}</strong></div>
@@ -562,7 +570,44 @@ function renderReview() {
             <strong>Treatment</strong>
           </div>
           <div class="review-item"><small>Price</small><strong>${escapeHtml(money(service.price_minor, currency, locale))}</strong></div>
-          <div class="review-item"><small>Payment</small><strong>${escapeHtml(paymentText(service))}</strong></div>
+          ${
+            Number(state.paymentPreview?.consultation_credit_minor || 0) > 0
+              ? `
+                <div class="review-item">
+                  <small>Consultation credit</small>
+                  <strong>${escapeHtml(
+                    money(
+                      state.paymentPreview.consultation_credit_minor,
+                      currency,
+                      locale
+                    )
+                  )}</strong>
+                </div>
+                <div class="review-item">
+                  <small>Due today</small>
+                  <strong>${escapeHtml(
+                    money(
+                      state.paymentPreview.due_today_minor || 0,
+                      currency,
+                      locale
+                    )
+                  )}</strong>
+                </div>
+                <div class="review-item">
+                  <small>Remaining balance</small>
+                  <strong>${escapeHtml(
+                    money(
+                      state.paymentPreview.remaining_minor || 0,
+                      currency,
+                      locale
+                    )
+                  )}</strong>
+                </div>
+              `
+              : `
+                <div class="review-item"><small>Payment</small><strong>${escapeHtml(paymentText(service))}</strong></div>
+              `
+          }
         `
     }
   `;
@@ -572,7 +617,16 @@ function renderReview() {
     notices.push(
       state.bookingIntent === "consultation"
         ? "You are booking a consultation. Once it is completed, the consultation payment is credited toward your next treatment or package for this service."
-        : "You are booking treatment as an existing client. Eselram will verify that this customer has a completed consultation before confirming treatment."
+        : (
+            Number(state.paymentPreview?.consultation_credit_minor || 0) > 0 &&
+            Number(state.paymentPreview?.due_today_minor || 0) === 0
+              ? `${money(
+                  state.paymentPreview.consultation_credit_minor,
+                  currency,
+                  locale
+                )} consultation credit will be applied. Nothing is due today.`
+              : "You are booking treatment as an existing client. Eselram will verify that this customer has a completed consultation before confirming treatment."
+          )
     );
   }
   if (Number(service.requires_patch_test || 0) === 1) {
@@ -640,7 +694,7 @@ function renderFinal(booking) {
   const serviceName =
     booking?.booking_label ||
     booking?.service_name ||
-    state.service?.name ||
+    serviceDisplayName(state.service?.name) ||
     "Appointment";
   const startAt = booking?.start_at || `${state.date}T${state.time}:00`;
   const [date, time] = String(startAt).split("T");
@@ -839,7 +893,7 @@ async function init() {
 
 $("#bookingDate").addEventListener("change", loadSlots);
 
-$("#detailsForm").addEventListener("submit", (event) => {
+$("#detailsForm").addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const firstName = $("#firstName").value.trim();
@@ -859,6 +913,39 @@ $("#detailsForm").addEventListener("submit", (event) => {
     notes: $("#notes").value.trim(),
     marketing_consent: $("#marketingConsent").checked
   };
+
+  state.paymentPreview = null;
+
+  if (state.bookingIntent === "service") {
+    try {
+      const response = await fetch(
+        "/api/public-booking/preview",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify({
+            service_id: state.service.id,
+            booking_intent: state.bookingIntent,
+            ...state.details
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.ok) {
+        state.paymentPreview = data;
+      }
+    } catch (error) {
+      console.warn(
+        "Unable to preview booking payment:",
+        error
+      );
+    }
+  }
 
   renderReview();
   setStep(4);
