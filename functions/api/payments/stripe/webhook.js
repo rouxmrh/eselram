@@ -259,6 +259,7 @@ async function finalizePackageSale({
       ps.payment_id,
       ps.customer_package_id,
       ps.status,
+      ps.consultation_credit_minor,
       pt.service_id,
       pt.name,
       pt.sessions_total,
@@ -330,7 +331,7 @@ async function finalizePackageSale({
     sale.service_id,
     sale.name,
     sale.sessions_total,
-    sale.price_minor,
+    Math.max(0, Number(sale.price_minor || 0) - Number(sale.consultation_credit_minor || 0)),
     validityDays,
     validityDays
   ).run();
