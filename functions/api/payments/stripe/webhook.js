@@ -503,6 +503,20 @@ async function updatePaymentFromSession({
         baseUrl
       });
 
+      // A successful public Stripe payment also confirms the appointment.
+      // Run booking-confirmed form rules first so consultation forms configured
+      // to send on confirmation behave the same for paid and non-paid bookings.
+      await runServiceFormAutomation({
+        env,
+        businessId,
+        appointmentId,
+        triggerEvent:
+          "booking_confirmed",
+        baseUrl
+      });
+
+      // Preserve payment-specific form automation for businesses that have
+      // deliberately configured a form to send when payment is received.
       await runServiceFormAutomation({
         env,
         businessId,
