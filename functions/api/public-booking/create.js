@@ -93,8 +93,9 @@ export async function onRequestPost({ request, env }) {
 
     createdCustomerId = customer.created ? customer.id : null;
 
-    let consultationCompleted =
-      false;
+    let consultationCompleted = false;
+    let consultationCreditSourceAppointmentId = null;
+    let consultationCreditMinor = 0;
 
     if (
       Number(
@@ -105,18 +106,34 @@ export async function onRequestPost({ request, env }) {
       const completedConsultation =
         await env.DB
           .prepare(`
-            SELECT id
-            FROM appointments
+            SELECT
+              a.id,
+              MAX(
+                0,
+                COALESCE(SUM(
+                  CASE
+                    WHEN p.payment_type = 'refund'
+                         AND p.status = 'paid'
+                      THEN -p.amount_minor
+                    WHEN p.payment_type != 'refund'
+                         AND p.status IN ('paid', 'partially_refunded', 'refunded')
+                      THEN p.amount_minor
+                    ELSE 0
+                  END
+                ), 0)
+              ) AS paid_minor
+            FROM appointments a
+            LEFT JOIN payments p
+              ON p.appointment_id = a.id
+             AND p.business_id = a.business_id
             WHERE
-              business_id = ?
-              AND customer_id = ?
-              AND service_id = ?
-              AND booking_kind =
-                  'consultation'
-              AND status =
-                  'completed'
-            ORDER BY
-              datetime(start_at) DESC
+              a.business_id = ?
+              AND a.customer_id = ?
+              AND a.service_id = ?
+              AND a.booking_kind = 'consultation'
+              AND a.status = 'completed'
+            GROUP BY a.id
+            ORDER BY datetime(a.start_at) DESC
             LIMIT 1
           `)
           .bind(
@@ -126,10 +143,39 @@ export async function onRequestPost({ request, env }) {
           )
           .first();
 
-      consultationCompleted =
-        Boolean(
-          completedConsultation
-        );
+      consultationCompleted = Boolean(completedConsultation);
+
+      if (completedConsultation && Number(completedConsultation.paid_minor || 0) > 0) {
+        const alreadyUsed = await env.DB.prepare(`
+          SELECT 1 AS used
+          FROM appointments target
+          WHERE
+            target.business_id = ?
+            AND target.consultation_credit_source_appointment_id = ?
+            AND target.status != 'cancelled'
+          UNION ALL
+          SELECT 1 AS used
+          FROM package_sales sale
+          WHERE
+            sale.business_id = ?
+            AND sale.consultation_credit_source_appointment_id = ?
+            AND sale.status NOT IN ('failed', 'cancelled')
+          LIMIT 1
+        `).bind(
+          business.id,
+          completedConsultation.id,
+          business.id,
+          completedConsultation.id
+        ).first();
+
+        if (!alreadyUsed) {
+          consultationCreditSourceAppointmentId = completedConsultation.id;
+          consultationCreditMinor = Math.max(
+            0,
+            Number(completedConsultation.paid_minor || 0)
+          );
+        }
+      }
     }
 
     const bookingKind =
@@ -194,6 +240,20 @@ export async function onRequestPost({ request, env }) {
               0
             )
           );
+
+    // A paid completed consultation is a one-time credit against the first
+    // later treatment/package for the same service. Keep consultation
+    // bookings themselves unchanged.
+    const appliedConsultationCreditMinor =
+      bookingKind === "service"
+        ? Math.min(consultationCreditMinor, priceMinor)
+        : 0;
+
+    const effectivePriceMinor =
+      Math.max(0, priceMinor - appliedConsultationCreditMinor);
+
+    const effectiveDepositMinor =
+      Math.max(0, depositMinor - appliedConsultationCreditMinor);
 
     const effectiveService = {
       ...service,
@@ -323,7 +383,7 @@ export async function onRequestPost({ request, env }) {
 
     const appointmentStatus = requiresOnlinePayment ? "pending" : "confirmed";
     const depositDueMinor =
-      paymentTiming === "online_deposit" ? depositMinor : 0;
+      paymentTiming === "online_deposit" ? effectiveDepositMinor : 0;
 
     if (
       paymentTiming === "online_deposit" &&
@@ -353,10 +413,12 @@ export async function onRequestPost({ request, env }) {
           deposit_due_minor,
           booking_source,
           customer_notes,
-          booking_kind
+          booking_kind,
+          consultation_credit_source_appointment_id,
+          consultation_credit_minor
         )
         SELECT
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, 'online', ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, 'online', ?, ?, ?, ?
         WHERE NOT EXISTS (
           SELECT 1
           FROM appointments existing
@@ -375,10 +437,12 @@ export async function onRequestPost({ request, env }) {
         appointmentStatus,
         startAt,
         endAt,
-        priceMinor,
+        effectivePriceMinor,
         depositDueMinor,
         notes || null,
         bookingKind,
+        bookingKind === "service" ? consultationCreditSourceAppointmentId : null,
+        appliedConsultationCreditMinor,
         business.id,
         bufferBefore,
         endAt,
@@ -402,8 +466,9 @@ export async function onRequestPost({ request, env }) {
       start_at: startAt,
       end_at: endAt,
       status: appointmentStatus,
-      price_minor: priceMinor,
+      price_minor: effectivePriceMinor,
       deposit_due_minor: depositDueMinor,
+      consultation_credit_minor: appliedConsultationCreditMinor,
       payment_timing: paymentTiming,
       booking_kind:
         bookingKind,
@@ -416,7 +481,7 @@ export async function onRequestPost({ request, env }) {
       requires_patch_test: Number(service.requires_patch_test || 0)
     };
 
-    if (!requiresOnlinePayment || priceMinor <= 0 || paymentTiming === "free") {
+    if (!requiresOnlinePayment || effectivePriceMinor <= 0 || paymentTiming === "free") {
       await sendAppointmentCommunication({
         env,
         businessId:
@@ -450,8 +515,8 @@ export async function onRequestPost({ request, env }) {
 
     const amountMinor =
       paymentTiming === "online_deposit"
-        ? Math.min(depositMinor, priceMinor)
-        : priceMinor;
+        ? Math.min(effectiveDepositMinor, effectivePriceMinor)
+        : effectivePriceMinor;
 
     if (amountMinor <= 0) {
       await env.DB
