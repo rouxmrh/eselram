@@ -32,7 +32,8 @@ const EXPECTED_MIGRATIONS = [
   "025_packages_courses",
   "026_package_sales",
   "027_automated_communications",
-  "028_consultation_package_booking"
+  "028_consultation_package_booking",
+  "029_consultation_credit"
 ];
 
 
