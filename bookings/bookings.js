@@ -1310,10 +1310,13 @@ function renderBookingPackages() {
                   0
                 )}
               </strong>
+              <small>Outstanding</small>
               <small>
-                outstanding${
+                Value ${formatMoney(item.price_minor || 0)}
+                · Paid ${formatMoney(item.paid_minor || 0)}
+                ${
                   Number(item.consultation_credit_minor || 0) > 0
-                    ? ` · ${formatMoney(item.consultation_credit_minor)} consultation credit`
+                    ? ` · Consultation credit ${formatMoney(item.consultation_credit_minor)}`
                     : ""
                 }
               </small>
@@ -1585,6 +1588,7 @@ function renderBookings() {
               </strong>
 
               ${
+                booking.status !== "cancelled" &&
                 Number(
                   booking.consultation_credit_minor ||
                   0
