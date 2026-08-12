@@ -1683,7 +1683,7 @@ async function sendBookingConsultationEmail(
     }
 
     showBookingFormRequestStatus(
-      `Consultation emailed to ${data.email.to}.`,
+      "Consultation email sent successfully.",
       "success"
     );
 
