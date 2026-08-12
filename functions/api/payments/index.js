@@ -172,7 +172,11 @@ export async function onRequestGet({
               c.last_name,
 
               a.start_at,
-              s.name AS service_name,
+              CASE
+                WHEN a.booking_kind = 'consultation'
+                  THEN 'Consultation · ' || s.name
+                ELSE s.name
+              END AS service_name,
 
               pp.display_name
                 AS provider_display_name,
@@ -284,7 +288,11 @@ export async function onRequestGet({
               c.first_name,
               c.last_name,
 
-              s.name AS service_name,
+              CASE
+                WHEN a.booking_kind = 'consultation'
+                  THEN 'Consultation · ' || s.name
+                ELSE s.name
+              END AS service_name,
 
               COALESCE(
                 (
