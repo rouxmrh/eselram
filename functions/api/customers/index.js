@@ -229,7 +229,11 @@ export async function onRequestGet({
               a.price_minor,
               a.deposit_due_minor,
               s.id AS service_id,
-              s.name AS service_name,
+              CASE
+                WHEN a.booking_kind = 'consultation'
+                  THEN 'Consultation · ' || s.name
+                ELSE s.name
+              END AS service_name,
 
               cp.id AS customer_package_id,
               cp.name_snapshot AS package_name,
@@ -284,7 +288,11 @@ export async function onRequestGet({
               a.price_minor,
               a.deposit_due_minor,
               s.id AS service_id,
-              s.name AS service_name,
+              CASE
+                WHEN a.booking_kind = 'consultation'
+                  THEN 'Consultation · ' || s.name
+                ELSE s.name
+              END AS service_name,
 
               cp.id AS customer_package_id,
               cp.name_snapshot AS package_name,
@@ -457,7 +465,11 @@ export async function onRequestGet({
                 t.template_type,
 
                 a.start_at AS appointment_start_at,
-                s.name AS service_name
+                CASE
+                  WHEN a.booking_kind = 'consultation'
+                    THEN 'Consultation · ' || s.name
+                  ELSE s.name
+                END AS service_name
 
               FROM clinical_form_requests r
 
@@ -545,7 +557,11 @@ export async function onRequestGet({
                 p.status,
                 p.created_at,
 
-                s.name AS service_name,
+                CASE
+                  WHEN a.booking_kind = 'consultation'
+                    THEN 'Consultation · ' || s.name
+                  ELSE s.name
+                END AS service_name,
                 a.start_at AS appointment_start_at,
 
                 cp.id AS customer_package_id,
@@ -641,7 +657,11 @@ export async function onRequestGet({
               cc.error_details,
 
               a.start_at AS appointment_start_at,
-              s.name AS service_name,
+              CASE
+                WHEN a.booking_kind = 'consultation'
+                  THEN 'Consultation · ' || s.name
+                ELSE s.name
+              END AS service_name,
               cp.name_snapshot AS package_name,
               ct.name AS form_name
 
