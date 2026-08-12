@@ -779,8 +779,7 @@ document
 
 
 async function sendCustomerConsultationEmail(
-  formRequestId,
-  forceResend = false
+  formRequestId
 ) {
   const button =
     document.getElementById(
@@ -813,9 +812,7 @@ async function sendCustomerConsultationEmail(
           body:
             JSON.stringify({
               form_request_id:
-                formRequestId,
-              force:
-                forceResend === true
+                formRequestId
             })
         }
       );
@@ -1059,8 +1056,7 @@ function renderCustomerFormRequests(
           () =>
             sendCustomerConsultationEmail(
               button.dataset
-                .customerResendConsultation,
-              true
+                .customerResendConsultation
             )
         );
       }
@@ -1363,13 +1359,6 @@ function timelineAction(
 
 
 function timelineTitle(item) {
-  if (
-    item.event_type === "appointment" &&
-    String(item.title || "").startsWith("Consultation · ")
-  ) {
-    return item.title;
-  }
-
   const prefixes = {
     appointment:
       "Appointment",
@@ -1453,6 +1442,9 @@ function renderCustomerPackages(
             <div class="es-customer-package-meta">
               <span>Value ${formatMoney(item.price_minor)}</span>
               <span>Paid ${formatMoney(item.paid_minor)}</span>
+              ${Number(item.consultation_credit_minor || 0) > 0
+                ? `<span>Consultation credit ${formatMoney(item.consultation_credit_minor)}</span>`
+                : ""}
               <span>Outstanding ${formatMoney(item.outstanding_minor)}</span>
             </div>
 
