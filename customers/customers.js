@@ -831,7 +831,7 @@ async function sendCustomerConsultationEmail(
     }
 
     showCustomerFormStatus(
-      `Consultation emailed to ${data.email.to}.`,
+      "Consultation email sent successfully.",
       "success"
     );
 
