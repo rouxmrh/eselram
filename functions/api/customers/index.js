@@ -229,11 +229,7 @@ export async function onRequestGet({
               a.price_minor,
               a.deposit_due_minor,
               s.id AS service_id,
-              CASE
-                WHEN a.booking_kind = 'consultation'
-                  THEN 'Consultation · ' || s.name
-                ELSE s.name
-              END AS service_name,
+              s.name AS service_name,
 
               cp.id AS customer_package_id,
               cp.name_snapshot AS package_name,
@@ -288,11 +284,7 @@ export async function onRequestGet({
               a.price_minor,
               a.deposit_due_minor,
               s.id AS service_id,
-              CASE
-                WHEN a.booking_kind = 'consultation'
-                  THEN 'Consultation · ' || s.name
-                ELSE s.name
-              END AS service_name,
+              s.name AS service_name,
 
               cp.id AS customer_package_id,
               cp.name_snapshot AS package_name,
@@ -465,11 +457,7 @@ export async function onRequestGet({
                 t.template_type,
 
                 a.start_at AS appointment_start_at,
-                CASE
-                  WHEN a.booking_kind = 'consultation'
-                    THEN 'Consultation · ' || s.name
-                  ELSE s.name
-                END AS service_name
+                s.name AS service_name
 
               FROM clinical_form_requests r
 
@@ -557,11 +545,7 @@ export async function onRequestGet({
                 p.status,
                 p.created_at,
 
-                CASE
-                  WHEN a.booking_kind = 'consultation'
-                    THEN 'Consultation · ' || s.name
-                  ELSE s.name
-                END AS service_name,
+                s.name AS service_name,
                 a.start_at AS appointment_start_at,
 
                 cp.id AS customer_package_id,
@@ -657,11 +641,7 @@ export async function onRequestGet({
               cc.error_details,
 
               a.start_at AS appointment_start_at,
-              CASE
-                WHEN a.booking_kind = 'consultation'
-                  THEN 'Consultation · ' || s.name
-                ELSE s.name
-              END AS service_name,
+              s.name AS service_name,
               cp.name_snapshot AS package_name,
               ct.name AS form_name
 
@@ -778,7 +758,19 @@ export async function onRequestGet({
                 WHERE
                   cpp.customer_package_id =
                     cp.id
-              ) AS paid_minor
+              ) AS paid_minor,
+
+              (
+                SELECT COALESCE(
+                  SUM(ps.consultation_credit_minor),
+                  0
+                )
+                FROM package_sales ps
+                WHERE
+                  ps.business_id = cp.business_id
+                  AND ps.customer_package_id = cp.id
+                  AND ps.status = 'paid'
+              ) AS consultation_credit_minor
 
             FROM customer_packages cp
 
@@ -886,6 +878,20 @@ export async function onRequestGet({
                 item.paid_minor ||
                 0
               ),
+            consultation_credit_minor:
+              Number(
+                item.consultation_credit_minor ||
+                0
+              ),
+            credited_paid_minor:
+              Number(
+                item.paid_minor ||
+                0
+              ) +
+              Number(
+                item.consultation_credit_minor ||
+                0
+              ),
             outstanding_minor:
               Math.max(
                 Number(
@@ -894,6 +900,10 @@ export async function onRequestGet({
                 ) -
                 Number(
                   item.paid_minor ||
+                  0
+                ) -
+                Number(
+                  item.consultation_credit_minor ||
                   0
                 ),
                 0
@@ -1257,6 +1267,35 @@ export async function onRequestGet({
       );
 
 
+      const appointmentCreditRows =
+        await env.DB
+          .prepare(`
+            SELECT
+              id AS appointment_id,
+              consultation_credit_minor
+            FROM appointments
+            WHERE
+              business_id = ?
+              AND customer_id = ?
+              AND consultation_credit_minor > 0
+          `)
+          .bind(
+            user.business_id,
+            id
+          )
+          .all();
+
+      const appointmentCreditById =
+        Object.fromEntries(
+          (appointmentCreditRows.results || []).map(
+            row => [
+              row.appointment_id,
+              Number(row.consultation_credit_minor || 0)
+            ]
+          )
+        );
+
+
       const packageOutstandingMinor =
         packageList.reduce(
           (total, item) =>
@@ -1337,7 +1376,11 @@ export async function onRequestGet({
                     appointment.price_minor ||
                     0
                   ) -
-                  netPaid,
+                  netPaid -
+                  Number(
+                    appointmentCreditById[appointment.id] ||
+                    0
+                  ),
                   0
                 );
             },
