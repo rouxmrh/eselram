@@ -209,6 +209,54 @@
             <div id="clientFormOptions" class="es-provider-options"></div>
           </fieldset>
 
+          <fieldset
+            id="consultationBookingSection"
+            class="es-fieldset"
+            hidden
+          >
+            <legend>
+              Consultation booking
+            </legend>
+
+            <p class="es-muted-copy">
+              New public clients are booked into a consultation first. Once that consultation is completed, they can book the treatment or purchase its public packages.
+            </p>
+
+            <div class="es-form-grid">
+              <label>
+                Consultation duration
+                <input
+                  id="consultationDuration"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="30"
+                >
+              </label>
+
+              <label>
+                Consultation fee
+                <input
+                  id="consultationPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value="0.00"
+                >
+              </label>
+
+              <label>
+                Consultation payment
+                <select id="consultationPaymentTiming">
+                  <option value="online_full">Pay consultation fee online</option>
+                  <option value="pay_at_appointment">Pay at consultation</option>
+                  <option value="free">Free consultation</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+
           <div class="es-check-grid">
 
             <label class="es-check-option">
