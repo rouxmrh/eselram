@@ -831,7 +831,9 @@ async function sendCustomerConsultationEmail(
     }
 
     showCustomerFormStatus(
-      "Consultation email sent successfully.",
+      data.duplicate || data.skipped
+        ? "This form email has already been sent."
+        : "Consultation email sent successfully.",
       "success"
     );
 
