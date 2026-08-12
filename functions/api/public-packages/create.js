@@ -80,6 +80,9 @@ export async function onRequestPost({ request, env }) {
       marketingConsent: false
     });
 
+    let consultationCreditSourceAppointmentId = null;
+    let consultationCreditMinor = 0;
+
     if (
       Number(
         template.requires_consultation ||
@@ -89,18 +92,34 @@ export async function onRequestPost({ request, env }) {
       const completedConsultation =
         await env.DB
           .prepare(`
-            SELECT id
-            FROM appointments
+            SELECT
+              a.id,
+              MAX(
+                0,
+                COALESCE(SUM(
+                  CASE
+                    WHEN p.payment_type = 'refund'
+                         AND p.status = 'paid'
+                      THEN -p.amount_minor
+                    WHEN p.payment_type != 'refund'
+                         AND p.status IN ('paid', 'partially_refunded', 'refunded')
+                      THEN p.amount_minor
+                    ELSE 0
+                  END
+                ), 0)
+              ) AS paid_minor
+            FROM appointments a
+            LEFT JOIN payments p
+              ON p.appointment_id = a.id
+             AND p.business_id = a.business_id
             WHERE
-              business_id = ?
-              AND customer_id = ?
-              AND service_id = ?
-              AND booking_kind =
-                  'consultation'
-              AND status =
-                  'completed'
-            ORDER BY
-              datetime(start_at) DESC
+              a.business_id = ?
+              AND a.customer_id = ?
+              AND a.service_id = ?
+              AND a.booking_kind = 'consultation'
+              AND a.status = 'completed'
+            GROUP BY a.id
+            ORDER BY datetime(a.start_at) DESC
             LIMIT 1
           `)
           .bind(
@@ -134,22 +153,121 @@ export async function onRequestPost({ request, env }) {
           }
         );
       }
+
+      if (Number(completedConsultation.paid_minor || 0) > 0) {
+        const alreadyUsed = await env.DB.prepare(`
+          SELECT 1 AS used
+          FROM appointments target
+          WHERE
+            target.business_id = ?
+            AND target.consultation_credit_source_appointment_id = ?
+            AND target.status != 'cancelled'
+          UNION ALL
+          SELECT 1 AS used
+          FROM package_sales sale
+          WHERE
+            sale.business_id = ?
+            AND sale.consultation_credit_source_appointment_id = ?
+            AND sale.status NOT IN ('failed', 'cancelled')
+          LIMIT 1
+        `).bind(
+          business.id,
+          completedConsultation.id,
+          business.id,
+          completedConsultation.id
+        ).first();
+
+        if (!alreadyUsed) {
+          consultationCreditSourceAppointmentId = completedConsultation.id;
+          consultationCreditMinor = Math.max(
+            0,
+            Number(completedConsultation.paid_minor || 0)
+          );
+        }
+      }
     }
 
 
     const price = Math.max(0, Number(template.price_minor || 0));
     const deposit = Math.max(0, Number(template.deposit_minor || 0));
+    const appliedConsultationCreditMinor = Math.min(consultationCreditMinor, price);
+    const effectivePrice = Math.max(0, price - appliedConsultationCreditMinor);
+    const effectiveDeposit = Math.max(0, deposit - appliedConsultationCreditMinor);
     const amountMinor =
       paymentChoice === "deposit"
-        ? Math.min(deposit, price)
-        : price;
+        ? Math.min(effectiveDeposit, effectivePrice)
+        : effectivePrice;
 
-    if (amountMinor <= 0) {
+    if (
+      amountMinor <= 0 &&
+      appliedConsultationCreditMinor <= 0
+    ) {
       return badRequest(
         paymentChoice === "deposit"
           ? "This package does not offer a deposit option."
           : "This package cannot be purchased online."
       );
+    }
+
+    // If the consultation credit fully covers the amount due today, activate
+    // the package without creating a second Stripe charge.
+    if (amountMinor <= 0 && appliedConsultationCreditMinor > 0) {
+      saleId = `psl_${crypto.randomUUID()}`;
+      const customerPackageId = `cpk_${crypto.randomUUID()}`;
+      const validityDays = Number(template.validity_days || 0);
+      const currency = String(business.currency || "GBP").toUpperCase();
+
+      await env.DB.prepare(`
+        INSERT INTO package_sales (
+          id, business_id, customer_id, package_template_id,
+          source, payment_choice, amount_minor, currency,
+          status, payment_id, customer_package_id, paid_at,
+          consultation_credit_source_appointment_id, consultation_credit_minor
+        )
+        VALUES (?, ?, ?, ?, 'public', ?, 0, ?, 'paid', NULL, ?, CURRENT_TIMESTAMP, ?, ?)
+      `).bind(
+        saleId,
+        business.id,
+        customer.id,
+        template.id,
+        paymentChoice,
+        currency,
+        customerPackageId,
+        consultationCreditSourceAppointmentId,
+        appliedConsultationCreditMinor
+      ).run();
+
+      await env.DB.prepare(`
+        INSERT INTO customer_packages (
+          id, business_id, customer_id, package_template_id, service_id,
+          name_snapshot, sessions_total, price_minor, status,
+          starts_on, expires_on, notes
+        )
+        VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?, 'active', date('now'),
+          CASE WHEN ? > 0 THEN date('now', '+' || ? || ' days') ELSE NULL END,
+          'Created automatically from consultation credit'
+        )
+      `).bind(
+        customerPackageId,
+        business.id,
+        customer.id,
+        template.id,
+        template.service_id,
+        template.name,
+        template.sessions_total,
+        effectivePrice,
+        validityDays,
+        validityDays
+      ).run();
+
+      return Response.json({
+        ok: true,
+        sale_id: saleId,
+        checkout_url: null,
+        payment_required: false,
+        consultation_credit_minor: appliedConsultationCreditMinor
+      });
     }
 
     const integration = await getBusinessStripeIntegration(env, business.id);
@@ -191,9 +309,10 @@ export async function onRequestPost({ request, env }) {
       INSERT INTO package_sales (
         id, business_id, customer_id, package_template_id,
         source, payment_choice, amount_minor, currency,
-        status, payment_id
+        status, payment_id,
+        consultation_credit_source_appointment_id, consultation_credit_minor
       )
-      VALUES (?, ?, ?, ?, 'public', ?, ?, ?, 'pending', ?)
+      VALUES (?, ?, ?, ?, 'public', ?, ?, ?, 'pending', ?, ?, ?)
     `).bind(
       saleId,
       business.id,
@@ -202,7 +321,9 @@ export async function onRequestPost({ request, env }) {
       paymentChoice,
       amountMinor,
       currency,
-      paymentId
+      paymentId,
+      consultationCreditSourceAppointmentId,
+      appliedConsultationCreditMinor
     ).run();
 
     const origin = new URL(request.url).origin;
@@ -280,7 +401,9 @@ export async function onRequestPost({ request, env }) {
     return Response.json({
       ok: true,
       sale_id: saleId,
-      checkout_url: result.data.url
+      checkout_url: result.data.url,
+      payment_required: true,
+      consultation_credit_minor: appliedConsultationCreditMinor
     });
   } catch (error) {
     console.error("Public package purchase failed:", error);
