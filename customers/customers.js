@@ -101,6 +101,12 @@ const toggleFailedCustomerPayments =
   );
 
 
+const customerCommunications =
+  document.getElementById(
+    "customerCommunications"
+  );
+
+
 const customerClinicalRecords =
   document.getElementById(
     "customerClinicalRecords"
@@ -1678,7 +1684,102 @@ function renderCustomerPayments(
 }
 
 
+function customerCommunicationLabel(
+  type
+) {
+  return {
+    booking_confirmation:
+      "Booking confirmation",
+    appointment_reminder:
+      "Appointment reminder",
+    cancellation_confirmation:
+      "Cancellation",
+    reschedule_confirmation:
+      "Appointment updated",
+    client_form_request:
+      "Client form sent",
+    client_form_reminder:
+      "Client form reminder",
+    payment_receipt:
+      "Payment confirmation",
+    package_payment_confirmation:
+      "Package payment confirmation"
+  }[type] ||
+  formatStatus(
+    type
+  );
+}
+
+
+function renderCustomerCommunications(
+  communications
+) {
+  const items =
+    communications ||
+    [];
+
+  if (!items.length) {
+    customerCommunications.innerHTML = `
+      <div class="es-empty-state">
+        <strong>No communication history yet.</strong>
+      </div>
+    `;
+    return;
+  }
+
+  customerCommunications.innerHTML =
+    items
+      .slice(
+        0,
+        12
+      )
+      .map(
+        (item) => `
+          <div class="es-customer-record-row">
+            <div class="es-customer-record-main">
+              <strong>
+                ${escapeHtml(
+                  customerCommunicationLabel(
+                    item.communication_type
+                  )
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  [
+                    item.package_name,
+                    item.form_name,
+                    item.service_name,
+                    formatShortDate(
+                      item.sent_at ||
+                      item.created_at
+                    )
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                )}
+              </span>
+            </div>
+
+            <div class="es-customer-record-actions">
+              <span class="es-customer-status">
+                ${escapeHtml(
+                  formatStatus(
+                    item.status
+                  )
+                )}
+              </span>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
 function renderCustomerClinicalRecords(
+
   records,
   formRequests
 ) {
@@ -1949,7 +2050,9 @@ function bindOutstandingFormActions() {
                     body:
                       JSON.stringify({
                         form_request_id:
-                          requestId
+                          requestId,
+                        reminder:
+                          true
                       })
                   }
                 );
@@ -1972,8 +2075,9 @@ function bindOutstandingFormActions() {
               }
 
               showCustomerInlineFormStatus(
-                data.skipped
-                  ? "This form email was already sent recently."
+                data.skipped ||
+                data.duplicate
+                  ? "A reminder has already been sent for this form."
                   : "Form reminder sent.",
                 "success"
               );
@@ -2903,6 +3007,12 @@ function renderCustomerProfile(
     [],
     customer.financial_summary ||
     {}
+  );
+
+
+  renderCustomerCommunications(
+    customer.communications ||
+    []
   );
 
 
