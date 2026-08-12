@@ -414,6 +414,11 @@ function renderBooking(
   booking
 ) {
 
+  const serviceLabel =
+    booking.booking_kind === "consultation"
+      ? `Consultation · ${booking.service_name}`
+      : booking.service_name;
+
   return `
     <button
       class="
@@ -430,7 +435,7 @@ function renderBooking(
       title="${escapeHtml(
         `${formatTimeFromDateTime(
           booking.start_at
-        )} ${booking.first_name} ${booking.last_name} — ${booking.service_name}`
+        )} ${booking.first_name} ${booking.last_name} — ${serviceLabel}`
       )}"
     >
 
@@ -448,7 +453,7 @@ function renderBooking(
 
       <span class="es-calendar-event-service">
         ${escapeHtml(
-          booking.service_name
+          serviceLabel
         )}
       </span>
 
