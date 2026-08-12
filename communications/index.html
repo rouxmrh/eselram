@@ -16,10 +16,32 @@
           <p class="es-eyebrow">Customer communication</p>
           <h1>Communications</h1>
           <p class="es-lead">
-            Review booking confirmations, reminders, cancellations and appointment updates sent by this installation.
+            Review automatic booking emails, reminders, client forms and payment confirmations sent by this installation.
           </p>
         </div>
       </header>
+
+      <section class="es-dashboard-panel" style="margin-bottom:18px;">
+        <div class="es-panel-header">
+          <div>
+            <p class="es-eyebrow">Automation</p>
+            <h2>Communication automation</h2>
+          </div>
+
+          <a
+            class="es-secondary-button"
+            href="/settings/#notifications"
+            style="text-decoration:none;"
+          >
+            Notification settings
+          </a>
+        </div>
+
+        <div
+          id="communicationsAutomationSummary"
+          class="es-services-list"
+        ></div>
+      </section>
 
       <section class="es-dashboard-panel">
         <div class="es-panel-header">
@@ -40,6 +62,32 @@
         </div>
 
         <div id="communicationsStatus" class="es-status" hidden></div>
+
+        <div
+          class="es-form-grid"
+          style="margin:16px 0;"
+        >
+          <label>
+            Show
+            <select id="communicationsTypeFilter">
+              <option value="">All communication types</option>
+              <option value="appointment">Bookings & appointments</option>
+              <option value="forms">Client forms</option>
+              <option value="payments">Payments & packages</option>
+            </select>
+          </label>
+
+          <label>
+            Status
+            <select id="communicationsStatusFilter">
+              <option value="">All statuses</option>
+              <option value="sent">Sent</option>
+              <option value="failed">Failed</option>
+              <option value="pending">Pending</option>
+            </select>
+          </label>
+        </div>
+
         <div id="communicationsList" class="es-payments-list"></div>
       </section>
     </main>
