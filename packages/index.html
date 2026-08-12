@@ -167,7 +167,7 @@
           New package
         </button>
         <button id="assignPackageButton" class="es-button" type="button">
-          Assign package
+          Sell package
         </button>
       </div>
     </header>
@@ -259,6 +259,11 @@
         Package is active
       </label>
 
+      <label style="display:flex;gap:8px;align-items:center;">
+        <input id="templatePublic" type="checkbox">
+        Available for public purchase
+      </label>
+
       <div id="templateStatus" class="es-status" hidden></div>
 
       <div class="es-form-actions">
@@ -271,7 +276,7 @@
 
 <dialog id="assignDialog" class="es-package-dialog">
   <div class="es-package-dialog-inner">
-    <h2>Assign package to customer</h2>
+    <h2>Sell package to customer</h2>
 
     <form id="assignForm">
       <label>
@@ -282,6 +287,15 @@
       <label>
         Package
         <select id="assignTemplate" required></select>
+      </label>
+
+      <label>
+        Payment
+        <select id="assignPaymentChoice" required>
+          <option value="full">Take full payment online</option>
+          <option value="deposit">Take package deposit online</option>
+          <option value="assign_only">Assign without taking payment</option>
+        </select>
       </label>
 
       <label>
@@ -297,7 +311,7 @@
       <div id="assignStatus" class="es-status" hidden></div>
 
       <div class="es-form-actions">
-        <button class="es-button" type="submit">Assign package</button>
+        <button class="es-button" type="submit">Continue</button>
         <button id="closeAssignDialog" class="es-secondary-button" type="button">Cancel</button>
       </div>
     </form>
