@@ -627,6 +627,72 @@ export async function onRequestGet({
         [];
 
 
+      const communicationRows =
+        await env.DB
+          .prepare(`
+            SELECT
+              cc.id,
+              cc.communication_type,
+              cc.recipient,
+              cc.subject,
+              cc.status,
+              cc.sent_at,
+              cc.created_at,
+              cc.error_details,
+
+              a.start_at AS appointment_start_at,
+              s.name AS service_name,
+              cp.name_snapshot AS package_name,
+              ct.name AS form_name
+
+            FROM customer_communications cc
+
+            LEFT JOIN appointments a
+              ON a.id =
+                 cc.appointment_id
+
+            LEFT JOIN services s
+              ON s.id =
+                 a.service_id
+
+            LEFT JOIN customer_packages cp
+              ON cp.id =
+                 cc.customer_package_id
+
+            LEFT JOIN clinical_form_requests cfr
+              ON cfr.id =
+                 cc.form_request_id
+
+            LEFT JOIN clinical_templates ct
+              ON ct.id =
+                 cfr.template_id
+
+            WHERE
+              cc.business_id = ?
+              AND cc.customer_id = ?
+
+            ORDER BY
+              datetime(
+                COALESCE(
+                  cc.sent_at,
+                  cc.created_at
+                )
+              ) DESC
+
+            LIMIT 50
+          `)
+          .bind(
+            user.business_id,
+            id
+          )
+          .all();
+
+
+      const communicationList =
+        communicationRows.results ||
+        [];
+
+
       const packageRows =
         await env.DB
           .prepare(`
@@ -1287,6 +1353,9 @@ export async function onRequestGet({
 
           payments:
             paymentList,
+
+          communications:
+            communicationList,
 
           packages:
             packageList,
