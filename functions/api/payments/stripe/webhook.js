@@ -3,7 +3,8 @@ import {
 } from "../../../../lib/form-automation.js";
 
 import {
-  sendAppointmentCommunication
+  sendAppointmentCommunication,
+  sendPaymentReceipt
 } from "../../../../lib/communications.js";
 
 import {
@@ -435,6 +436,20 @@ async function updatePaymentFromSession({
       session,
       paid: true
     });
+
+
+    try {
+      await sendPaymentReceipt({
+        env,
+        businessId,
+        paymentId
+      });
+    } catch (emailError) {
+      console.error(
+        "Automatic Stripe payment receipt failed:",
+        emailError
+      );
+    }
 
 
     const appointmentId =
