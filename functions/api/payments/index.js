@@ -172,11 +172,7 @@ export async function onRequestGet({
               c.last_name,
 
               a.start_at,
-              CASE
-                WHEN a.booking_kind = 'consultation'
-                  THEN 'Consultation · ' || s.name
-                ELSE s.name
-              END AS service_name,
+              s.name AS service_name,
 
               pp.display_name
                 AS provider_display_name,
@@ -283,16 +279,13 @@ export async function onRequestGet({
               a.customer_id,
               a.start_at,
               a.price_minor,
+              a.consultation_credit_minor,
               a.status,
 
               c.first_name,
               c.last_name,
 
-              CASE
-                WHEN a.booking_kind = 'consultation'
-                  THEN 'Consultation · ' || s.name
-                ELSE s.name
-              END AS service_name,
+              s.name AS service_name,
 
               COALESCE(
                 (
@@ -495,6 +488,12 @@ export async function onRequestGet({
               0
             );
 
+          const consultationCreditMinor =
+            Number(
+              appointment.consultation_credit_minor ||
+              0
+            );
+
 
           return {
             ...appointment,
@@ -502,10 +501,18 @@ export async function onRequestGet({
             paid_minor:
               paidMinor,
 
+            consultation_credit_minor:
+              consultationCreditMinor,
+
+            credited_paid_minor:
+              paidMinor +
+              consultationCreditMinor,
+
             balance_minor:
               Math.max(
                 priceMinor -
-                paidMinor,
+                paidMinor -
+                consultationCreditMinor,
                 0
               )
           };
@@ -825,7 +832,19 @@ export async function onRequestPost({
                 JOIN payments p
                   ON p.id = cpp.payment_id
                 WHERE cpp.customer_package_id = cp.id
-              ) AS paid_minor
+              ) AS paid_minor,
+
+              (
+                SELECT COALESCE(
+                  SUM(ps.consultation_credit_minor),
+                  0
+                )
+                FROM package_sales ps
+                WHERE
+                  ps.business_id = cp.business_id
+                  AND ps.customer_package_id = cp.id
+                  AND ps.status = 'paid'
+              ) AS consultation_credit_minor
 
             FROM customer_packages cp
 
@@ -880,6 +899,10 @@ export async function onRequestPost({
           Number(
             customerPackage.paid_minor ||
             0
+          ) -
+          Number(
+            customerPackage.consultation_credit_minor ||
+            0
           ),
           0
         );
@@ -911,6 +934,7 @@ export async function onRequestPost({
               id,
               customer_id,
               price_minor,
+              consultation_credit_minor,
               status
 
             FROM appointments
@@ -1022,7 +1046,11 @@ export async function onRequestPost({
       const outstandingMinor =
         Math.max(
           appointmentPriceMinor -
-          netPaidMinor,
+          netPaidMinor -
+          Number(
+            appointment.consultation_credit_minor ||
+            0
+          ),
           0
         );
 
