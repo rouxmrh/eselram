@@ -115,7 +115,19 @@ async function getCustomerPackage(env, businessId, id) {
           JOIN payments p
             ON p.id = cpp.payment_id
           WHERE cpp.customer_package_id = cp.id
-        ) AS paid_minor
+        ) AS paid_minor,
+
+        (
+          SELECT COALESCE(
+            SUM(ps.consultation_credit_minor),
+            0
+          )
+          FROM package_sales ps
+          WHERE
+            ps.business_id = cp.business_id
+            AND ps.customer_package_id = cp.id
+            AND ps.status = 'paid'
+        ) AS consultation_credit_minor
 
       FROM customer_packages cp
 
@@ -142,6 +154,8 @@ function enrichPackage(row) {
   const booked = Number(row.sessions_booked || 0);
   const total = Number(row.sessions_total || 0);
   const paid = Number(row.paid_minor || 0);
+  const consultationCredit =
+    Number(row.consultation_credit_minor || 0);
 
   return {
     ...row,
@@ -150,7 +164,14 @@ function enrichPackage(row) {
     sessions_remaining: Math.max(total - completed - booked, 0),
     sessions_available_to_book: Math.max(total - completed - booked, 0),
     paid_minor: paid,
-    outstanding_minor: Math.max(Number(row.price_minor || 0) - paid, 0)
+    consultation_credit_minor: consultationCredit,
+    credited_paid_minor: paid + consultationCredit,
+    outstanding_minor: Math.max(
+      Number(row.price_minor || 0) -
+      paid -
+      consultationCredit,
+      0
+    )
   };
 }
 
@@ -282,7 +303,19 @@ export async function onRequestGet({ request, env }) {
               JOIN payments p
                 ON p.id = cpp.payment_id
               WHERE cpp.customer_package_id = cp.id
-            ) AS paid_minor
+            ) AS paid_minor,
+
+        (
+          SELECT COALESCE(
+            SUM(ps.consultation_credit_minor),
+            0
+          )
+          FROM package_sales ps
+          WHERE
+            ps.business_id = cp.business_id
+            AND ps.customer_package_id = cp.id
+            AND ps.status = 'paid'
+        ) AS consultation_credit_minor
 
           FROM customer_packages cp
 
