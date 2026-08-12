@@ -111,7 +111,7 @@ function render() {
   const booking = data.booking;
   const payment = data.payment;
 
-  document.title = `Manage ${booking.service_name} booking`;
+  document.title = `Manage ${booking.booking_label || booking.service_name} booking`;
 
   $("#manageBusinessName").textContent =
     data.business.name || "Your appointment";
@@ -139,7 +139,7 @@ function render() {
 
   $("#manageSummary").hidden = false;
   $("#manageSummary").innerHTML = `
-    <div class="review-item"><small>Service</small><strong>${escapeHtml(booking.service_name)}</strong></div>
+    <div class="review-item"><small>Service</small><strong>${escapeHtml(booking.booking_label || booking.service_name)}</strong></div>
     <div class="review-item"><small>Date & time</small><strong>${escapeHtml(formatDateTime(booking.start_at))}</strong></div>
     <div class="review-item"><small>Status</small><strong>${escapeHtml(statusLabel)}</strong></div>
     <div class="review-item"><small>Booking reference</small><strong>${escapeHtml(booking.id)}</strong></div>
@@ -149,6 +149,9 @@ function render() {
   $("#managePaymentSummary").innerHTML = `
     <div class="review-item"><small>Appointment value</small><strong>${escapeHtml(money(booking.price_minor, payment.currency))}</strong></div>
     <div class="review-item"><small>Paid</small><strong>${escapeHtml(money(payment.net_paid_minor, payment.currency))}</strong></div>
+    ${Number(payment.consultation_credit_minor || 0) > 0
+      ? `<div class="review-item"><small>Consultation credit</small><strong>${escapeHtml(money(payment.consultation_credit_minor, payment.currency))}</strong></div>`
+      : ""}
     <div class="review-item"><small>Outstanding</small><strong>${escapeHtml(money(payment.outstanding_minor, payment.currency))}</strong></div>
     <div class="review-item"><small>Refunded</small><strong>${escapeHtml(money(payment.refunded_minor, payment.currency))}</strong></div>
   `;
