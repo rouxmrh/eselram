@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,follow">
+  <title>Book an appointment</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+<body>
+  <main class="booking-shell" id="bookingApp" aria-live="polite">
+    <section class="booking-card">
+      <header class="brand-header" id="brandHeader">
+        <img id="businessLogo" class="business-logo" alt="" hidden>
+        <div>
+          <div class="eyebrow">ONLINE BOOKING</div>
+          <h1 id="businessName">Book an appointment</h1>
+          <p id="businessContact" class="muted"></p>
+        </div>
+      </header>
+
+      <div class="progress" aria-label="Booking progress">
+        <span class="progress-step active" data-progress="1">1 <b>Service</b></span>
+        <span class="progress-line"></span>
+        <span class="progress-step" data-progress="2">2 <b>Time</b></span>
+        <span class="progress-line"></span>
+        <span class="progress-step" data-progress="3">3 <b>Details</b></span>
+        <span class="progress-line"></span>
+        <span class="progress-step" data-progress="4">4 <b>Confirm</b></span>
+      </div>
+
+      <div id="pageError" class="message error" hidden></div>
+      <div id="pageNotice" class="message" hidden></div>
+
+      <section class="step active" data-step="1">
+        <div class="step-heading">
+          <div>
+            <div class="eyebrow">STEP 1</div>
+            <h2>Choose a service</h2>
+          </div>
+        </div>
+        <div id="services" class="service-grid"></div>
+        <p class="muted" style="margin-top:18px;">
+          Looking for a course or multi-session package?
+          <a href="/buy-package/"><strong>View packages &amp; courses</strong></a>
+        </p>
+      </section>
+
+      <section class="step" data-step="2">
+        <div class="step-heading">
+          <div>
+            <div class="eyebrow">STEP 2</div>
+            <h2>Choose a date and time</h2>
+            <p id="selectedServiceText" class="muted"></p>
+          </div>
+          <button class="text-button" type="button" data-back="1">Change service</button>
+        </div>
+
+        <div class="date-row">
+          <label>
+            <span>Date</span>
+            <input id="bookingDate" type="date" required>
+          </label>
+        </div>
+
+        <div id="slotStatus" class="muted slot-status">Choose a date to see available times.</div>
+        <div id="slots" class="slots" role="list"></div>
+      </section>
+
+      <section class="step" data-step="3">
+        <div class="step-heading">
+          <div>
+            <div class="eyebrow">STEP 3</div>
+            <h2>Your details</h2>
+            <p id="selectedTimeText" class="muted"></p>
+          </div>
+          <button class="text-button" type="button" data-back="2">Change time</button>
+        </div>
+
+        <form id="detailsForm" novalidate>
+          <div class="form-grid two">
+            <label>
+              <span>First name *</span>
+              <input id="firstName" autocomplete="given-name" maxlength="100" required>
+            </label>
+            <label>
+              <span>Last name *</span>
+              <input id="lastName" autocomplete="family-name" maxlength="100" required>
+            </label>
+          </div>
+
+          <div class="form-grid two">
+            <label>
+              <span>Email *</span>
+              <input id="email" type="email" autocomplete="email" maxlength="200" required>
+            </label>
+            <label>
+              <span>Phone</span>
+              <input id="phone" type="tel" autocomplete="tel" maxlength="50">
+            </label>
+          </div>
+
+          <label>
+            <span>Anything you'd like us to know?</span>
+            <textarea id="notes" rows="4" maxlength="1000" placeholder="Optional"></textarea>
+          </label>
+
+          <label class="check-row">
+            <input id="marketingConsent" type="checkbox">
+            <span>I'm happy to receive occasional updates from this business.</span>
+          </label>
+<button class="primary-button full" type="submit">Review booking</button>
+        </form>
+      </section>
+
+      <section class="step" data-step="4">
+        <div class="step-heading">
+          <div>
+            <div class="eyebrow">STEP 4</div>
+            <h2>Review your booking</h2>
+          </div>
+          <button class="text-button" type="button" data-back="3">Edit details</button>
+        </div>
+
+        <div id="reviewCard" class="review-card"></div>
+        <div id="requirementsNotice" class="requirements" hidden></div>
+
+        <label class="check-row confirm-check">
+          <input id="confirmDetails" type="checkbox">
+          <span>I confirm these booking details are correct.</span>
+        </label>
+
+        <button id="confirmBooking" class="primary-button full" type="button">Confirm booking</button>
+        <p class="secure-note">Online payments are processed securely by the business's own Stripe account.</p>
+      </section>
+
+      <section class="step" data-step="5">
+        <div class="success-mark">✓</div>
+        <div class="eyebrow">BOOKED</div>
+        <h2>Your appointment is confirmed</h2>
+        <div id="finalSummary" class="review-card"></div>
+        <p id="finalRequirements" class="muted"></p>
+        <a class="primary-button inline" href="/book/">Book another appointment</a>
+      </section>
+
+      <footer class="booking-footer">
+        <span id="footerText"></span>
+        <span>Powered by Eselram · This business owns this booking system.</span>
+      </footer>
+    </section>
+  </main>
+
+  <script src="/book/book.js" defer></script>
+</body>
+</html>
