@@ -4,8 +4,13 @@ import {
 } from "../../../lib/auth.js";
 
 import {
-  runDueReminders
+  runDueReminders,
+  getCommunicationSettings
 } from "../../../lib/communications.js";
+
+import {
+  runDueFormReminders
+} from "../../../lib/form-automation.js";
 
 async function getUserContext(request, env) {
   const token =
@@ -83,12 +88,22 @@ export async function onRequestGet({
             cc.sent_at,
             cc.error_details,
             cc.created_at,
+            cc.payment_id,
+            cc.form_request_id,
+            cc.customer_package_id,
 
             c.first_name,
             c.last_name,
 
             s.name AS service_name,
-            a.start_at
+            a.start_at,
+
+            p.amount_minor AS payment_amount_minor,
+            p.currency AS payment_currency,
+
+            cp.name_snapshot AS package_name,
+
+            ct.name AS form_name
 
           FROM customer_communications cc
 
@@ -103,6 +118,22 @@ export async function onRequestGet({
           LEFT JOIN services s
             ON s.id =
                a.service_id
+
+          LEFT JOIN payments p
+            ON p.id =
+               cc.payment_id
+
+          LEFT JOIN customer_packages cp
+            ON cp.id =
+               cc.customer_package_id
+
+          LEFT JOIN clinical_form_requests cfr
+            ON cfr.id =
+               cc.form_request_id
+
+          LEFT JOIN clinical_templates ct
+            ON ct.id =
+               cfr.template_id
 
           WHERE
             cc.business_id = ?
@@ -122,11 +153,18 @@ export async function onRequestGet({
         )
         .all();
 
+    const settings =
+      await getCommunicationSettings(
+        env,
+        user.business_id
+      );
+
     return Response.json({
       ok: true,
       communications:
         rows.results ||
-        []
+        [],
+      settings
     });
   } catch (error) {
     console.error(
@@ -181,16 +219,57 @@ export async function onRequestPost({
       );
     }
 
-    const result =
+    const appointmentResult =
       await runDueReminders({
         env,
         businessId:
           user.business_id
       });
 
+    const formResult =
+      await runDueFormReminders({
+        env,
+        businessId:
+          user.business_id,
+        baseUrl:
+          new URL(
+            request.url
+          ).origin
+      });
+
     return Response.json({
       ok: true,
-      ...result
+      checked:
+        Number(
+          appointmentResult.checked ||
+          0
+        ) +
+        Number(
+          formResult.checked ||
+          0
+        ),
+      sent:
+        Number(
+          appointmentResult.sent ||
+          0
+        ) +
+        Number(
+          formResult.sent ||
+          0
+        ),
+      failed:
+        Number(
+          appointmentResult.failed ||
+          0
+        ) +
+        Number(
+          formResult.failed ||
+          0
+        ),
+      appointment_reminders:
+        appointmentResult,
+      form_reminders:
+        formResult
     });
   } catch (error) {
     console.error(
