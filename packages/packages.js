@@ -322,6 +322,7 @@ function openTemplateDialog(template = null) {
   $("#templateValidity").value = template?.validity_days || "";
   $("#templateDescription").value = template?.description || "";
   $("#templateActive").checked = template ? Number(template.is_active) === 1 : true;
+  $("#templatePublic").checked = template ? Number(template.is_public) === 1 : false;
 
   $("#templateDialog").showModal();
 }
@@ -403,7 +404,8 @@ $("#templateForm").addEventListener("submit", async event => {
       deposit_minor: Math.round(Number($("#templateDeposit").value || 0) * 100),
       validity_days: $("#templateValidity").value || null,
       description: $("#templateDescription").value.trim(),
-      is_active: $("#templateActive").checked ? 1 : 0
+      is_active: $("#templateActive").checked ? 1 : 0,
+      is_public: $("#templatePublic").checked ? 1 : 0
     });
 
     $("#templateDialog").close();
@@ -423,16 +425,43 @@ $("#assignForm").addEventListener("submit", async event => {
   status.textContent = "Assigning package…";
 
   try {
-    await postPackage({
-      action: "assign",
-      customer_id: $("#assignCustomer").value,
-      package_template_id: $("#assignTemplate").value,
-      starts_on: $("#assignStartsOn").value || null,
-      notes: $("#assignNotes").value.trim()
+    const paymentChoice = $("#assignPaymentChoice").value;
+
+    if (paymentChoice === "assign_only") {
+      await postPackage({
+        action: "assign",
+        customer_id: $("#assignCustomer").value,
+        package_template_id: $("#assignTemplate").value,
+        starts_on: $("#assignStartsOn").value || null,
+        notes: $("#assignNotes").value.trim()
+      });
+
+      $("#assignDialog").close();
+      await load();
+      return;
+    }
+
+    const response = await fetch("/api/packages/sale", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        customer_id: $("#assignCustomer").value,
+        package_template_id: $("#assignTemplate").value,
+        payment_choice: paymentChoice
+      })
     });
 
-    $("#assignDialog").close();
-    await load();
+    handleAuth(response);
+    const data = await response.json();
+
+    if (!response.ok || !data.ok || !data.checkout_url) {
+      throw new Error(data.error || "Unable to start package payment.");
+    }
+
+    location.href = data.checkout_url;
   } catch (error) {
     status.className = "es-status error";
     status.textContent = error.message;
