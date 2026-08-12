@@ -45,6 +45,11 @@ function bookingData(row) {
     status: row.status,
     service_id: row.service_id,
     service_name: row.service_name,
+    booking_kind: row.booking_kind || "service",
+    booking_label:
+      row.booking_kind === "consultation"
+        ? `Consultation · ${row.service_name}`
+        : row.service_name,
     start_at: row.start_at,
     end_at: row.end_at,
     duration_minutes: Number(row.duration_minutes || 0),
@@ -82,7 +87,8 @@ export async function onRequestGet({ request, env }) {
 
     const outstandingMinor = Math.max(
       Number(row.price_minor || 0) -
-        Number(payment.net_paid_minor || 0),
+        Number(payment.net_paid_minor || 0) -
+        Number(payment.consultation_credit_minor || 0),
       0
     );
 
