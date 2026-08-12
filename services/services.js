@@ -33,6 +33,32 @@ const providerSection =
     "providerSection"
   );
 
+
+const consultationBookingSection =
+  document.getElementById(
+    "consultationBookingSection"
+  );
+
+const requiresConsultation =
+  document.getElementById(
+    "requiresConsultation"
+  );
+
+const consultationDuration =
+  document.getElementById(
+    "consultationDuration"
+  );
+
+const consultationPrice =
+  document.getElementById(
+    "consultationPrice"
+  );
+
+const consultationPaymentTiming =
+  document.getElementById(
+    "consultationPaymentTiming"
+  );
+
 const providerOptions =
   document.getElementById(
     "providerOptions"
@@ -72,6 +98,12 @@ document
 paymentTiming.addEventListener(
   "change",
   updatePaymentFields
+);
+
+
+requiresConsultation.addEventListener(
+  "change",
+  updateConsultationFields
 );
 
 
@@ -421,13 +453,35 @@ function openForm(
         ).toFixed(2);
 
 
-    document
-      .getElementById(
-        "requiresConsultation"
-      )
-      .checked =
-        service.requires_consultation
-        === 1;
+    requiresConsultation.checked =
+      service.requires_consultation
+      === 1;
+
+    consultationDuration.value =
+      String(
+        service.consultation_duration_minutes ||
+        30
+      );
+
+    consultationPrice.value =
+      (
+        Number(
+          service.consultation_price_minor ||
+          0
+        ) /
+        100
+      ).toFixed(2);
+
+    consultationPaymentTiming.value =
+      service.consultation_payment_timing ||
+      (
+        Number(
+          service.consultation_price_minor ||
+          0
+        ) > 0
+          ? "online_full"
+          : "free"
+      );
 
 
     document
@@ -463,6 +517,18 @@ function openForm(
       )
       .checked = true;
 
+    requiresConsultation.checked =
+      false;
+
+    consultationDuration.value =
+      "30";
+
+    consultationPrice.value =
+      "0.00";
+
+    consultationPaymentTiming.value =
+      "free";
+
     renderProviders();
 
     renderClientForms();
@@ -470,6 +536,7 @@ function openForm(
 
 
   updatePaymentFields();
+  updateConsultationFields();
 
   statusBox.hidden = true;
 
@@ -484,6 +551,13 @@ function openForm(
 function closeForm() {
 
   formPanel.hidden = true;
+}
+
+
+function updateConsultationFields() {
+
+  consultationBookingSection.hidden =
+    !requiresConsultation.checked;
 }
 
 
@@ -605,11 +679,22 @@ form.addEventListener(
         selectedFormRules,
 
       requires_consultation:
-        document
-          .getElementById(
-            "requiresConsultation"
-          )
-          .checked,
+        requiresConsultation.checked,
+
+      consultation_duration_minutes:
+        Number(
+          consultationDuration.value ||
+          30
+        ),
+
+      consultation_price:
+        Number(
+          consultationPrice.value ||
+          0
+        ),
+
+      consultation_payment_timing:
+        consultationPaymentTiming.value,
 
       requires_patch_test:
         document
