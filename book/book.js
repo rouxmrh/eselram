@@ -337,9 +337,9 @@ function renderServices() {
 
     const requirements = [];
     if (Number(service.requires_consultation || 0) === 1) {
-      requirements.push("New clients book consultation first");
+      requirements.push("New client · consultation first");
     }
-    if (Number(service.requires_patch_test || 0) === 1) requirements.push("Patch test required");
+    if (Number(service.requires_patch_test || 0) === 1) requirements.push("Patch test before first treatment");
 
     button.innerHTML = `
       <h3>${escapeHtml(service.name)}</h3>
@@ -376,7 +376,7 @@ function renderServices() {
           service.requires_consultation ||
           0
         ) === 1
-          ? `${service.name} · new clients are booked into a consultation first`
+          ? `${service.name} · new client: consultation · returning client: treatment`
           : `${service.name} · ${Number(service.duration_minutes)} min · ${paymentText(service)}`;
       $("#bookingDate").value = "";
       $("#slots").innerHTML = "";
@@ -467,9 +467,9 @@ function renderReview() {
       ) === 1
         ? `
           <div class="review-item">
-            <small>New clients</small>
+            <small>New client</small>
             <strong>
-              Consultation · ${escapeHtml(
+              Consultation first · ${escapeHtml(
                 consultationPaymentText(
                   service
                 )
@@ -477,7 +477,7 @@ function renderReview() {
             </strong>
           </div>
           <div class="review-item">
-            <small>Existing eligible clients</small>
+            <small>Returning client</small>
             <strong>
               Treatment · ${escapeHtml(
                 paymentText(
@@ -496,10 +496,10 @@ function renderReview() {
 
   const notices = [];
   if (Number(service.requires_consultation || 0) === 1) {
-    notices.push("If this is your first booking for this service, Eselram will book this date and time as your consultation rather than a treatment session. Treatment and package purchase become available after the consultation is completed.");
+    notices.push("New to this service: your chosen date and time will be booked as your consultation. Returning client with a completed consultation for this service: the same booking flow will book your treatment instead. Any paid consultation fee is credited once against that first treatment or package.");
   }
   if (Number(service.requires_patch_test || 0) === 1) {
-    notices.push("This service requires a patch test before treatment. The business will confirm the patch-test requirements with you.");
+    notices.push("A patch test is required before the first treatment. The business will confirm the patch-test requirements with you.");
   }
 
   const requirements = $("#requirementsNotice");
