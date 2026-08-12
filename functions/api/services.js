@@ -108,6 +108,9 @@ export async function onRequestGet({
             price_minor,
             deposit_minor,
             payment_timing,
+            consultation_duration_minutes,
+            consultation_price_minor,
+            consultation_payment_timing,
             requires_consultation,
             requires_patch_test,
             is_active,
@@ -350,6 +353,30 @@ async function saveService({
     );
 
 
+  const consultationDuration =
+    body.requires_consultation
+      ? Number(
+          body.consultation_duration_minutes ||
+          30
+        )
+      : null;
+
+  const consultationPriceMinor =
+    body.requires_consultation
+      ? moneyToMinor(
+          body.consultation_price || 0
+        )
+      : 0;
+
+  const consultationPaymentTiming =
+    body.requires_consultation
+      ? String(
+          body.consultation_payment_timing ||
+          "free"
+        )
+      : "free";
+
+
   const providers =
     Array.isArray(
       body.providers
@@ -395,6 +422,13 @@ async function saveService({
   ];
 
 
+  const validConsultationTiming = [
+    "online_full",
+    "pay_at_appointment",
+    "free"
+  ];
+
+
   if (!name) {
 
     return Response.json(
@@ -420,6 +454,82 @@ async function saveService({
         ok: false,
         error:
           "A valid duration is required."
+      },
+      {
+        status: 400
+      }
+    );
+  }
+
+
+  if (
+    body.requires_consultation &&
+    (
+      !Number.isInteger(
+        consultationDuration
+      ) ||
+      consultationDuration <= 0
+    )
+  ) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "A valid consultation duration is required."
+      },
+      {
+        status: 400
+      }
+    );
+  }
+
+
+  if (
+    consultationPriceMinor === null
+  ) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Invalid consultation price."
+      },
+      {
+        status: 400
+      }
+    );
+  }
+
+
+  if (
+    body.requires_consultation &&
+    !validConsultationTiming.includes(
+      consultationPaymentTiming
+    )
+  ) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Invalid consultation payment rule."
+      },
+      {
+        status: 400
+      }
+    );
+  }
+
+
+  if (
+    body.requires_consultation &&
+    consultationPaymentTiming ===
+      "online_full" &&
+    consultationPriceMinor <= 0
+  ) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Online consultation payment requires a consultation fee greater than zero."
       },
       {
         status: 400
@@ -492,7 +602,12 @@ async function saveService({
       paymentTiming ===
         "online_full" ||
       paymentTiming ===
-        "online_deposit"
+        "online_deposit" ||
+      (
+        body.requires_consultation &&
+        consultationPaymentTiming ===
+          "online_full"
+      )
     ) &&
     providers.length === 0
   ) {
@@ -589,6 +704,9 @@ async function saveService({
           price_minor = ?,
           deposit_minor = ?,
           payment_timing = ?,
+          consultation_duration_minutes = ?,
+          consultation_price_minor = ?,
+          consultation_payment_timing = ?,
 
           payment_mode =
             CASE ?
@@ -622,6 +740,9 @@ async function saveService({
         priceMinor,
         depositMinor,
         paymentTiming,
+        consultationDuration,
+        consultationPriceMinor,
+        consultationPaymentTiming,
         paymentTiming,
         body.requires_consultation
           ? 1
@@ -655,6 +776,9 @@ async function saveService({
           deposit_minor,
           payment_mode,
           payment_timing,
+          consultation_duration_minutes,
+          consultation_price_minor,
+          consultation_payment_timing,
           requires_consultation,
           requires_patch_test,
           is_active
@@ -675,7 +799,7 @@ async function saveService({
             ELSE
               'pay_at_appointment'
           END,
-          ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?
         )
       `)
       .bind(
@@ -688,6 +812,9 @@ async function saveService({
         depositMinor,
         paymentTiming,
         paymentTiming,
+        consultationDuration,
+        consultationPriceMinor,
+        consultationPaymentTiming,
         body.requires_consultation
           ? 1
           : 0,
@@ -736,7 +863,12 @@ async function saveService({
     paymentTiming ===
       "online_full" ||
     paymentTiming ===
-      "online_deposit"
+      "online_deposit" ||
+    (
+      body.requires_consultation &&
+      consultationPaymentTiming ===
+        "online_full"
+    )
   ) {
 
     for (
