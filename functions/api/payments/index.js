@@ -3,6 +3,10 @@ import {
 } from "../../../lib/form-automation.js";
 
 import {
+  sendPaymentReceipt
+} from "../../../lib/communications.js";
+
+import {
   readSessionToken,
   hashSessionToken
 } from "../../../lib/auth.js";
@@ -1173,6 +1177,22 @@ export async function onRequestPost({
         createdByUserId:
           user.user_id
       });
+    }
+
+
+    try {
+      await sendPaymentReceipt({
+        env,
+        businessId:
+          user.business_id,
+        paymentId:
+          id
+      });
+    } catch (emailError) {
+      console.error(
+        "Automatic payment receipt failed:",
+        emailError
+      );
     }
 
 
