@@ -2407,6 +2407,36 @@ async function loadNotificationSettings() {
           settings.reminder_hours_before ||
           24
         );
+
+
+    document
+      .getElementById(
+        "notifyFormReminders"
+      )
+      .checked =
+        settings
+          .form_reminder_enabled !==
+        false;
+
+    document
+      .getElementById(
+        "notifyPaymentReceipts"
+      )
+      .checked =
+        settings
+          .payment_receipt_enabled !==
+        false;
+
+    document
+      .getElementById(
+        "notifyFormReminderHours"
+      )
+      .value =
+        String(
+          settings
+            .form_reminder_hours_after ||
+          48
+        );
   } catch (error) {
     notificationSettingsStatus.hidden =
       false;
@@ -2490,6 +2520,29 @@ notificationSettingsForm
                     document
                       .getElementById(
                         "notifyReschedule"
+                      )
+                      .checked,
+
+                  form_reminder_enabled:
+                    document
+                      .getElementById(
+                        "notifyFormReminders"
+                      )
+                      .checked,
+
+                  form_reminder_hours_after:
+                    Number(
+                      document
+                        .getElementById(
+                          "notifyFormReminderHours"
+                        )
+                        .value
+                    ),
+
+                  payment_receipt_enabled:
+                    document
+                      .getElementById(
+                        "notifyPaymentReceipts"
                       )
                       .checked
                 })
