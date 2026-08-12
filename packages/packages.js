@@ -203,6 +203,9 @@ function renderCustomerPackages() {
         <div class="es-package-meta">
           <span>Value ${money(item.price_minor)}</span>
           <span>Paid ${money(item.paid_minor)}</span>
+          ${Number(item.consultation_credit_minor || 0) > 0
+            ? `<span>Consultation credit ${money(item.consultation_credit_minor)}</span>`
+            : ""}
           <span>Outstanding ${money(item.outstanding_minor)}</span>
         </div>
 
@@ -456,6 +459,16 @@ $("#assignForm").addEventListener("submit", async event => {
 
     handleAuth(response);
     const data = await response.json();
+
+    if (
+      response.ok &&
+      data.ok &&
+      data.payment_required === false
+    ) {
+      $("#assignDialog").close();
+      await load();
+      return;
+    }
 
     if (!response.ok || !data.ok || !data.checkout_url) {
       throw new Error(data.error || "Unable to start package payment.");
