@@ -9,6 +9,10 @@ import {
   stripeErrorMessage
 } from "../../../lib/stripe-business.js";
 
+import {
+  findAvailableConsultationCredit
+} from "../../../lib/consultation-credit.js";
+
 
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
@@ -86,17 +90,109 @@ export async function onRequestPost({ request, env }) {
 
     const price = Math.max(0, Number(template.price_minor || 0));
     const deposit = Math.max(0, Number(template.deposit_minor || 0));
-    const amountMinor =
+
+    const availableCredit =
+      await findAvailableConsultationCredit({
+        env,
+        businessId: user.business_id,
+        customerId: customer.id,
+        serviceId: template.service_id
+      });
+
+    const consultationCreditSourceAppointmentId =
+      availableCredit.source_appointment_id;
+
+    const consultationCreditMinor =
+      Math.min(
+        Number(availableCredit.available_minor || 0),
+        price
+      );
+
+    const amountBeforeCredit =
       paymentChoice === "deposit"
         ? Math.min(deposit, price)
         : price;
 
-    if (amountMinor <= 0) {
+    const amountMinor = Math.max(
+      amountBeforeCredit - consultationCreditMinor,
+      0
+    );
+
+    if (
+      amountBeforeCredit <= 0 &&
+      consultationCreditMinor <= 0
+    ) {
       return badRequest(
         paymentChoice === "deposit"
           ? "This package does not have a deposit configured."
           : "This package does not require an online payment."
       );
+    }
+
+    const saleId = `psl_${crypto.randomUUID()}`;
+    const currency = String(user.currency || "GBP").toUpperCase();
+
+    if (amountMinor <= 0 && consultationCreditMinor > 0) {
+      const customerPackageId = `cpk_${crypto.randomUUID()}`;
+      const validityDays = Number(template.validity_days || 0);
+
+      await env.DB.prepare(`
+        INSERT INTO customer_packages (
+          id, business_id, customer_id, package_template_id, service_id,
+          name_snapshot, sessions_total, price_minor, status,
+          starts_on, expires_on, notes
+        )
+        VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?, 'active', date('now'),
+          CASE WHEN ? > 0 THEN date('now', '+' || ? || ' days') ELSE NULL END,
+          'Created from package sale using consultation credit'
+        )
+      `).bind(
+        customerPackageId,
+        user.business_id,
+        customer.id,
+        template.id,
+        template.service_id,
+        template.name,
+        template.sessions_total,
+        price,
+        validityDays,
+        validityDays
+      ).run();
+
+      await env.DB.prepare(`
+        INSERT INTO package_sales (
+          id, business_id, customer_id, package_template_id,
+          source, payment_choice, amount_minor, currency,
+          status, payment_id, customer_package_id, created_by_user_id,
+          paid_at, consultation_credit_source_appointment_id,
+          consultation_credit_minor
+        )
+        VALUES (
+          ?, ?, ?, ?, 'staff', ?, 0, ?, 'paid', NULL, ?, ?,
+          CURRENT_TIMESTAMP, ?, ?
+        )
+      `).bind(
+        saleId,
+        user.business_id,
+        customer.id,
+        template.id,
+        paymentChoice,
+        currency,
+        customerPackageId,
+        user.user_id,
+        consultationCreditSourceAppointmentId,
+        consultationCreditMinor
+      ).run();
+
+      return Response.json({
+        ok: true,
+        sale_id: saleId,
+        customer_package_id: customerPackageId,
+        payment_required: false,
+        consultation_credit_minor: consultationCreditMinor,
+        currency
+      });
     }
 
     const integration = await getBusinessStripeIntegration(
@@ -117,9 +213,8 @@ export async function onRequestPost({ request, env }) {
       );
     }
 
-    const saleId = `psl_${crypto.randomUUID()}`;
     const paymentId = `pay_${crypto.randomUUID()}`;
-    const currency = String(
+    const stripeCurrency = String(
       integration.config.currency || user.currency || "GBP"
     ).toUpperCase();
 
@@ -136,17 +231,18 @@ export async function onRequestPost({ request, env }) {
       customer.id,
       paymentChoice === "deposit" ? "deposit" : "full",
       amountMinor,
-      currency,
-      `Package sale: ${template.name}`
+      stripeCurrency,
+      `Package sale: ${template.name} · consultation credit ${consultationCreditMinor}`
     ).run();
 
     await env.DB.prepare(`
       INSERT INTO package_sales (
         id, business_id, customer_id, package_template_id,
         source, payment_choice, amount_minor, currency,
-        status, payment_id, created_by_user_id
+        status, payment_id, created_by_user_id,
+        consultation_credit_source_appointment_id, consultation_credit_minor
       )
-      VALUES (?, ?, ?, ?, 'staff', ?, ?, ?, 'pending', ?, ?)
+      VALUES (?, ?, ?, ?, 'staff', ?, ?, ?, 'pending', ?, ?, ?, ?)
     `).bind(
       saleId,
       user.business_id,
@@ -154,9 +250,11 @@ export async function onRequestPost({ request, env }) {
       template.id,
       paymentChoice,
       amountMinor,
-      currency,
+      stripeCurrency,
       paymentId,
-      user.user_id
+      user.user_id,
+      consultationCreditSourceAppointmentId,
+      consultationCreditMinor
     ).run();
 
     const origin = new URL(request.url).origin;
@@ -172,7 +270,7 @@ export async function onRequestPost({ request, env }) {
     );
     params.set("customer_email", customer.email);
     params.set("client_reference_id", saleId);
-    params.set("line_items[0][price_data][currency]", currency.toLowerCase());
+    params.set("line_items[0][price_data][currency]", stripeCurrency.toLowerCase());
     params.set("line_items[0][price_data][unit_amount]", String(amountMinor));
     params.set(
       "line_items[0][price_data][product_data][name]",
@@ -235,7 +333,9 @@ export async function onRequestPost({ request, env }) {
       sale_id: saleId,
       checkout_url: result.data.url,
       amount_minor: amountMinor,
-      currency
+      currency: stripeCurrency,
+      consultation_credit_minor: consultationCreditMinor,
+      payment_required: true
     });
   } catch (error) {
     console.error("Package sale failed:", error);
