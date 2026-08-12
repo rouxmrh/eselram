@@ -1090,6 +1090,24 @@
                   Send reschedule/update confirmation emails
                 </label>
 
+                <label class="es-check-option">
+                  <input
+                    id="notifyFormReminders"
+                    type="checkbox"
+                    checked
+                  >
+                  Send one reminder for outstanding client forms
+                </label>
+
+                <label class="es-check-option">
+                  <input
+                    id="notifyPaymentReceipts"
+                    type="checkbox"
+                    checked
+                  >
+                  Send payment and package-payment confirmations
+                </label>
+
               </div>
 
               <label style="margin-top:24px;">
@@ -1105,6 +1123,22 @@
                   <option value="72">72 hours before</option>
                 </select>
               </label>
+
+              <label style="margin-top:18px;">
+                Outstanding form reminder
+
+                <select id="notifyFormReminderHours">
+                  <option value="24">1 day after form email</option>
+                  <option value="48">2 days after form email</option>
+                  <option value="72">3 days after form email</option>
+                  <option value="120">5 days after form email</option>
+                  <option value="168">7 days after form email</option>
+                </select>
+              </label>
+
+              <p class="es-muted-copy" style="margin-top:8px;">
+                Eselram sends a maximum of one automatic reminder for each outstanding form.
+              </p>
 
               <div class="es-form-actions">
                 <button
