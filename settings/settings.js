@@ -2300,10 +2300,6 @@ workingHoursForm.addEventListener(
 );
 
 
-loadTabFromHash();
-loadSettings();
-
-
 /* =======================================================
    Notification settings
    ======================================================= */
@@ -2579,3 +2575,13 @@ notificationSettingsForm
       }
     }
   );
+
+
+/* =======================================================
+   Page startup
+   Run this only after every settings module above has
+   initialised its DOM references and handlers.
+   ======================================================= */
+
+loadTabFromHash();
+loadSettings();
