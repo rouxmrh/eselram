@@ -64,6 +64,12 @@ const bookingsList =
     "bookingsList"
   );
 
+
+const bookingPackagesList =
+  document.getElementById(
+    "bookingPackagesList"
+  );
+
 const bookingSearch =
   document.getElementById(
     "bookingSearch"
@@ -112,6 +118,7 @@ const bookingDetailActions =
 
 let services = [];
 let bookings = [];
+let bookingPackages = [];
 let currentDetailBookingId = null;
 
 let currentFormRequestBooking = null;
@@ -1112,7 +1119,10 @@ form.addEventListener(
           : "Booking created.";
 
 
-      await loadBookings();
+      await Promise.all([
+        loadBookings(),
+        loadBookingPackages()
+      ]);
 
 
       if (editing) {
@@ -1172,6 +1182,187 @@ function showBookingError(
 /* =======================================================
    Booking list
    ======================================================= */
+
+async function loadBookingPackages() {
+  if (!bookingPackagesList) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/packages",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    handleAuthentication(
+      response
+    );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to load packages."
+      );
+    }
+
+    bookingPackages =
+      data.customer_packages ||
+      [];
+
+    renderBookingPackages();
+  } catch (error) {
+    bookingPackagesList.className =
+      "es-status error";
+
+    bookingPackagesList.textContent =
+      error.message ||
+      "Unable to load packages.";
+  }
+}
+
+
+function renderBookingPackages() {
+  if (!bookingPackages.length) {
+    bookingPackagesList.className =
+      "es-empty-state";
+
+    bookingPackagesList.innerHTML = `
+      <strong>No customer packages yet.</strong>
+      <span>Sold or assigned packages will appear here alongside the booking schedule.</span>
+    `;
+
+    return;
+  }
+
+  bookingPackagesList.className =
+    "es-bookings-list";
+
+  bookingPackagesList.innerHTML =
+    bookingPackages
+      .map(
+        (item) => `
+          <article class="es-booking-row">
+            <div class="es-booking-date">
+              <strong>
+                ${escapeHtml(
+                  item.name_snapshot
+                )}
+              </strong>
+              <span>
+                ${escapeHtml(
+                  item.service_name
+                )}
+              </span>
+            </div>
+
+            <div class="es-booking-customer">
+              <strong>
+                ${escapeHtml(
+                  item.first_name
+                )}
+                ${escapeHtml(
+                  item.last_name
+                )}
+              </strong>
+              <span>
+                ${
+                  Number(
+                    item.sessions_completed ||
+                    0
+                  )
+                }/${
+                  Number(
+                    item.sessions_total ||
+                    0
+                  )
+                } completed · ${
+                  Number(
+                    item.sessions_booked ||
+                    0
+                  )
+                } booked · ${
+                  Number(
+                    item.sessions_available_to_book ||
+                    0
+                  )
+                } available
+              </span>
+            </div>
+
+            <div class="es-booking-money">
+              <strong>
+                ${formatMoney(
+                  item.outstanding_minor ||
+                  0
+                )}
+              </strong>
+              <small>
+                outstanding
+              </small>
+            </div>
+
+            <div>
+              <span
+                class="es-booking-status"
+              >
+                ${escapeHtml(
+                  formatStatus(
+                    item.status
+                  )
+                )}
+              </span>
+            </div>
+
+            <div class="es-booking-actions">
+              ${
+                item.status ===
+                  "active" &&
+                Number(
+                  item.sessions_available_to_book ||
+                  0
+                ) > 0
+                  ? `
+                    <a
+                      class="es-booking-action"
+                      href="/bookings/?package=${encodeURIComponent(
+                        item.id
+                      )}"
+                      style="text-decoration:none;display:inline-flex;align-items:center;"
+                    >
+                      Book session
+                    </a>
+                  `
+                  : ""
+              }
+
+              <a
+                class="es-booking-action"
+                href="/packages/"
+                style="text-decoration:none;display:inline-flex;align-items:center;"
+              >
+                Manage
+              </a>
+            </div>
+          </article>
+        `
+      )
+      .join("");
+}
+
 
 async function loadBookings() {
 
@@ -1361,7 +1552,12 @@ function renderBookings() {
 
               <span>
                 ${escapeHtml(
-                  booking.service_name
+                  booking.booking_kind ===
+                    "consultation"
+                    ? `Consultation · ${
+                        booking.service_name
+                      }`
+                    : booking.service_name
                 )}
               </span>
 
@@ -2660,7 +2856,10 @@ async function updateBookingAction({
     }
 
 
-    await loadBookings();
+    await Promise.all([
+      loadBookings(),
+      loadBookingPackages()
+    ]);
 
 
     if (
@@ -3339,7 +3538,8 @@ async function initialiseBookingsPage() {
 
   await Promise.all([
     loadServices(),
-    loadBookings()
+    loadBookings(),
+    loadBookingPackages()
   ]);
 
 
