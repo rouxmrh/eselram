@@ -1359,6 +1359,13 @@ function timelineAction(
 
 
 function timelineTitle(item) {
+  if (
+    item.event_type === "appointment" &&
+    String(item.title || "").startsWith("Consultation · ")
+  ) {
+    return item.title;
+  }
+
   const prefixes = {
     appointment:
       "Appointment",
