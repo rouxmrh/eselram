@@ -128,7 +128,7 @@ $("#purchaseForm").addEventListener("submit", async event => {
     if (
       !response.ok ||
       !data.ok ||
-      !data.checkout_url
+      (!data.checkout_url && data.payment_required !== false)
     ) {
       if (
         data.consultation_required
@@ -152,6 +152,11 @@ $("#purchaseForm").addEventListener("submit", async event => {
         data.error ||
         "Unable to start payment."
       );
+    }
+
+    if (data.payment_required === false && data.sale_id) {
+      location.href = `/buy-package/success/?sale_id=${encodeURIComponent(data.sale_id)}`;
+      return;
     }
 
     location.href =
