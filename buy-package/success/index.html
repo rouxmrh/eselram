@@ -9,6 +9,9 @@
     body{background:var(--es-bg,#f6f5f0);font-family:system-ui,sans-serif;color:#102333}
     main{max-width:680px;margin:70px auto;padding:20px}.card{background:#fff;border:1px solid #d9d9d2;border-radius:20px;padding:30px}
     a{display:inline-block;margin-top:16px;color:#245746;font-weight:700}.status{color:#52605b}
+    .booking{margin-top:24px;padding-top:22px;border-top:1px solid #ddd}.booking label{display:grid;gap:6px;margin:12px 0;font-weight:700}
+    .booking input,.booking select{padding:11px;border:1px solid #ccd1cc;border-radius:9px;font:inherit;width:100%;box-sizing:border-box}
+    .booking button{border:0;border-radius:9px;padding:12px 16px;background:#326755;color:#fff;font-weight:700;cursor:pointer}
   </style>
 </head>
 <body>
@@ -16,7 +19,21 @@
   <small>PACKAGE PURCHASE</small>
   <h1 id="title">Checking your payment…</h1>
   <p id="message" class="status">Please keep this page open for a moment.</p>
-  <a href="/book/">Book an appointment</a>
+  <section id="packageBooking" class="booking" hidden>
+    <h2>Book your first session</h2>
+    <p>Your package is active. Choose an available date and time for the first covered session.</p>
+    <label>Date
+      <input id="packageBookingDate" type="date">
+    </label>
+    <label>Available time
+      <select id="packageBookingTime">
+        <option value="">Choose a date first</option>
+      </select>
+    </label>
+    <button id="bookPackageSession" type="button">Book first session</button>
+    <p id="packageBookingStatus" class="status"></p>
+  </section>
+  <a href="/book/">Book another appointment</a>
 </section></main>
 <script src="/buy-package/success/success.js"></script>
 </body></html>
