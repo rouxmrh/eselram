@@ -95,7 +95,11 @@ export async function onRequestGet({
             c.first_name,
             c.last_name,
 
-            s.name AS service_name,
+            CASE
+              WHEN a.booking_kind = 'consultation'
+                THEN 'Consultation · ' || s.name
+              ELSE s.name
+            END AS service_name,
             a.start_at,
 
             p.amount_minor AS payment_amount_minor,
