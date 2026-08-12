@@ -1311,7 +1311,11 @@ function renderBookingPackages() {
                 )}
               </strong>
               <small>
-                outstanding
+                outstanding${
+                  Number(item.consultation_credit_minor || 0) > 0
+                    ? ` · ${formatMoney(item.consultation_credit_minor)} consultation credit`
+                    : ""
+                }
               </small>
             </div>
 
@@ -1579,6 +1583,22 @@ function renderBookings() {
                   booking.price_minor
                 )}
               </strong>
+
+              ${
+                Number(
+                  booking.consultation_credit_minor ||
+                  0
+                ) > 0
+                  ? `
+                    <small>
+                      Consultation credit:
+                      ${formatMoney(
+                        booking.consultation_credit_minor
+                      )}
+                    </small>
+                  `
+                  : ""
+              }
 
               ${
                 Number(
@@ -1919,7 +1939,7 @@ async function openBookingFormRequest(
     "Send client form";
 
   sendFormContext.textContent =
-    `${booking.first_name} ${booking.last_name} · ${bookingDisplayServiceName(booking)} · ${formatFullDate(booking.start_at)}`;
+    `${booking.first_name} ${booking.last_name} · ${booking.service_name} · ${formatFullDate(booking.start_at)}`;
 
   sendFormTemplate.innerHTML =
     `<option value="">Loading forms…</option>`;
@@ -2441,74 +2461,6 @@ async function createStripePaymentLink(
 }
 
 
-function bookingDisplayServiceName(booking) {
-  return booking?.booking_kind === "consultation"
-    ? `Consultation · ${booking.service_name}`
-    : booking?.service_name || "—";
-}
-
-
-async function sendExistingConsultationFormFromBooking(booking) {
-  try {
-    const response = await fetch(
-      `/api/form-requests?appointment_id=${encodeURIComponent(booking.id)}`,
-      {
-        headers: { Accept: "application/json" },
-        cache: "no-store"
-      }
-    );
-
-    handleAuthentication(response);
-
-    const data = await response.json();
-
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Unable to load consultation form.");
-    }
-
-    const request = (data.requests || []).find(item =>
-      ["created", "opened"].includes(String(item.status || ""))
-    );
-
-    if (!request) {
-      openBookingFormRequest(booking);
-      return;
-    }
-
-    const sendResponse = await fetch(
-      "/api/form-requests/email",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify({
-          form_request_id: request.id,
-          force: true
-        })
-      }
-    );
-
-    handleAuthentication(sendResponse);
-
-    const sendData = await sendResponse.json();
-
-    if (!sendResponse.ok || !sendData.ok) {
-      throw new Error(sendData.error || "Unable to send consultation form.");
-    }
-
-    window.alert(
-      sendData.skipped
-        ? "The consultation form is no longer available to send."
-        : "Consultation form sent successfully."
-    );
-  } catch (error) {
-    window.alert(error.message || "Unable to send consultation form.");
-  }
-}
-
-
 function showBookingDetails(
   booking
 ) {
@@ -2528,7 +2480,7 @@ function showBookingDetails(
   bookingDetailContent.innerHTML = `
     ${detailItem(
       "Service",
-      bookingDisplayServiceName(booking)
+      booking.service_name
     )}
 
     ${detailItem(
@@ -2559,6 +2511,15 @@ function showBookingDetails(
         booking.price_minor
       )
     )}
+
+    ${
+      Number(booking.consultation_credit_minor || 0) > 0
+        ? detailItem(
+            "Consultation credit",
+            formatMoney(booking.consultation_credit_minor)
+          )
+        : ""
+    }
 
     ${detailItem(
       "Deposit due",
@@ -2687,14 +2648,8 @@ function showBookingDetails(
   if (detailSendFormButton) {
     detailSendFormButton.addEventListener(
       "click",
-      async () => {
+      () => {
         bookingDetailsDialog.close();
-
-        if (booking.booking_kind === "consultation") {
-          await sendExistingConsultationFormFromBooking(booking);
-          return;
-        }
-
         openBookingFormRequest(booking);
       }
     );
