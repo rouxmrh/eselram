@@ -207,6 +207,27 @@ function paymentText(service) {
   return `${money(service.price_minor, currency, locale)} · pay at appointment`;
 }
 
+function bookingDepositText(service) {
+  const currency =
+    state.config?.business?.currency || "GBP";
+
+  const locale =
+    state.config?.business?.locale || "en-GB";
+
+  if (
+    service.payment_timing !== "online_deposit"
+  ) {
+    return paymentText(service);
+  }
+
+  return `${money(
+    service.deposit_minor,
+    currency,
+    locale
+  )} booking deposit online`;
+}
+
+
 function consultationPaymentText(service) {
   const currency =
     state.config?.business?.currency ||
@@ -399,7 +420,7 @@ function renderServices() {
               </span>
               <span>
                 ${Number(service.duration_minutes || 0)} min ·
-                ${escapeHtml(paymentText(service))}
+                ${escapeHtml(bookingDepositText(service))}
               </span>
             </div>
 
@@ -605,7 +626,12 @@ function renderReview() {
                 </div>
               `
               : `
-                <div class="review-item"><small>Payment</small><strong>${escapeHtml(paymentText(service))}</strong></div>
+                <div class="review-item">
+                  <small>Payment</small>
+                  <strong>${escapeHtml(
+                    bookingDepositText(service)
+                  )}</strong>
+                </div>
               `
           }
         `
@@ -625,7 +651,15 @@ function renderReview() {
                   currency,
                   locale
                 )} consultation credit will be applied. Nothing is due today.`
-              : "You are booking treatment as an existing client. Eselram will verify that this customer has a completed consultation before confirming treatment."
+              : `${
+                  service.payment_timing === "online_deposit"
+                    ? `${money(
+                        service.deposit_minor,
+                        currency,
+                        locale
+                      )} booking deposit is required to secure your appointment. The deposit is deducted from your treatment total. If you cancel less than 24 hours before your appointment, the deposit is non-refundable. `
+                    : ""
+                }Eselram will verify your first name, last name, email address and phone number against your existing customer record and confirm that you have completed the required consultation for this treatment.`
           )
     );
   }
