@@ -133,6 +133,7 @@ export async function onRequestGet({
       customerRows,
       appointmentRows,
       serviceRows,
+      photoRows,
       totalRecords,
       monthRecords,
       draftRecords,
@@ -167,7 +168,14 @@ export async function onRequestGet({
               c.first_name,
               c.last_name,
 
-              s.name AS service_name
+              s.name AS service_name,
+
+              (
+                SELECT COUNT(*)
+                FROM customer_photos p
+                WHERE p.business_id = tr.business_id
+                  AND p.treatment_record_id = tr.id
+              ) AS photo_count
 
             FROM treatment_records tr
 
@@ -275,6 +283,31 @@ export async function onRequestGet({
 
             ORDER BY
               name COLLATE NOCASE
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              id,
+              treatment_record_id,
+              photo_type,
+              taken_at,
+              original_name
+
+            FROM customer_photos
+
+            WHERE
+              business_id = ?
+              AND treatment_record_id IS NOT NULL
+              AND trim(treatment_record_id) != ''
+
+            ORDER BY
+              COALESCE(taken_at, created_at) DESC
           `)
           .bind(
             user.business_id
@@ -411,7 +444,14 @@ export async function onRequestGet({
 
       services:
         serviceRows.results ||
-        []
+        [],
+
+      photos:
+        (photoRows.results || []).map((photo) => ({
+          ...photo,
+          content_url:
+            `/api/customer-photos?photo_id=${encodeURIComponent(photo.id)}&content=1`
+        }))
     });
 
 
