@@ -2254,6 +2254,17 @@ function bindOutstandingFormActions() {
 }
 
 
+function treatmentRecordCompleteness(record) {
+  const keyFields = [
+    record.treatment_date,
+    record.practitioner_name,
+    record.treatment_area,
+    record.treatment_notes
+  ];
+  const completeCount = keyFields.filter((value) => String(value || "").trim()).length;
+  return completeCount >= 4 || record.status === "complete";
+}
+
 function renderCustomerTreatmentRecords(
   records
 ) {
@@ -2261,61 +2272,98 @@ function renderCustomerTreatmentRecords(
     customerTreatmentRecords.innerHTML = `
       <div class="es-empty-state">
         <strong>No treatment records yet.</strong>
+        <span>Create a record from a treatment appointment when you need one.</span>
       </div>
     `;
     return;
   }
 
-  customerTreatmentRecords.innerHTML =
-    records
-      .map(
-        (record) => `
-          <div class="es-customer-record-row">
-            <div class="es-customer-record-main">
-              <strong>
-                ${escapeHtml(
-                  record.service_name ||
-                  "Treatment record"
-                )}
-              </strong>
+  const photos = activeProfileCustomer?.photos || [];
 
-              <span>
-                ${escapeHtml(
-                  [
-                    formatShortDate(
-                      record.treatment_date
-                    ),
-                    record.treatment_area,
-                    record.practitioner_name
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")
-                )}
+  customerTreatmentRecords.innerHTML = records
+    .map((record, index) => {
+      const recordPhotos = photos.filter(
+        (photo) => String(photo.treatment_record_id || "") === String(record.id)
+      );
+      const isComplete = treatmentRecordCompleteness(record);
+      const appointmentLabel = record.appointment_id ? "Linked to appointment" : "No appointment linked";
+
+      return `
+        <article class="es-customer-treatment-card">
+          <button
+            class="es-customer-treatment-card-head"
+            type="button"
+            data-toggle-treatment-record="${index}"
+            aria-expanded="false"
+          >
+            <span class="es-customer-treatment-card-title">
+              <strong>${escapeHtml(record.service_name || "Treatment record")}</strong>
+              <small>${escapeHtml([
+                formatShortDate(record.treatment_date),
+                record.treatment_area,
+                appointmentLabel
+              ].filter(Boolean).join(" · "))}</small>
+            </span>
+            <span class="es-customer-treatment-card-summary">
+              <span class="es-customer-traffic ${isComplete ? "es-customer-traffic-green" : "es-customer-traffic-amber"}">
+                ${isComplete ? "Complete" : "Needs details"}
               </span>
+              <span class="es-customer-treatment-chevron">⌄</span>
+            </span>
+          </button>
+
+          <div class="es-customer-treatment-card-body" data-treatment-record-body="${index}" hidden>
+            <div class="es-customer-treatment-facts">
+              <span><b>Practitioner</b>${escapeHtml(record.practitioner_name || "Not recorded")}</span>
+              <span><b>Status</b>${escapeHtml(formatStatus(record.status))}</span>
+              <span><b>Photos</b>${recordPhotos.length}</span>
+              <span><b>Next treatment</b>${escapeHtml(record.next_treatment_date ? formatShortDate(record.next_treatment_date) : "Not set")}</span>
             </div>
 
-            <div class="es-customer-record-actions">
-              <span class="es-customer-status">
-                ${escapeHtml(
-                  formatStatus(
-                    record.status
-                  )
-                )}
-              </span>
+            ${recordPhotos.length ? `
+              <div class="es-customer-treatment-photo-strip">
+                ${recordPhotos.slice(0, 4).map((photo) => `
+                  <a href="${escapeHtml(photo.content_url)}" target="_blank" rel="noopener">
+                    <img src="${escapeHtml(photo.content_url)}" alt="${escapeHtml(formatPhotoType(photo.photo_type))} treatment photo">
+                  </a>
+                `).join("")}
+              </div>
+            ` : ""}
 
-              <a
-                class="es-customer-action"
-                href="/treatment-records/?record=${encodeURIComponent(
-                  record.id
-                )}"
-              >
-                View
-              </a>
+            <div class="es-customer-treatment-card-actions">
+              <a class="es-customer-action" href="/treatment-records/?record=${encodeURIComponent(record.id)}">View / edit</a>
+              <button class="es-customer-action" type="button" data-add-photo-to-record="${escapeHtml(record.id)}" data-appointment-id="${escapeHtml(record.appointment_id || "")}">Add photo</button>
+              <a class="es-customer-action" href="/treatment-records/?customer=${encodeURIComponent(activeProfileCustomer?.id || "")}&copy=${encodeURIComponent(record.id)}">Create next record</a>
             </div>
           </div>
-        `
-      )
-      .join("");
+        </article>
+      `;
+    })
+    .join("");
+
+  customerTreatmentRecords.querySelectorAll("[data-toggle-treatment-record]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = button.dataset.toggleTreatmentRecord;
+      const body = customerTreatmentRecords.querySelector(`[data-treatment-record-body="${index}"]`);
+      const open = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", open ? "false" : "true");
+      if (body) body.hidden = open;
+    });
+  });
+
+  customerTreatmentRecords.querySelectorAll("[data-add-photo-to-record]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openCustomerPhotoDialog();
+      const appointmentSelect = document.getElementById("customerPhotoAppointment");
+      const treatmentSelect = document.getElementById("customerPhotoTreatmentRecord");
+      if (appointmentSelect && button.dataset.appointmentId) {
+        appointmentSelect.value = button.dataset.appointmentId;
+      }
+      if (treatmentSelect) {
+        treatmentSelect.value = button.dataset.addPhotoToRecord;
+      }
+    });
+  });
 }
 
 
