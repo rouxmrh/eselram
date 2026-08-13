@@ -141,13 +141,34 @@ export async function onRequestGet({ request, env }) {
           id,
           name,
           template_type,
-          version
+          version,
+          is_client_sendable
         FROM clinical_templates
         WHERE
           business_id = ?
           AND is_active = 1
           AND is_published = 1
           AND is_client_sendable = 1
+        ORDER BY
+          template_type,
+          name COLLATE NOCASE
+      `)
+      .bind(user.business_id)
+      .all();
+
+    const internalTemplates = await env.DB
+      .prepare(`
+        SELECT
+          id,
+          name,
+          template_type,
+          version,
+          is_client_sendable
+        FROM clinical_templates
+        WHERE
+          business_id = ?
+          AND is_active = 1
+          AND is_client_sendable = 0
         ORDER BY
           template_type,
           name COLLATE NOCASE
@@ -232,6 +253,7 @@ export async function onRequestGet({ request, env }) {
     return Response.json({
       ok: true,
       templates: templates.results || [],
+      internal_templates: internalTemplates.results || [],
       customer,
       appointment,
       requests: (requests.results || []).map(item => ({
@@ -262,6 +284,7 @@ export async function onRequestPost({ request, env }) {
 
     const templateId = String(body.template_id || "").trim();
     const appointmentId = String(body.appointment_id || "").trim();
+    const internal = body.internal === true;
     let customerId = String(body.customer_id || "").trim();
 
     if (!templateId) {
@@ -269,25 +292,46 @@ export async function onRequestPost({ request, env }) {
     }
 
     const template = await env.DB
-      .prepare(`
-        SELECT
-          id,
-          name,
-          template_type
-        FROM clinical_templates
-        WHERE
-          id = ?
-          AND business_id = ?
-          AND is_active = 1
-          AND is_published = 1
-          AND is_client_sendable = 1
-        LIMIT 1
-      `)
+      .prepare(
+        internal
+          ? `
+              SELECT
+                id,
+                name,
+                template_type,
+                is_client_sendable
+              FROM clinical_templates
+              WHERE
+                id = ?
+                AND business_id = ?
+                AND is_active = 1
+              LIMIT 1
+            `
+          : `
+              SELECT
+                id,
+                name,
+                template_type,
+                is_client_sendable
+              FROM clinical_templates
+              WHERE
+                id = ?
+                AND business_id = ?
+                AND is_active = 1
+                AND is_published = 1
+                AND is_client_sendable = 1
+              LIMIT 1
+            `
+      )
       .bind(templateId, user.business_id)
       .first();
 
     if (!template) {
-      return badRequest("That clinical form is not available to send to clients.");
+      return badRequest(
+        internal
+          ? "That clinical record template is not available."
+          : "That clinical form is not available to send to clients."
+      );
     }
 
     let appointment = null;
@@ -369,6 +413,7 @@ export async function onRequestPost({ request, env }) {
           customer_id: customerId,
           appointment_id: appointmentId || null,
           template_name: template.name,
+          internal: String(existing.request_token || "").startsWith("fri_"),
           url_path: requestPath(existing.request_token)
         }
       });
@@ -376,7 +421,7 @@ export async function onRequestPost({ request, env }) {
 
     const id = `cfr_${crypto.randomUUID()}`;
     const requestToken =
-      `frq_${crypto.randomUUID().replaceAll("-", "")}${crypto.randomUUID().replaceAll("-", "")}`;
+      `${internal ? "fri" : "frq"}_${crypto.randomUUID().replaceAll("-", "")}${crypto.randomUUID().replaceAll("-", "")}`;
 
     await env.DB
       .prepare(`
@@ -420,6 +465,7 @@ export async function onRequestPost({ request, env }) {
         appointment_id: appointmentId || null,
         template_name: template.name,
         status: "created",
+        internal,
         url_path: requestPath(requestToken)
       }
     });
