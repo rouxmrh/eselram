@@ -1259,8 +1259,24 @@ function renderCustomerTimeline(
 function timelineMeta(
   item
 ) {
+  const serviceMeta =
+    (
+      item.booking_kind ===
+        "consultation" ||
+      item.appointment_booking_kind ===
+        "consultation"
+    )
+      ? (
+          item.service_name
+            ? `Consultation · ${
+                item.service_name
+              }`
+            : "Consultation"
+        )
+      : item.service_name;
+
   const parts = [
-    item.service_name,
+    serviceMeta,
     item.event_type ===
       "payment"
       ? formatMoney(
@@ -2328,7 +2344,12 @@ function populateCustomerPhotoLinks(
               `${formatShortDate(
                 appointment.start_at
               )} · ${
-                appointment.service_name
+                appointment.booking_kind ===
+                  "consultation"
+                  ? `Consultation · ${
+                      appointment.service_name
+                    }`
+                  : appointment.service_name
               }`
             )}
           </option>
@@ -3157,7 +3178,12 @@ function renderAppointments(
           <div class="es-customer-appointment-main">
             <strong>
               ${escapeHtml(
-                appointment.service_name
+                appointment.booking_kind ===
+                  "consultation"
+                  ? `Consultation · ${
+                      appointment.service_name
+                    }`
+                  : appointment.service_name
               )}
             </strong>
 
