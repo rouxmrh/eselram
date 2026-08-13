@@ -36,7 +36,7 @@ async function loadForm() {
       cache: "no-store"
     });
 
-    if (response.status === 401 && isPreview) {
+    if (response.status === 401 && (isPreview || requestToken.startsWith("fri_"))) {
       location.href = "/auth/login.html";
       return;
     }
@@ -577,14 +577,23 @@ async function submitForm(event) {
       throw new Error(result.error || "Unable to submit form.");
     }
 
+    const internalRecord = requestToken.startsWith("fri_");
+
     formRoot.innerHTML = `
       <div class="es-form-render-card">
         <div class="es-form-render-success">
-          <h2>Thank you</h2>
-          <p>Your form has been submitted successfully.</p>
+          <h2>${internalRecord ? "Record saved" : "Thank you"}</h2>
+          <p>${internalRecord ? "The clinical record has been saved to this customer. You can close this tab." : "Your form has been submitted successfully."}</p>
         </div>
       </div>
     `;
+
+    if (internalRecord && window.opener) {
+      window.opener.postMessage(
+        { type: "eselram:clinical-record-saved" },
+        location.origin
+      );
+    }
   } catch (error) {
     errorBox.hidden = false;
     errorBox.textContent = error.message || "Unable to submit form.";
