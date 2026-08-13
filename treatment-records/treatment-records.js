@@ -1221,9 +1221,6 @@ function renderRecords() {
                     <p>${escapeHtml(record.service_name || "Service")}${record.treatment_area ? ` · ${escapeHtml(record.treatment_area)}` : ""}</p>
                   </div>
 
-                  <span class="es-treatment-status es-treatment-status-${escapeHtml(record.status)}">
-                    ${escapeHtml(statusLabel)}
-                  </span>
                 </div>
 
                 <div class="es-treatment-record-meta">
@@ -1234,21 +1231,27 @@ function renderRecords() {
                 </div>
               </div>
 
-              <div class="es-treatment-record-actions">
-                <a
-                  class="es-secondary-button es-treatment-customer-link"
-                  href="/customers/?customer=${encodeURIComponent(record.customer_id)}"
-                >
-                  Customer
-                </a>
+              <div class="es-treatment-record-controls">
+                <span class="es-treatment-status es-treatment-status-${escapeHtml(record.status)}">
+                  ${escapeHtml(statusLabel)}
+                </span>
 
-                <button
-                  class="es-button"
-                  type="button"
-                  data-view-treatment="${escapeHtml(record.id)}"
-                >
-                  View record
-                </button>
+                <div class="es-treatment-record-actions">
+                  <a
+                    class="es-secondary-button es-treatment-customer-link"
+                    href="/customers/?customer=${encodeURIComponent(record.customer_id)}"
+                  >
+                    Customer
+                  </a>
+
+                  <button
+                    class="es-button"
+                    type="button"
+                    data-view-treatment="${escapeHtml(record.id)}"
+                  >
+                    View record
+                  </button>
+                </div>
               </div>
             </article>
           `;
