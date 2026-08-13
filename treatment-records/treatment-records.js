@@ -973,11 +973,24 @@ treatmentForm.addEventListener(
 
       await loadTreatmentRecords();
 
+      const savedCustomerId = String(
+        treatmentCustomer.value || ""
+      ).trim();
 
-      setTimeout(
-        closeTreatmentForm,
-        500
-      );
+      if (savedCustomerId) {
+        setTimeout(
+          () => {
+            window.location.href =
+              `/customers/?customer=${encodeURIComponent(savedCustomerId)}`;
+          },
+          500
+        );
+      } else {
+        setTimeout(
+          closeTreatmentForm,
+          500
+        );
+      }
 
 
     } catch (error) {
