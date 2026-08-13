@@ -1723,6 +1723,8 @@ function customerCommunicationLabel(
       "Client form sent",
     client_form_reminder:
       "Client form reminder",
+    payment_link:
+      "Payment link",
     payment_receipt:
       "Payment confirmation",
     package_payment_confirmation:
