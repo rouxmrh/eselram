@@ -326,10 +326,7 @@ function applyBranding(config) {
 }
 
 function serviceDisplayName(value) {
-  return String(value || "").replace(
-    /\bTattoo Remobal\b/gi,
-    "Tattoo Removal"
-  );
+  return String(value || "");
 }
 
 function selectServiceRoute(service, bookingIntent) {
