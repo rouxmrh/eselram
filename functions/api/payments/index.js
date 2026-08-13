@@ -172,6 +172,7 @@ export async function onRequestGet({
               c.last_name,
 
               a.start_at,
+              a.booking_kind AS appointment_booking_kind,
               s.name AS service_name,
 
               pp.display_name
