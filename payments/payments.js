@@ -858,8 +858,16 @@ function renderPayments() {
 
               <span>
                 ${escapeHtml(
-                  payment.service_name ||
-                  "No appointment"
+                  payment.appointment_booking_kind ===
+                    "consultation" &&
+                  payment.service_name
+                    ? `Consultation · ${
+                        payment.service_name
+                      }`
+                    : (
+                        payment.service_name ||
+                        "No appointment"
+                      )
                 )}
               </span>
             </div>
@@ -1203,8 +1211,16 @@ function showPaymentDetails(
 
     ${detailItem(
       "Appointment",
-      payment.service_name ||
-      "No linked appointment"
+      payment.appointment_booking_kind ===
+        "consultation" &&
+      payment.service_name
+        ? `Consultation · ${
+            payment.service_name
+          }`
+        : (
+            payment.service_name ||
+            "No linked appointment"
+          )
     )}
 
     ${detailItem(
