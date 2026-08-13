@@ -546,6 +546,7 @@ export async function onRequestGet({
                 p.created_at,
 
                 s.name AS service_name,
+                a.booking_kind AS appointment_booking_kind,
                 a.start_at AS appointment_start_at,
 
                 cp.id AS customer_package_id,
