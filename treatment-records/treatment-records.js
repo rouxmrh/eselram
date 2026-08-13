@@ -1236,22 +1236,20 @@ function renderRecords() {
                   ${escapeHtml(statusLabel)}
                 </span>
 
-                <div class="es-treatment-record-actions">
-                  <a
-                    class="es-secondary-button es-treatment-customer-link"
-                    href="/customers/?customer=${encodeURIComponent(record.customer_id)}"
-                  >
-                    Customer
-                  </a>
+                <a
+                  class="es-secondary-button es-treatment-customer-link"
+                  href="/customers/?customer=${encodeURIComponent(record.customer_id)}"
+                >
+                  Customer
+                </a>
 
-                  <button
-                    class="es-button"
-                    type="button"
-                    data-view-treatment="${escapeHtml(record.id)}"
-                  >
-                    View record
-                  </button>
-                </div>
+                <button
+                  class="es-button es-treatment-view-record"
+                  type="button"
+                  data-view-treatment="${escapeHtml(record.id)}"
+                >
+                  View record
+                </button>
               </div>
             </article>
           `;
