@@ -1856,7 +1856,7 @@ function renderCustomerClinicalRecords(
         </div>
 
         <div class="es-customer-record-actions">
-          <span class="es-customer-status">
+          <span class="es-customer-traffic es-customer-traffic-red">
             Outstanding
           </span>
 
@@ -1920,7 +1920,7 @@ function renderCustomerClinicalRecords(
         </div>
 
         <div class="es-customer-record-actions">
-          <span class="es-customer-status">
+          <span class="es-customer-traffic es-customer-traffic-green">
             ${escapeHtml(
               formatStatus(
                 record.status
@@ -2920,12 +2920,135 @@ function formatPhotoType(
 }
 
 
+function setCustomerProfileSummary(
+  id,
+  value
+) {
+  const element =
+    document.getElementById(id);
+
+  if (element) {
+    element.textContent = value;
+  }
+}
+
+
+function updateCustomerProfileSummaries(
+  customer
+) {
+  const upcoming =
+    customer.upcoming_bookings || [];
+
+  const history =
+    customer.booking_history || [];
+
+  const packages =
+    customer.packages || [];
+
+  const activePackages =
+    packages.filter(
+      item => item.status === "active"
+    ).length;
+
+  const formRequests =
+    customer.form_requests || [];
+
+  const outstandingForms =
+    formRequests.filter(
+      request =>
+        ["created", "opened"].includes(
+          request.status
+        )
+    ).length;
+
+  const completedForms =
+    formRequests.filter(
+      request =>
+        ["submitted", "reviewed"].includes(
+          request.status
+        )
+    ).length;
+
+  const photos =
+    customer.photos || [];
+
+  const treatmentRecords =
+    customer.treatment_records || [];
+
+  const communications =
+    customer.communications || [];
+
+  const timeline =
+    customer.timeline || [];
+
+  const summary =
+    customer.financial_summary || {};
+
+  setCustomerProfileSummary(
+    "customerContactSummary",
+    [
+      customer.email ? "Email" : null,
+      customer.phone ? "Phone" : null,
+      customer.notes ? "Notes" : null
+    ].filter(Boolean).join(" · ") || "Contact details"
+  );
+
+  setCustomerProfileSummary(
+    "customerAppointmentsSummary",
+    `${upcoming.length} upcoming · ${activePackages} active package${activePackages === 1 ? "" : "s"} · ${history.length} previous`
+  );
+
+  setCustomerProfileSummary(
+    "customerRecordsSummary",
+    `${completedForms} complete · ${outstandingForms} outstanding · ${photos.length} photo${photos.length === 1 ? "" : "s"}`
+  );
+
+  setCustomerProfileSummary(
+    "customerPaymentsSummary",
+    `${formatMoney(customer.total_paid_minor || 0)} paid · ${formatMoney(summary.total_outstanding_minor || 0)} outstanding`
+  );
+
+  setCustomerProfileSummary(
+    "customerCommunicationsSummary",
+    `${communications.length} communication${communications.length === 1 ? "" : "s"}`
+  );
+
+  setCustomerProfileSummary(
+    "customerTimelineSummary",
+    `${timeline.length} activit${timeline.length === 1 ? "y" : "ies"}`
+  );
+
+  const health =
+    document.getElementById(
+      "customerRecordHealth"
+    );
+
+  if (health) {
+    const formStatus =
+      outstandingForms > 0
+        ? `<span class="es-customer-traffic es-customer-traffic-red">${outstandingForms} form${outstandingForms === 1 ? "" : "s"} outstanding</span>`
+        : completedForms > 0
+          ? `<span class="es-customer-traffic es-customer-traffic-green">Forms complete</span>`
+          : `<span class="es-customer-traffic es-customer-traffic-neutral">No forms yet</span>`;
+
+    health.innerHTML =
+      formStatus +
+      `<span class="es-customer-traffic ${treatmentRecords.length ? "es-customer-traffic-green" : "es-customer-traffic-neutral"}">${treatmentRecords.length} treatment record${treatmentRecords.length === 1 ? "" : "s"}</span>` +
+      `<span class="es-customer-traffic ${photos.length ? "es-customer-traffic-green" : "es-customer-traffic-neutral"}">${photos.length} photo${photos.length === 1 ? "" : "s"}</span>`;
+  }
+}
+
+
 function renderCustomerProfile(
   customer
 ) {
 
   activeProfileCustomer =
     customer;
+
+  updateCustomerProfileSummaries(
+    customer
+  );
 
   showFailedCustomerPayments =
     false;
