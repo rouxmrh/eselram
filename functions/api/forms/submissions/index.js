@@ -1,3 +1,26 @@
+import {
+  readSessionToken,
+  hashSessionToken
+} from "../../../../lib/auth.js";
+
+async function getAuthenticatedUser(request, env) {
+  const token = readSessionToken(request);
+  if (!token) return null;
+
+  const tokenHash = await hashSessionToken(token);
+
+  return await env.DB.prepare(`
+    SELECT u.id AS user_id, u.business_id
+    FROM user_sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ?
+      AND s.revoked_at IS NULL
+      AND datetime(s.expires_at) > datetime('now')
+      AND u.is_active = 1
+    LIMIT 1
+  `).bind(tokenHash).first();
+}
+
 export async function onRequestPost({ request, env }) {
   try {
     const form = await request.formData();
@@ -5,6 +28,7 @@ export async function onRequestPost({ request, env }) {
     const requestToken = String(
       form.get("request_token") || ""
     ).trim();
+    const internalRequest = requestToken.startsWith("fri_");
 
     if (!token && !requestToken) {
       return Response.json(
@@ -17,37 +41,58 @@ export async function onRequestPost({ request, env }) {
     let template = null;
 
     if (requestToken) {
+      const user = internalRequest
+        ? await getAuthenticatedUser(request, env)
+        : null;
+
+      if (internalRequest && !user) {
+        return Response.json(
+          { ok: false, error: "Authentication required." },
+          { status: 401 }
+        );
+      }
+
       formRequest = await env.DB
-        .prepare(`
-          SELECT
-            r.id AS request_id,
-            r.business_id,
-            r.template_id,
-            r.customer_id,
-            r.appointment_id,
-            r.status AS request_status,
-            r.expires_at,
-
-            t.name,
-            t.template_type,
-            t.description,
-            t.version
-
-          FROM clinical_form_requests r
-
-          JOIN clinical_templates t
-            ON t.id = r.template_id
-
-          WHERE
-            r.request_token = ?
-            AND r.status IN ('created', 'opened')
-            AND datetime(r.expires_at) > datetime('now')
-            AND t.is_published = 1
-            AND t.is_active = 1
-
-          LIMIT 1
-        `)
-        .bind(requestToken)
+        .prepare(
+          internalRequest
+            ? `
+                SELECT
+                  r.id AS request_id, r.business_id, r.template_id,
+                  r.customer_id, r.appointment_id,
+                  r.status AS request_status, r.expires_at,
+                  t.name, t.template_type, t.description, t.version
+                FROM clinical_form_requests r
+                JOIN clinical_templates t ON t.id = r.template_id
+                WHERE
+                  r.request_token = ?
+                  AND r.business_id = ?
+                  AND r.status IN ('created', 'opened')
+                  AND datetime(r.expires_at) > datetime('now')
+                  AND t.is_active = 1
+                LIMIT 1
+              `
+            : `
+                SELECT
+                  r.id AS request_id, r.business_id, r.template_id,
+                  r.customer_id, r.appointment_id,
+                  r.status AS request_status, r.expires_at,
+                  t.name, t.template_type, t.description, t.version
+                FROM clinical_form_requests r
+                JOIN clinical_templates t ON t.id = r.template_id
+                WHERE
+                  r.request_token = ?
+                  AND r.status IN ('created', 'opened')
+                  AND datetime(r.expires_at) > datetime('now')
+                  AND t.is_published = 1
+                  AND t.is_active = 1
+                LIMIT 1
+              `
+        )
+        .bind(
+          ...(internalRequest
+            ? [requestToken, user.business_id]
+            : [requestToken])
+        )
         .first();
 
       if (formRequest) {
@@ -259,7 +304,7 @@ export async function onRequestPost({ request, env }) {
           )
           VALUES (
             ?, ?, ?, ?, ?, ?, ?,
-            'client',
+            ?,
             'submitted',
             ?, ?
           )
@@ -272,6 +317,7 @@ export async function onRequestPost({ request, env }) {
           formRequest?.appointment_id || null,
           formRequest?.request_id || null,
           requestToken || token,
+          internalRequest ? "staff" : "client",
           Number(template.version || 1),
           JSON.stringify(templateSnapshot)
         )
