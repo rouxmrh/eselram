@@ -3413,10 +3413,27 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
   letter-spacing: .035em;
 }
 
+.es-treatment-record-controls {
+  display: grid;
+  justify-items: end;
+  align-self: stretch;
+  align-content: center;
+  gap: 12px;
+}
+
 .es-treatment-record-actions {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 98px 120px;
+  align-items: stretch;
   gap: 8px;
+}
+
+.es-treatment-record-actions .es-button,
+.es-treatment-record-actions .es-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .es-treatment-record-actions .es-button,
@@ -3477,6 +3494,11 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 @media (max-width: 760px) {
   .es-treatment-record-card {
     grid-template-columns: 1fr;
+  }
+
+  .es-treatment-record-controls {
+    justify-items: start;
+    align-content: start;
   }
 
   .es-treatment-record-actions {
