@@ -9,6 +9,7 @@ const saleId =
   );
 
 let paidSale = null;
+let businessWebsite = null;
 
 function money(minor, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", {
@@ -90,6 +91,9 @@ async function check(
     ) {
       paidSale =
         data.sale;
+
+      businessWebsite =
+        data.business?.website || null;
 
       document.querySelector(
         "#title"
@@ -348,6 +352,32 @@ document
 
         timeSelect.disabled =
           true;
+
+        // After the first package session is successfully booked, return the
+        // client to this business's own website when one is configured.
+        // Keep the success message visible briefly before redirecting.
+        if (businessWebsite) {
+          try {
+            const websiteUrl = new URL(
+              businessWebsite,
+              window.location.origin
+            );
+
+            if (
+              websiteUrl.protocol === "https:" ||
+              websiteUrl.protocol === "http:"
+            ) {
+              setTimeout(() => {
+                window.location.assign(websiteUrl.href);
+              }, 2500);
+            }
+          } catch (error) {
+            console.warn(
+              "Business website redirect skipped:",
+              error
+            );
+          }
+        }
       } catch (error) {
         bookingStatus.textContent =
           error.message;
