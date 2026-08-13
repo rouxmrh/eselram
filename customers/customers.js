@@ -162,6 +162,9 @@ let activeProfileCustomer = null;
 let currentCustomerGeneratedFormRequest = null;
 let currentCustomerFormTemplates = [];
 
+let customerPhotoPreviewUrls = [];
+let customerPhotoCompareSelection = null;
+
 const customerSendFormDialog =
   document.getElementById(
     "customerSendFormDialog"
@@ -682,6 +685,17 @@ document
   ?.addEventListener(
     "change",
     renderSelectedCustomerPhotos
+  );
+
+
+document
+  .getElementById("closeCustomerPhotoCompareDialog")
+  ?.addEventListener(
+    "click",
+    () => {
+      document.getElementById("customerPhotoCompareDialog")?.close();
+      customerPhotoCompareSelection = null;
+    }
   );
 
 
@@ -2305,6 +2319,44 @@ function renderCustomerTreatmentRecords(
 }
 
 
+function customerPhotoGroupKey(photo) {
+  if (photo.appointment_id) {
+    return `appointment__${photo.appointment_id}`;
+  }
+
+  const date = String(
+    photo.taken_at ||
+    photo.appointment_start_at ||
+    photo.created_at ||
+    ""
+  ).slice(0, 10);
+
+  return `${photo.service_name || "Customer photos"}__${date}`;
+}
+
+function openCustomerPhotoCompare(beforePhoto, afterPhoto, label) {
+  customerPhotoCompareSelection = {
+    beforePhoto,
+    afterPhoto,
+    label
+  };
+
+  const dialog = document.getElementById("customerPhotoCompareDialog");
+  const title = document.getElementById("customerPhotoCompareTitle");
+  const beforeImage = document.getElementById("customerPhotoCompareBefore");
+  const afterImage = document.getElementById("customerPhotoCompareAfter");
+
+  if (!dialog || !beforeImage || !afterImage) return;
+
+  title.textContent = label || "Photo comparison";
+  beforeImage.src = beforePhoto.content_url;
+  afterImage.src = afterPhoto.content_url;
+
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  }
+}
+
 function renderCustomerPhotos(
   photos
 ) {
@@ -2321,112 +2373,153 @@ function renderCustomerPhotos(
     return;
   }
 
-  customerPhotos.innerHTML =
-    photos
-      .map(
-        (photo) => `
-          <article class="es-customer-photo-card">
+  const counts = photos.reduce(
+    (result, photo) => {
+      const type = photo.photo_type || "other";
+      result[type] = (result[type] || 0) + 1;
+      return result;
+    },
+    {}
+  );
 
-            <a
-              href="${escapeHtml(
-                photo.content_url
-              )}"
-              target="_blank"
-              rel="noopener"
-            >
-              <img
-                src="${escapeHtml(
-                  photo.content_url
-                )}"
-                alt="${escapeHtml(
-                  `${formatPhotoType(
-                    photo.photo_type
-                  )} photo`
-                )}"
-                loading="lazy"
-              >
-            </a>
+  const groups = new Map();
 
-            <div class="es-customer-photo-meta">
-              <strong>
-                ${escapeHtml(
-                  formatPhotoType(
-                    photo.photo_type
-                  )
-                )}
-              </strong>
+  photos.forEach((photo) => {
+    const key = customerPhotoGroupKey(photo);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(photo);
+  });
 
-              <span>
-                ${escapeHtml(
-                  [
-                    photo.service_name,
-                    formatShortDate(
-                      photo.taken_at ||
-                      photo.created_at
-                    )
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")
-                )}
-              </span>
+  const summary = `
+    <div class="es-customer-photo-summary">
+      <span class="es-photo-count-pill">${counts.before || 0} Before</span>
+      <span class="es-photo-count-pill">${counts.after || 0} After</span>
+      <span class="es-photo-count-pill">${counts.progress || 0} Progress</span>
+      <span class="es-photo-count-pill">${
+        photos.length -
+        (counts.before || 0) -
+        (counts.after || 0) -
+        (counts.progress || 0)
+      } Other</span>
+    </div>
+  `;
 
-              ${
-                photo.notes
-                  ? `
-                    <span>
-                      ${escapeHtml(
+  const groupHtml = Array.from(groups.entries())
+    .map(([key, groupPhotos], groupIndex) => {
+      const first = groupPhotos[0];
+      const groupDate =
+        first.taken_at ||
+        first.appointment_start_at ||
+        first.created_at;
+      const groupLabel = [
+        first.service_name || "Customer photos",
+        formatShortDate(groupDate)
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      const before = groupPhotos.find((photo) => photo.photo_type === "before");
+      const after = groupPhotos.find((photo) => photo.photo_type === "after");
+
+      return `
+        <section class="es-customer-photo-group">
+          <div class="es-customer-photo-group-header">
+            <div>
+              <strong>${escapeHtml(groupLabel)}</strong>
+              <small>${groupPhotos.length} photo${groupPhotos.length === 1 ? "" : "s"}</small>
+            </div>
+            ${
+              before && after
+                ? `<button class="es-secondary-button es-photo-compare-button" type="button" data-photo-compare-group="${groupIndex}">Compare before & after</button>`
+                : ""
+            }
+          </div>
+
+          <div class="es-customer-photo-grid">
+            ${groupPhotos
+              .map(
+                (photo) => `
+                  <article class="es-customer-photo-card">
+                    <a
+                      class="es-customer-photo-image-button"
+                      href="${escapeHtml(photo.content_url)}"
+                      target="_blank"
+                      rel="noopener"
+                      aria-label="Open ${escapeHtml(formatPhotoType(photo.photo_type))} photo"
+                    >
+                      <img
+                        src="${escapeHtml(photo.content_url)}"
+                        alt="${escapeHtml(`${formatPhotoType(photo.photo_type)} photo`)}"
+                        loading="lazy"
+                      >
+                    </a>
+
+                    <div class="es-customer-photo-meta">
+                      <strong>${escapeHtml(formatPhotoType(photo.photo_type))}</strong>
+                      <span>${escapeHtml(formatShortDate(photo.taken_at || photo.created_at))}</span>
+                      ${
                         photo.notes
-                      )}
-                    </span>
-                  `
-                  : ""
-              }
-            </div>
+                          ? `<span>${escapeHtml(photo.notes)}</span>`
+                          : ""
+                      }
+                    </div>
 
-            <div class="es-customer-photo-actions">
-              <a
-                class="es-customer-action"
-                href="${escapeHtml(
-                  photo.content_url
-                )}"
-                target="_blank"
-                rel="noopener"
-              >
-                Open
-              </a>
+                    <div class="es-customer-photo-actions">
+                      <a
+                        class="es-customer-action"
+                        href="${escapeHtml(photo.content_url)}"
+                        target="_blank"
+                        rel="noopener"
+                      >Open</a>
 
-              <button
-                class="es-customer-action"
-                type="button"
-                data-delete-customer-photo="${escapeHtml(
-                  photo.id
-                )}"
-              >
-                Delete
-              </button>
-            </div>
+                      <button
+                        class="es-customer-action"
+                        type="button"
+                        data-delete-customer-photo="${escapeHtml(photo.id)}"
+                      >Delete</button>
+                    </div>
+                  </article>
+                `
+              )
+              .join("")}
+          </div>
+        </section>
+      `;
+    })
+    .join("");
 
-          </article>
-        `
-      )
-      .join("");
+  customerPhotos.innerHTML = summary + groupHtml;
+
+  const groupedValues = Array.from(groups.values());
 
   customerPhotos
-    .querySelectorAll(
-      "[data-delete-customer-photo]"
-    )
-    .forEach(
-      (button) => {
-        button.addEventListener(
-          "click",
-          () =>
-            deleteCustomerPhoto(
-              button.dataset
-                .deleteCustomerPhoto
-            )
+    .querySelectorAll("[data-photo-compare-group]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const group = groupedValues[Number(button.dataset.photoCompareGroup)] || [];
+        const before = group.find((photo) => photo.photo_type === "before");
+        const after = group.find((photo) => photo.photo_type === "after");
+        const first = group[0];
+        if (!before || !after || !first) return;
+
+        openCustomerPhotoCompare(
+          before,
+          after,
+          [
+            first.service_name || "Photo comparison",
+            formatShortDate(first.taken_at || first.appointment_start_at || first.created_at)
+          ].filter(Boolean).join(" · ")
         );
-      }
-    );
+      });
+    });
+
+  customerPhotos
+    .querySelectorAll("[data-delete-customer-photo]")
+    .forEach((button) => {
+      button.addEventListener("click", () =>
+        deleteCustomerPhoto(button.dataset.deleteCustomerPhoto)
+      );
+    });
 }
 
 
@@ -2515,10 +2608,36 @@ function customerPhotoItemId(index, field) {
   return `customerPhotoItem_${index}_${field}`;
 }
 
+function clearCustomerPhotoPreviewUrls() {
+  customerPhotoPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+  customerPhotoPreviewUrls = [];
+}
+
+function setCustomerPhotoType(index, type) {
+  const input = document.getElementById(customerPhotoItemId(index, "type"));
+  if (!input) return;
+  input.value = type;
+
+  document
+    .querySelectorAll(`[data-photo-type-index="${index}"]`)
+    .forEach((button) => {
+      button.classList.toggle(
+        "is-selected",
+        button.dataset.photoTypeValue === type
+      );
+      button.setAttribute(
+        "aria-pressed",
+        button.dataset.photoTypeValue === type ? "true" : "false"
+      );
+    });
+}
+
 function renderSelectedCustomerPhotos() {
   const input = document.getElementById("customerPhotoFile");
   const wrap = document.getElementById("customerPhotoItems");
   const files = Array.from(input?.files || []);
+
+  clearCustomerPhotoPreviewUrls();
 
   if (!files.length) {
     wrap.innerHTML = "";
@@ -2527,43 +2646,64 @@ function renderSelectedCustomerPhotos() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  wrap.innerHTML = files.map((file, index) => `
-    <section class="es-customer-photo-upload-item" data-photo-index="${index}">
-      <div class="es-customer-photo-upload-heading">
-        <strong>Photo ${index + 1}</strong>
-        <small>${escapeHtml(file.name)}</small>
-      </div>
+  wrap.innerHTML = files.map((file, index) => {
+    const previewUrl = URL.createObjectURL(file);
+    customerPhotoPreviewUrls.push(previewUrl);
 
-      <div class="es-form-grid">
-        <label>
-          Photo type
-          <select id="${customerPhotoItemId(index, "type")}">
-            <option value="before">Before</option>
-            <option value="after">After</option>
-            <option value="progress">Progress</option>
-            <option value="consultation">Consultation</option>
-            <option value="patch_test">Patch test</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
+    return `
+      <section class="es-customer-photo-upload-item" data-photo-index="${index}">
+        <div class="es-customer-photo-upload-preview">
+          <img src="${escapeHtml(previewUrl)}" alt="Preview of ${escapeHtml(file.name)}">
+          <div>
+            <strong>Photo ${index + 1}</strong>
+            <small>${escapeHtml(file.name)}</small>
+          </div>
+        </div>
+
+        <input id="${customerPhotoItemId(index, "type")}" type="hidden" value="before">
+
+        <div class="es-customer-photo-field-label">Photo type</div>
+        <div class="es-customer-photo-type-pills" role="group" aria-label="Photo type for photo ${index + 1}">
+          ${["before", "after", "progress", "other"].map((type) => `
+            <button
+              class="es-photo-type-pill ${type === "before" ? "is-selected" : ""}"
+              type="button"
+              data-photo-type-index="${index}"
+              data-photo-type-value="${type}"
+              aria-pressed="${type === "before" ? "true" : "false"}"
+            >${escapeHtml(formatPhotoType(type))}</button>
+          `).join("")}
+        </div>
 
         <label>
           Date
           <input id="${customerPhotoItemId(index, "date")}" type="date" value="${today}">
         </label>
-      </div>
 
-      <label>
-        Notes
-        <textarea
-          id="${customerPhotoItemId(index, "notes")}"
-          maxlength="1000"
-          placeholder="Optional notes for this photo"
-        ></textarea>
-      </label>
-    </section>
-  `).join("");
+        <label>
+          Notes
+          <textarea
+            id="${customerPhotoItemId(index, "notes")}"
+            maxlength="1000"
+            placeholder="Optional notes for this photo"
+          ></textarea>
+        </label>
+      </section>
+    `;
+  }).join("");
+
+  wrap
+    .querySelectorAll("[data-photo-type-index]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        setCustomerPhotoType(
+          Number(button.dataset.photoTypeIndex),
+          button.dataset.photoTypeValue
+        );
+      });
+    });
 }
+
 
 function selectedCustomerPhotoMetadata(index) {
   return {
@@ -2574,19 +2714,63 @@ function selectedCustomerPhotoMetadata(index) {
 }
 
 
+function chooseSmartCustomerPhotoLinks() {
+  if (!activeProfileCustomer) return;
+
+  const appointmentSelect = document.getElementById("customerPhotoAppointment");
+  const treatmentSelect = document.getElementById("customerPhotoTreatmentRecord");
+  if (!appointmentSelect || !treatmentSelect) return;
+
+  const allAppointments = [
+    ...(activeProfileCustomer.upcoming_bookings || []),
+    ...(activeProfileCustomer.booking_history || [])
+  ];
+
+  const treatmentAppointments = allAppointments.filter(
+    (appointment) => appointment.booking_kind !== "consultation"
+  );
+
+  const candidates = treatmentAppointments.length
+    ? treatmentAppointments
+    : allAppointments;
+
+  const now = Date.now();
+  const selectedAppointment = candidates
+    .filter((appointment) => appointment.start_at)
+    .sort((a, b) => {
+      const aTime = new Date(a.start_at).getTime();
+      const bTime = new Date(b.start_at).getTime();
+      return Math.abs(aTime - now) - Math.abs(bTime - now);
+    })[0];
+
+  if (selectedAppointment?.id) {
+    appointmentSelect.value = String(selectedAppointment.id);
+  }
+
+  const matchingTreatment = (activeProfileCustomer.treatment_records || [])
+    .find((record) =>
+      selectedAppointment?.id &&
+      String(record.appointment_id || "") === String(selectedAppointment.id)
+    );
+
+  if (matchingTreatment?.id) {
+    treatmentSelect.value = String(matchingTreatment.id);
+  }
+}
+
 function openCustomerPhotoDialog() {
   if (!activeProfileCustomer) {
     return;
   }
 
   customerPhotoForm.reset();
+  clearCustomerPhotoPreviewUrls();
 
   document.getElementById(
     "customerPhotoItems"
   ).innerHTML = "";
 
-  customerPhotoStatus.hidden =
-    true;
+  customerPhotoStatus.hidden = true;
 
   document
     .getElementById(
@@ -2594,13 +2778,13 @@ function openCustomerPhotoDialog() {
     )
     .textContent =
       `Add photo · ${
-        activeProfileCustomer
-          .first_name
+        activeProfileCustomer.first_name
       }`;
 
+  chooseSmartCustomerPhotoLinks();
+
   if (
-    typeof customerPhotoDialog
-      .showModal ===
+    typeof customerPhotoDialog.showModal ===
     "function"
   ) {
     customerPhotoDialog.showModal();
@@ -2609,6 +2793,8 @@ function openCustomerPhotoDialog() {
 
 
 function closeCustomerPhotoDialog() {
+  clearCustomerPhotoPreviewUrls();
+
   if (
     customerPhotoDialog
       ?.open
