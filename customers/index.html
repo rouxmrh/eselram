@@ -1241,6 +1241,240 @@
       }
     }
 
+
+    /* Customers hub */
+    .es-customer-hub-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 18px;
+    }
+
+    .es-customer-hub-kpi {
+      display: grid;
+      gap: 5px;
+      min-height: 104px;
+      padding: 18px;
+      border: 1px solid var(--es-border);
+      border-radius: 18px;
+      background: var(--es-surface);
+      box-shadow: 0 7px 20px rgba(28, 34, 30, .035);
+    }
+
+    .es-customer-hub-kpi span,
+    .es-customer-hub-kpi small {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-hub-kpi strong {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .es-customer-clinical-overview {
+      margin-bottom: 18px;
+    }
+
+    .es-customer-hub-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .es-customer-hub-header h2 {
+      margin: 2px 0 0;
+    }
+
+    .es-customer-hub-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.35fr);
+      gap: 16px;
+    }
+
+    .es-customer-hub-block {
+      min-width: 0;
+      padding: 17px;
+      border: 1px solid var(--es-border);
+      border-radius: 16px;
+      background: #fafbf8;
+    }
+
+    .es-customer-hub-block-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .es-customer-hub-block-title h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .es-customer-hub-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      min-height: 28px;
+      padding: 0 8px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: var(--es-surface);
+      color: var(--es-muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .es-customer-hub-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .es-customer-hub-record {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid var(--es-border);
+      border-radius: 13px;
+      background: var(--es-surface);
+    }
+
+    .es-customer-hub-record-main {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .es-customer-hub-record-main strong,
+    .es-customer-hub-record-main span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .es-customer-hub-record-main span {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-hub-record-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid var(--es-border);
+      border-radius: 10px;
+      background: var(--es-surface);
+      color: var(--es-text);
+      font-size: 11px;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .es-customer-hub-record-action:hover {
+      border-color: var(--es-primary);
+    }
+
+    .es-customer-hub-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .es-customer-hub-status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+    }
+
+    .es-customer-hub-status-needs {
+      border: 1px solid #f1c8bf;
+      background: #fff1ed;
+      color: #8a3e2d;
+    }
+
+    .es-customer-hub-status-needs::before {
+      background: #d45f45;
+    }
+
+    .es-customer-hub-status-complete {
+      border: 1px solid #cce6d4;
+      background: #edf8f0;
+      color: #286b43;
+    }
+
+    .es-customer-hub-status-complete::before {
+      background: var(--es-success);
+    }
+
+    .es-customer-directory-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+
+    .es-customer-directory-tab {
+      min-height: 34px;
+      padding: 0 13px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: var(--es-surface);
+      color: var(--es-text);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .es-customer-directory-tab.active {
+      border-color: var(--es-primary);
+      background: #edf2ee;
+      color: var(--es-primary);
+    }
+
+    @media (max-width: 980px) {
+      .es-customer-hub-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .es-customer-hub-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .es-customer-hub-kpis {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .es-customer-hub-header {
+        display: grid;
+      }
+
+      .es-customer-hub-record {
+        grid-template-columns: 1fr;
+      }
+
+      .es-customer-hub-record-action {
+        justify-self: start;
+      }
+    }
 </style>
 </head>
 
@@ -1281,6 +1515,77 @@
         </button>
 
       </header>
+
+
+      <section class="es-customer-hub-kpis" aria-label="Customer and clinical overview">
+
+        <article class="es-customer-hub-kpi">
+          <span>Customers</span>
+          <strong id="customerHubTotalCustomers">0</strong>
+          <small>All customer profiles</small>
+        </article>
+
+        <article class="es-customer-hub-kpi">
+          <span>Treatment records</span>
+          <strong id="customerHubTreatmentRecords">0</strong>
+          <small>Clinical treatment history</small>
+        </article>
+
+        <article class="es-customer-hub-kpi">
+          <span>Needs details</span>
+          <strong id="customerHubNeedsDetails">0</strong>
+          <small>Records requiring attention</small>
+        </article>
+
+        <article class="es-customer-hub-kpi">
+          <span>Follow-ups planned</span>
+          <strong id="customerHubFollowups">0</strong>
+          <small>Records with a next treatment date</small>
+        </article>
+
+      </section>
+
+
+      <section class="es-dashboard-panel es-customer-clinical-overview">
+
+        <div class="es-customer-hub-header">
+          <div>
+            <p class="es-eyebrow">Clinical overview</p>
+            <h2>Customer care at a glance</h2>
+          </div>
+
+          <a class="es-secondary-button" href="/treatment-records/">
+            New treatment record
+          </a>
+        </div>
+
+        <div class="es-customer-hub-grid">
+
+          <div class="es-customer-hub-block">
+            <div class="es-customer-hub-block-title">
+              <h3>Needs attention</h3>
+              <span id="customerHubAttentionCount" class="es-customer-hub-count">0</span>
+            </div>
+
+            <div id="customerHubAttentionList" class="es-customer-hub-list">
+              <div class="es-empty-state">Loading clinical records…</div>
+            </div>
+          </div>
+
+          <div class="es-customer-hub-block">
+            <div class="es-customer-hub-block-title">
+              <h3>Recent treatment records</h3>
+              <span class="es-customer-hub-count">Latest</span>
+            </div>
+
+            <div id="customerHubRecentList" class="es-customer-hub-list">
+              <div class="es-empty-state">Loading treatment history…</div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
 
 
       <section
@@ -1443,6 +1748,19 @@
             aria-label="Search customers"
           >
 
+        </div>
+
+
+        <div class="es-customer-directory-tabs" aria-label="Customer filters">
+          <button class="es-customer-directory-tab active" type="button" data-customer-hub-filter="all">
+            All customers
+          </button>
+          <button class="es-customer-directory-tab" type="button" data-customer-hub-filter="attention">
+            Needs attention
+          </button>
+          <button class="es-customer-directory-tab" type="button" data-customer-hub-filter="followup">
+            Follow-up planned
+          </button>
         </div>
 
 
