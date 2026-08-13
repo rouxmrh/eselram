@@ -12,7 +12,6 @@ const items = [
   { key: "customers", label: "Customers", href: "/customers/" },
   { key: "services", label: "Services", href: "/services/" },
   { key: "packages", label: "Packages & Courses", href: "/packages/" },
-  { key: "treatment-records", label: "Treatment Records", href: "/treatment-records/" },
   { key: "clinical-records", label: "Clinical Records", href: "/clinical-submissions/" },
   { key: "payments", label: "Payments", href: "/payments/" },
   { key: "communications", label: "Communications", href: "/communications/" },
