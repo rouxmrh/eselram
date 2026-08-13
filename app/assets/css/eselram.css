@@ -3324,3 +3324,218 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 .success-mark{width:58px;height:58px;border-radius:50%;background:var(--es-primary);color:#fff;display:grid;place-items:center;font-weight:900;font-size:28px;margin-bottom:18px}.step[data-step="5"]{text-align:left;max-width:700px;margin:0 auto}.step[data-step="5"] .review-card{margin-top:24px}
 .booking-footer{border-top:1px solid var(--es-border);padding:20px 40px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--es-muted);font-size:12px}
 @media(max-width:720px){.booking-shell{padding:0}.booking-card{border-radius:0;border-left:0;border-right:0;min-height:100vh}.brand-header,.step{padding-left:22px;padding-right:22px}.progress{padding-left:22px;padding-right:22px}.progress-step b{display:none}.message{margin-left:22px;margin-right:22px}.service-grid,.form-grid.two,.review-card{grid-template-columns:1fr}.slots{grid-template-columns:repeat(3,1fr)}.booking-footer{padding-left:22px;padding-right:22px}.step-heading{display:block}.text-button{margin-top:4px}}
+
+/* Treatment Records workspace polish */
+.es-treatment-filter-group {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.es-treatment-filter-group select {
+  min-width: 142px;
+}
+
+.es-treatment-card-list {
+  gap: 12px;
+}
+
+.es-treatment-record-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-md);
+  background: var(--es-surface);
+  box-shadow: 0 8px 24px rgba(28, 34, 30, .035);
+}
+
+.es-treatment-record-card:hover {
+  border-color: #c5ccc4;
+  box-shadow: 0 10px 28px rgba(28, 34, 30, .06);
+}
+
+.es-treatment-record-main {
+  display: grid;
+  gap: 15px;
+  min-width: 0;
+}
+
+.es-treatment-record-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.es-treatment-record-heading h3 {
+  margin: 3px 0 3px;
+  font-size: 17px;
+}
+
+.es-treatment-record-heading p {
+  margin: 0;
+  color: var(--es-muted);
+  font-size: 12px;
+}
+
+.es-treatment-record-date {
+  color: var(--es-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+}
+
+.es-treatment-record-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.es-treatment-record-meta span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: #f7f8f5;
+  color: var(--es-text);
+  font-size: 12px;
+}
+
+.es-treatment-record-meta strong {
+  color: var(--es-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .035em;
+}
+
+.es-treatment-record-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.es-treatment-record-actions .es-button,
+.es-treatment-record-actions .es-secondary-button {
+  min-height: 38px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.es-treatment-status-complete {
+  color: #286b43;
+  background: #edf8f0;
+  border: 1px solid #cce6d4;
+}
+
+.es-treatment-status-draft {
+  color: #8a3e2d;
+  background: #fff1ed;
+  border: 1px solid #f1c8bf;
+}
+
+.es-treatment-status-draft::before {
+  background: #d45f45;
+}
+
+.es-treatment-drawer-header {
+  position: sticky;
+  top: -30px;
+  z-index: 2;
+  margin: -30px -30px 24px;
+  padding: 28px 30px 18px;
+  border-bottom: 1px solid var(--es-border);
+  background: rgba(255, 255, 255, .97);
+  backdrop-filter: blur(8px);
+}
+
+.es-treatment-drawer-close {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  background: var(--es-surface);
+  color: var(--es-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.es-treatment-drawer-close:hover {
+  border-color: var(--es-primary);
+}
+
+@media (max-width: 1100px) {
+  .es-treatment-record-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .es-treatment-record-card {
+    grid-template-columns: 1fr;
+  }
+
+  .es-treatment-record-actions {
+    justify-content: flex-start;
+  }
+
+  .es-treatment-record-heading {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .es-treatment-record-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .es-treatment-record-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .es-treatment-record-actions .es-button,
+  .es-treatment-record-actions .es-secondary-button {
+    justify-content: center;
+  }
+}
+
+.es-treatment-photo-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.es-treatment-photo-thumb {
+  overflow: hidden;
+  border: 1px solid var(--es-border);
+  border-radius: 12px;
+  background: #fafbf8;
+  color: var(--es-text);
+  text-decoration: none;
+}
+
+.es-treatment-photo-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.es-treatment-photo-thumb span {
+  display: block;
+  padding: 7px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .es-treatment-photo-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
