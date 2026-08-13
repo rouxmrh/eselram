@@ -567,6 +567,7 @@ function chooseSmartTreatmentAppointment(customerId, serviceId = "") {
   const candidates = appointments
     .filter((appointment) =>
       String(appointment.customer_id) === String(customerId) &&
+      appointment.booking_kind !== 'consultation' &&
       (!serviceId || String(appointment.service_id) === String(serviceId))
     )
     .sort((a, b) => {
@@ -686,9 +687,12 @@ function renderAppointmentOptions() {
   const filtered =
     appointments.filter(
       (appointment) =>
-        !customerId ||
-        appointment.customer_id ===
-          customerId
+        appointment.booking_kind !== 'consultation' &&
+        (
+          !customerId ||
+          appointment.customer_id ===
+            customerId
+        )
     );
 
 
