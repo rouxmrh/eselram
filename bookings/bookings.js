@@ -2528,7 +2528,7 @@ async function createStripePaymentLink(
       )}
       ${
         consultationCreditMinor > 0
-          ? ` · Consultation credit ${formatMoney(
+          ? ` · Treatment deposit ${formatMoney(
               consultationCreditMinor
             )}`
           : ""
@@ -2707,7 +2707,7 @@ function showBookingDetails(
         0
       ) > 0
         ? detailItem(
-            "Consultation credit",
+            `${booking.service_name} deposit`,
             formatMoney(
               booking.consultation_credit_minor
             )
