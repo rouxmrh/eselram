@@ -226,6 +226,7 @@ export async function onRequestGet({
               a.service_id,
               a.start_at,
               a.status,
+              a.booking_kind,
 
               c.first_name,
               c.last_name,
@@ -246,6 +247,8 @@ export async function onRequestGet({
               a.business_id = ?
               AND a.status !=
                   'cancelled'
+              AND a.booking_kind !=
+                  'consultation'
 
             ORDER BY
               datetime(
@@ -1067,7 +1070,8 @@ async function validatePayload({
           SELECT
             id,
             customer_id,
-            service_id
+            service_id,
+            booking_kind
 
           FROM appointments
 
@@ -1116,6 +1120,19 @@ async function validatePayload({
         ok: false,
         error:
           "Selected service does not match the appointment."
+      };
+    }
+
+
+    if (
+      appointment.booking_kind ===
+      "consultation"
+    ) {
+
+      return {
+        ok: false,
+        error:
+          "A treatment record cannot be linked to a consultation appointment."
       };
     }
   }
