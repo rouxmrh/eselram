@@ -38,7 +38,8 @@ async function getUserContext(
         u.id AS user_id,
         u.business_id,
         b.name AS business_name,
-        b.currency
+        b.currency,
+        b.website
 
       FROM user_sessions s
 
@@ -617,6 +618,52 @@ function getChargePlan(
 }
 
 
+function safeBusinessWebsite(
+  value
+) {
+  const raw =
+    String(
+      value ||
+      ""
+    ).trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  let parsed;
+
+  try {
+    parsed =
+      new URL(
+        raw
+      );
+  } catch {
+    try {
+      parsed =
+        new URL(
+          `https://${raw}`
+        );
+    } catch {
+      return "";
+    }
+  }
+
+  if (
+    ![
+      "http:",
+      "https:"
+    ].includes(
+      parsed.protocol
+    )
+  ) {
+    return "";
+  }
+
+  return parsed.toString();
+}
+
+
 export async function onRequestPost({
   request,
   env
@@ -887,17 +934,31 @@ export async function onRequestPost({
     );
 
 
+    const businessWebsite =
+      safeBusinessWebsite(
+        user.website
+      );
+
+
+    const returnQuery =
+      new URLSearchParams({
+        business:
+          user.business_name ||
+          "the business",
+        website:
+          businessWebsite
+      });
+
+
     params.set(
       "success_url",
-      `${origin}/payments/stripe-success/?session_id={CHECKOUT_SESSION_ID}`
+      `${origin}/payment-result/?status=success&${returnQuery.toString()}`
     );
 
 
     params.set(
       "cancel_url",
-      `${origin}/payments/stripe-cancelled/?appointment_id=${encodeURIComponent(
-        appointment.id
-      )}`
+      `${origin}/payment-result/?status=cancelled&${returnQuery.toString()}`
     );
 
 
