@@ -93,7 +93,15 @@ async function init() {
     summary.innerHTML = `
       <div class="review-item"><small>Booking</small><strong>${escapeHtml(data.booking.booking_label || data.booking.service_name)}</strong></div>
       <div class="review-item"><small>Date & time</small><strong>${escapeHtml(formatDateTime(data.booking.start_at))}</strong></div>
-      <div class="review-item"><small>Payment</small><strong>${escapeHtml(data.payment.payment_type === "deposit" ? "Deposit paid" : "Paid in full")}</strong></div>
+      <div class="review-item"><small>Payment</small><strong>${escapeHtml(
+        data.payment.payment_type === "deposit"
+          ? (
+              data.booking.booking_kind === "service"
+                ? "Booking deposit paid"
+                : "Deposit paid"
+            )
+          : "Paid in full"
+      )}</strong></div>
       ${Number(data.booking.consultation_credit_minor || 0) > 0
         ? `<div class="review-item"><small>Consultation credit</small><strong>${escapeHtml(
             money(
@@ -127,7 +135,11 @@ async function init() {
         data.booking.booking_kind ===
           "consultation"
           ? "This is your consultation booking. Treatment can be booked after it is completed."
-          : "Your consultation requirement has been met."
+          : (
+              data.payment.payment_type === "deposit"
+                ? "Your consultation requirement has been met. Your booking deposit secures this appointment and is deducted from your treatment total. If you cancel less than 24 hours before the appointment, the deposit is non-refundable."
+                : "Your consultation requirement has been met."
+            )
       );
     }
     if (Number(data.booking.requires_patch_test || 0) === 1) requirements.push("A patch test is required before treatment.");
