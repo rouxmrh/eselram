@@ -8,6 +8,28 @@ const customerSearch =
     "customerSearch"
   );
 
+
+const customerHubTotalCustomers =
+  document.getElementById("customerHubTotalCustomers");
+
+const customerHubTreatmentRecords =
+  document.getElementById("customerHubTreatmentRecords");
+
+const customerHubNeedsDetails =
+  document.getElementById("customerHubNeedsDetails");
+
+const customerHubFollowups =
+  document.getElementById("customerHubFollowups");
+
+const customerHubAttentionCount =
+  document.getElementById("customerHubAttentionCount");
+
+const customerHubAttentionList =
+  document.getElementById("customerHubAttentionList");
+
+const customerHubRecentList =
+  document.getElementById("customerHubRecentList");
+
 const customerFormPanel =
   document.getElementById(
     "customerFormPanel"
@@ -156,6 +178,8 @@ const newCustomerBookingButton =
 
 
 let customers = [];
+let customerHubTreatmentRecordsData = [];
+let customerHubFilter = "all";
 let showFailedCustomerPayments = false;
 
 let activeProfileCustomer = null;
@@ -268,6 +292,26 @@ customerSearch.addEventListener(
 );
 
 
+document
+  .querySelectorAll("[data-customer-hub-filter]")
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      customerHubFilter = button.dataset.customerHubFilter || "all";
+
+      document
+        .querySelectorAll("[data-customer-hub-filter]")
+        .forEach((item) => {
+          item.classList.toggle(
+            "active",
+            item.dataset.customerHubFilter === customerHubFilter
+          );
+        });
+
+      renderCustomers();
+    });
+  });
+
+
 document.addEventListener(
   "keydown",
   (event) => {
@@ -339,6 +383,11 @@ async function loadCustomers() {
       [];
 
 
+    if (customerHubTotalCustomers) {
+      customerHubTotalCustomers.textContent = customers.length;
+    }
+
+
     renderCustomers();
 
 
@@ -366,6 +415,25 @@ function renderCustomers() {
   const filtered =
     customers.filter(
       (customer) => {
+
+        const customerRecordRows =
+          customerHubTreatmentRecordsData.filter(
+            (record) => record.customer_id === customer.id
+          );
+
+        if (
+          customerHubFilter === "attention" &&
+          !customerRecordRows.some((record) => record.status === "draft")
+        ) {
+          return false;
+        }
+
+        if (
+          customerHubFilter === "followup" &&
+          !customerRecordRows.some((record) => Boolean(record.next_treatment_date))
+        ) {
+          return false;
+        }
 
         if (!query) {
           return true;
@@ -531,6 +599,251 @@ function renderCustomers() {
         );
       }
     );
+}
+
+
+
+/* =======================================================
+   Customers hub — read-only clinical overview
+   ======================================================= */
+
+async function loadCustomerClinicalOverview() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/treatment-records",
+        {
+          headers: {
+            Accept: "application/json"
+          },
+          cache: "no-store"
+        }
+      );
+
+
+    handleAuthentication(response);
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load clinical overview."
+      );
+    }
+
+
+    customerHubTreatmentRecordsData =
+      data.records ||
+      [];
+
+
+    renderCustomerClinicalOverview(
+      data.stats ||
+      {}
+    );
+
+    renderCustomers();
+
+
+  } catch (error) {
+
+    if (customerHubAttentionList) {
+      customerHubAttentionList.innerHTML = `
+        <div class="es-status error">
+          ${escapeHtml(error.message || "Unable to load clinical records.")}
+        </div>
+      `;
+    }
+
+    if (customerHubRecentList) {
+      customerHubRecentList.innerHTML = `
+        <div class="es-status error">
+          Clinical history is unavailable.
+        </div>
+      `;
+    }
+  }
+}
+
+
+function renderCustomerClinicalOverview(stats) {
+
+  if (customerHubTreatmentRecords) {
+    customerHubTreatmentRecords.textContent =
+      stats.total_records ||
+      customerHubTreatmentRecordsData.length ||
+      0;
+  }
+
+  if (customerHubNeedsDetails) {
+    customerHubNeedsDetails.textContent =
+      stats.draft_records ||
+      customerHubTreatmentRecordsData.filter(
+        (record) => record.status === "draft"
+      ).length;
+  }
+
+  if (customerHubFollowups) {
+    customerHubFollowups.textContent =
+      stats.followup_records ||
+      customerHubTreatmentRecordsData.filter(
+        (record) => Boolean(record.next_treatment_date)
+      ).length;
+  }
+
+
+  const needsAttention =
+    customerHubTreatmentRecordsData
+      .filter((record) => record.status === "draft")
+      .sort(
+        (a, b) =>
+          customerHubRecordDateValue(b) -
+          customerHubRecordDateValue(a)
+      );
+
+
+  if (customerHubAttentionCount) {
+    customerHubAttentionCount.textContent =
+      needsAttention.length;
+  }
+
+
+  if (customerHubAttentionList) {
+
+    if (needsAttention.length === 0) {
+
+      customerHubAttentionList.innerHTML = `
+        <div class="es-empty-state">
+          <strong>No treatment records need attention.</strong>
+          <span>Incomplete records will appear here automatically.</span>
+        </div>
+      `;
+
+    } else {
+
+      customerHubAttentionList.innerHTML =
+        needsAttention
+          .slice(0, 4)
+          .map(
+            (record) =>
+              customerHubRecordCard(
+                record,
+                "needs"
+              )
+          )
+          .join("");
+    }
+  }
+
+
+  const recent =
+    [...customerHubTreatmentRecordsData]
+      .sort(
+        (a, b) =>
+          customerHubRecordDateValue(b) -
+          customerHubRecordDateValue(a)
+      )
+      .slice(0, 5);
+
+
+  if (customerHubRecentList) {
+
+    if (recent.length === 0) {
+
+      customerHubRecentList.innerHTML = `
+        <div class="es-empty-state">
+          <strong>No treatment records yet.</strong>
+          <span>Records created from customer profiles will appear here.</span>
+        </div>
+      `;
+
+    } else {
+
+      customerHubRecentList.innerHTML =
+        recent
+          .map(
+            (record) =>
+              customerHubRecordCard(
+                record,
+                record.status === "draft"
+                  ? "needs"
+                  : "complete"
+              )
+          )
+          .join("");
+    }
+  }
+}
+
+
+function customerHubRecordCard(
+  record,
+  statusKind
+) {
+
+  const customerName =
+    `${record.first_name || ""} ${record.last_name || ""}`
+      .trim() ||
+      "Customer";
+
+  const serviceName =
+    record.service_name ||
+    "Treatment";
+
+  const recordDate =
+    record.treatment_date
+      ? formatDate(record.treatment_date)
+      : "No date";
+
+  const statusLabel =
+    statusKind === "needs"
+      ? "Needs details"
+      : "Complete";
+
+  return `
+    <article class="es-customer-hub-record">
+      <div class="es-customer-hub-record-main">
+        <span class="es-customer-hub-status es-customer-hub-status-${statusKind}">
+          ${statusLabel}
+        </span>
+        <strong>${escapeHtml(customerName)}</strong>
+        <span>${escapeHtml(serviceName)} · ${escapeHtml(recordDate)}</span>
+      </div>
+
+      <a
+        class="es-customer-hub-record-action"
+        href="/customers/?customer=${encodeURIComponent(record.customer_id)}"
+      >
+        Open customer
+      </a>
+    </article>
+  `;
+}
+
+
+function customerHubRecordDateValue(record) {
+
+  const value =
+    record.treatment_date ||
+    record.created_at ||
+    "";
+
+  const parsed =
+    new Date(value).getTime();
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : 0;
 }
 
 
@@ -4276,4 +4589,5 @@ window.addEventListener("message", event => {
 
 
 loadCustomers();
+loadCustomerClinicalOverview();
 
