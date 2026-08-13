@@ -63,6 +63,16 @@ const treatmentStatusFilter =
     "treatmentStatusFilter"
   );
 
+const treatmentServiceFilter =
+  document.getElementById(
+    "treatmentServiceFilter"
+  );
+
+const treatmentDateFilter =
+  document.getElementById(
+    "treatmentDateFilter"
+  );
+
 const treatmentDrawer =
   document.getElementById(
     "treatmentDrawer"
@@ -104,6 +114,7 @@ let records = [];
 let customers = [];
 let appointments = [];
 let services = [];
+let photos = [];
 let currentUser = null;
 let activeRecord = null;
 
@@ -190,6 +201,16 @@ treatmentStatusFilter.addEventListener(
   renderRecords
 );
 
+treatmentServiceFilter.addEventListener(
+  "change",
+  renderRecords
+);
+
+treatmentDateFilter.addEventListener(
+  "change",
+  renderRecords
+);
+
 
 treatmentCustomer.addEventListener(
   "change",
@@ -263,6 +284,10 @@ async function loadTreatmentRecords() {
       data.services ||
       [];
 
+    photos =
+      data.photos ||
+      [];
+
     currentUser =
       data.user ||
       null;
@@ -276,6 +301,8 @@ async function loadTreatmentRecords() {
     renderCustomerOptions();
 
     renderServiceOptions();
+
+    renderServiceFilterOptions();
 
     renderRecords();
 
@@ -330,6 +357,24 @@ function renderStats(
     .textContent =
       stats.followup_records ||
       0;
+}
+
+
+function renderServiceFilterOptions() {
+  if (!treatmentServiceFilter) return;
+
+  const currentValue = treatmentServiceFilter.value || "all";
+
+  treatmentServiceFilter.innerHTML = `
+    <option value="all">All services</option>
+    ${services.map((service) => `
+      <option value="${escapeHtml(service.id)}">${escapeHtml(service.name)}</option>
+    `).join("")}
+  `;
+
+  if ([...treatmentServiceFilter.options].some((option) => option.value === currentValue)) {
+    treatmentServiceFilter.value = currentValue;
+  }
 }
 
 
@@ -1066,10 +1111,21 @@ function renderRecords() {
       .trim()
       .toLowerCase();
 
-
   const status =
     treatmentStatusFilter.value;
 
+  const serviceId =
+    treatmentServiceFilter?.value || "all";
+
+  const dateFilter =
+    treatmentDateFilter?.value || "all";
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(now.getDate() - 30);
+  const ninetyDaysAgo = new Date(now);
+  ninetyDaysAgo.setDate(now.getDate() - 90);
 
   const filtered =
     records.filter(
@@ -1079,186 +1135,142 @@ function renderRecords() {
           status !== "all" &&
           record.status !== status
         ) {
-
           return false;
         }
 
+        if (
+          serviceId !== "all" &&
+          String(record.service_id || "") !== String(serviceId)
+        ) {
+          return false;
+        }
+
+        const recordDate = new Date(record.treatment_date);
+
+        if (
+          dateFilter === "this_month" &&
+          recordDate < startOfMonth
+        ) {
+          return false;
+        }
+
+        if (
+          dateFilter === "last_30" &&
+          recordDate < thirtyDaysAgo
+        ) {
+          return false;
+        }
+
+        if (
+          dateFilter === "last_90" &&
+          recordDate < ninetyDaysAgo
+        ) {
+          return false;
+        }
 
         if (!query) {
           return true;
         }
-
 
         const searchable = [
           record.first_name,
           record.last_name,
           record.service_name,
           record.treatment_area,
-          record.practitioner_name
+          record.practitioner_name,
+          record.device_name
         ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
 
-
-        return searchable.includes(
-          query
-        );
+        return searchable.includes(query);
       }
     );
 
-
-  if (
-    filtered.length === 0
-  ) {
-
+  if (filtered.length === 0) {
     treatmentRecordsList.className =
       "es-empty-state";
 
     treatmentRecordsList.innerHTML = `
-      <strong>
-        No treatment records found.
-      </strong>
-
-      <span>
-        Create a treatment record from a completed or existing appointment.
-      </span>
+      <strong>No treatment records found.</strong>
+      <span>Try changing the filters or create a new treatment record.</span>
     `;
 
     return;
   }
 
-
   treatmentRecordsList.className =
-    "es-treatment-list";
-
+    "es-treatment-list es-treatment-card-list";
 
   treatmentRecordsList.innerHTML =
     filtered
       .map(
-        (record) => `
-          <article class="es-treatment-row">
+        (record) => {
+          const photoCount = Number(record.photo_count || 0);
+          const complete = record.status === "complete";
+          const statusLabel = complete ? "Complete" : "Needs details";
 
-            <div class="es-treatment-cell">
+          return `
+            <article class="es-treatment-record-card">
+              <div class="es-treatment-record-main">
+                <div class="es-treatment-record-heading">
+                  <div>
+                    <span class="es-treatment-record-date">${formatShortDate(record.treatment_date)}</span>
+                    <h3>${escapeHtml(`${record.first_name} ${record.last_name}`)}</h3>
+                    <p>${escapeHtml(record.service_name || "Service")}${record.treatment_area ? ` · ${escapeHtml(record.treatment_area)}` : ""}</p>
+                  </div>
 
-              <strong>
-                ${formatShortDate(
-                  record.treatment_date
-                )}
-              </strong>
+                  <span class="es-treatment-status es-treatment-status-${escapeHtml(record.status)}">
+                    ${escapeHtml(statusLabel)}
+                  </span>
+                </div>
 
-              <span>
-                ${escapeHtml(
-                  record.practitioner_name ||
-                  "Practitioner"
-                )}
-              </span>
+                <div class="es-treatment-record-meta">
+                  <span><strong>Practitioner</strong>${escapeHtml(record.practitioner_name || "—")}</span>
+                  <span><strong>Device</strong>${escapeHtml(record.device_name || "Not recorded")}</span>
+                  <span><strong>Photos</strong>${photoCount}</span>
+                  <span><strong>Next treatment</strong>${record.next_treatment_date ? formatShortDate(record.next_treatment_date) : "—"}</span>
+                </div>
+              </div>
 
-            </div>
+              <div class="es-treatment-record-actions">
+                <a
+                  class="es-secondary-button es-treatment-customer-link"
+                  href="/customers/?customer=${encodeURIComponent(record.customer_id)}"
+                >
+                  Customer
+                </a>
 
-
-            <div class="es-treatment-cell">
-
-              <strong>
-                ${escapeHtml(
-                  `${record.first_name} ${record.last_name}`
-                )}
-              </strong>
-
-              <span>
-                ${escapeHtml(
-                  record.treatment_area ||
-                  "No treatment area"
-                )}
-              </span>
-
-            </div>
-
-
-            <div class="es-treatment-cell">
-
-              <strong>
-                ${escapeHtml(
-                  record.service_name ||
-                  "Service"
-                )}
-              </strong>
-
-              <span>
-                ${escapeHtml(
-                  record.device_name ||
-                  "No device recorded"
-                )}
-              </span>
-
-            </div>
-
-
-            <div>
-
-              <span
-                class="
-                  es-treatment-status
-                  es-treatment-status-${escapeHtml(
-                    record.status
-                  )}
-                "
-              >
-                ${escapeHtml(
-                  formatStatus(
-                    record.status
-                  )
-                )}
-              </span>
-
-            </div>
-
-
-            <div class="es-treatment-actions">
-
-              <button
-                class="es-treatment-action"
-                type="button"
-                data-view-treatment="${escapeHtml(
-                  record.id
-                )}"
-              >
-                View
-              </button>
-
-            </div>
-
-          </article>
-        `
+                <button
+                  class="es-button"
+                  type="button"
+                  data-view-treatment="${escapeHtml(record.id)}"
+                >
+                  View record
+                </button>
+              </div>
+            </article>
+          `;
+        }
       )
       .join("");
 
-
   document
-    .querySelectorAll(
-      "[data-view-treatment]"
-    )
+    .querySelectorAll("[data-view-treatment]")
     .forEach(
       (button) => {
-
         button.addEventListener(
           "click",
           () => {
-
             const record =
               records.find(
                 (item) =>
-                  item.id ===
-                  button.dataset
-                    .viewTreatment
+                  item.id === button.dataset.viewTreatment
               );
-
 
             if (record) {
-
-              showTreatmentDetails(
-                record
-              );
+              showTreatmentDetails(record);
             }
           }
         );
@@ -1292,9 +1304,9 @@ function showTreatmentDetails(
 
     ${detailItem(
       "Status",
-      formatStatus(
-        record.status
-      )
+      record.status === "complete"
+        ? "Complete"
+        : "Needs details"
     )}
 
     ${detailItem(
@@ -1330,6 +1342,11 @@ function showTreatmentDetails(
     )}
 
     ${detailItem(
+      "Linked photos",
+      String(Number(record.photo_count || 0))
+    )}
+
+    ${detailItem(
       "Next treatment date",
       record.next_treatment_date
         ? formatFullDate(
@@ -1340,7 +1357,13 @@ function showTreatmentDetails(
   `;
 
 
+  const linkedPhotos = photos.filter(
+    (photo) => String(photo.treatment_record_id || "") === String(record.id)
+  );
+
   treatmentClinicalNotes.innerHTML = `
+    ${linkedPhotosSection(linkedPhotos)}
+
     ${noteSection(
       "Treatment notes",
       record.treatment_notes
@@ -1409,6 +1432,42 @@ function detailItem(
 
     </div>
   `;
+}
+
+
+function linkedPhotosSection(linkedPhotos) {
+  if (!linkedPhotos.length) {
+    return "";
+  }
+
+  return `
+    <section class="es-treatment-section">
+      <h3>Linked photos</h3>
+      <div class="es-treatment-photo-strip">
+        ${linkedPhotos.slice(0, 6).map((photo) => `
+          <a
+            class="es-treatment-photo-thumb"
+            href="${escapeHtml(photo.content_url)}"
+            target="_blank"
+            rel="noopener"
+            title="${escapeHtml(photo.photo_type || photo.original_name || "Treatment photo")}"
+          >
+            <img
+              src="${escapeHtml(photo.content_url)}"
+              alt="${escapeHtml(photo.photo_type || "Treatment photo")}"
+            >
+            <span>${escapeHtml(formatPhotoLabel(photo.photo_type))}</span>
+          </a>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function formatPhotoLabel(value) {
+  const normalised = String(value || "Photo").trim().toLowerCase();
+  if (!normalised) return "Photo";
+  return normalised.charAt(0).toUpperCase() + normalised.slice(1);
 }
 
 
