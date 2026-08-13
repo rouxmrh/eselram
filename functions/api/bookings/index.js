@@ -1954,61 +1954,38 @@ export async function onRequestPut({
           );
 
 
-    await env.DB.batch([
-      env.DB
-        .prepare(`
-          UPDATE customers
+    // Editing/rescheduling a booking must not overwrite the
+    // linked customer's identity/contact details. Customer details
+    // are managed from the customer record, not the appointment edit.
+    await env.DB
+      .prepare(`
+        UPDATE appointments
 
-          SET
-            first_name = ?,
-            last_name = ?,
-            email = ?,
-            phone = ?,
-            updated_at =
-              CURRENT_TIMESTAMP
+        SET
+          service_id = ?,
+          start_at = ?,
+          end_at = ?,
+          price_minor = ?,
+          deposit_due_minor = ?,
+          customer_notes = ?,
+          updated_at =
+            CURRENT_TIMESTAMP
 
-          WHERE
-            id = ?
-            AND business_id = ?
-        `)
-        .bind(
-          firstName,
-          lastName,
-          email || null,
-          phone || null,
-          existing.customer_id,
-          user.business_id
-        ),
-
-      env.DB
-        .prepare(`
-          UPDATE appointments
-
-          SET
-            service_id = ?,
-            start_at = ?,
-            end_at = ?,
-            price_minor = ?,
-            deposit_due_minor = ?,
-            customer_notes = ?,
-            updated_at =
-              CURRENT_TIMESTAMP
-
-          WHERE
-            id = ?
-            AND business_id = ?
-        `)
-        .bind(
-          serviceId,
-          startAt,
-          endAt,
-          priceMinor,
-          depositDueMinor,
-          notes || null,
-          appointmentId,
-          user.business_id
-        )
-    ]);
+        WHERE
+          id = ?
+          AND business_id = ?
+      `)
+      .bind(
+        serviceId,
+        startAt,
+        endAt,
+        priceMinor,
+        depositDueMinor,
+        notes || null,
+        appointmentId,
+        user.business_id
+      )
+      .run();
 
 
     const appointmentChanged =
