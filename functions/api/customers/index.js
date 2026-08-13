@@ -228,6 +228,7 @@ export async function onRequestGet({
               a.end_at,
               a.price_minor,
               a.deposit_due_minor,
+              a.booking_kind,
               s.id AS service_id,
               s.name AS service_name,
 
@@ -283,6 +284,7 @@ export async function onRequestGet({
               a.end_at,
               a.price_minor,
               a.deposit_due_minor,
+              a.booking_kind,
               s.id AS service_id,
               s.name AS service_name,
 
@@ -983,11 +985,16 @@ export async function onRequestGet({
                   payment.package_name ||
                   "Package"
                 }`
-              : `Payment${
+              : (
+                  payment.appointment_booking_kind ===
+                    "consultation" &&
                   payment.service_name
-                    ? ` · ${payment.service_name}`
-                    : ""
-                }`,
+                    ? `Consultation · ${payment.service_name}`
+                    : (
+                        payment.service_name ||
+                        "Customer payment"
+                      )
+                ),
           subtitle:
             payment.status,
           amount_minor:
@@ -997,6 +1004,9 @@ export async function onRequestGet({
             ),
           payment_type:
             payment.payment_type,
+          appointment_booking_kind:
+            payment.appointment_booking_kind ||
+            null,
           appointment_id:
             payment.appointment_id ||
             null,
@@ -1068,11 +1078,22 @@ export async function onRequestGet({
                     : ""
                 }`
               : (
-                  appointment.service_name ||
-                  "Appointment"
+                  appointment.booking_kind ===
+                    "consultation"
+                    ? `Consultation · ${
+                        appointment.service_name ||
+                        "Appointment"
+                      }`
+                    : (
+                        appointment.service_name ||
+                        "Appointment"
+                      )
                 ),
           subtitle:
             appointment.status,
+          booking_kind:
+            appointment.booking_kind ||
+            "service",
           appointment_id:
             appointment.id,
           customer_package_id:
