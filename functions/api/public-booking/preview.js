@@ -78,11 +78,36 @@ export async function onRequestPost({ request, env }) {
     const normalizedFirst = firstName.toLowerCase();
     const normalizedLast = lastName.toLowerCase();
 
-    const customer =
-      candidates.find(item =>
-        String(item.first_name || "").trim().toLowerCase() === normalizedFirst &&
-        String(item.last_name || "").trim().toLowerCase() === normalizedLast
-      ) || null;
+    const identityMatches = candidates.filter(item =>
+      String(item.first_name || "").trim().toLowerCase() === normalizedFirst &&
+      String(item.last_name || "").trim().toLowerCase() === normalizedLast
+    );
+
+    // Prefer the matching customer record that actually owns the completed
+    // consultation for this service. This keeps the preview aligned with the
+    // consultation-credit source even if test/import data contains duplicate
+    // customer identities.
+    let customer = identityMatches[0] || null;
+
+    if (
+      bookingIntent === "service" &&
+      Number(service.requires_consultation || 0) === 1 &&
+      identityMatches.length > 1
+    ) {
+      for (const candidate of identityMatches) {
+        const candidateCompleted = await hasCompletedConsultation({
+          env,
+          businessId: business.id,
+          customerId: candidate.id,
+          serviceId: service.id
+        });
+
+        if (candidateCompleted) {
+          customer = candidate;
+          break;
+        }
+      }
+    }
 
     const priceMinor = Math.max(0, Number(service.price_minor || 0));
     const depositMinor = Math.max(0, Number(service.deposit_minor || 0));
