@@ -564,22 +564,51 @@ function applySafePreviousRecordDefaults(source) {
 }
 
 function chooseSmartTreatmentAppointment(customerId, serviceId = "") {
+  const now = Date.now();
+
   const candidates = appointments
     .filter((appointment) =>
       String(appointment.customer_id) === String(customerId) &&
-      appointment.booking_kind !== 'consultation' &&
+      appointment.booking_kind !== "consultation" &&
       (!serviceId || String(appointment.service_id) === String(serviceId))
-    )
-    .sort((a, b) => {
-      const now = Date.now();
-      return Math.abs(new Date(a.start_at).getTime() - now) -
-        Math.abs(new Date(b.start_at).getTime() - now);
-    });
+    );
 
-  const unrecorded = candidates.find((appointment) =>
-    !records.some((record) => String(record.appointment_id || "") === String(appointment.id))
+  const hasTreatmentRecord = (appointment) =>
+    records.some(
+      (record) =>
+        String(record.appointment_id || "") === String(appointment.id)
+    );
+
+  // "Create next record" is used for package and non-package treatments.
+  // Prefer the customer's next unrecorded treatment appointment for this
+  // service. If none is upcoming, fall back to the nearest unrecorded past
+  // appointment, then to the nearest matching appointment of any kind.
+  const unrecorded = candidates.filter((appointment) => !hasTreatmentRecord(appointment));
+
+  const upcomingUnrecorded = unrecorded
+    .filter((appointment) => new Date(appointment.start_at).getTime() >= now)
+    .sort(
+      (a, b) =>
+        new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+    );
+
+  const pastUnrecorded = unrecorded
+    .filter((appointment) => new Date(appointment.start_at).getTime() < now)
+    .sort(
+      (a, b) =>
+        new Date(b.start_at).getTime() - new Date(a.start_at).getTime()
+    );
+
+  const nearestMatching = [...candidates].sort(
+    (a, b) =>
+      Math.abs(new Date(a.start_at).getTime() - now) -
+      Math.abs(new Date(b.start_at).getTime() - now)
   );
-  const selected = unrecorded || candidates[0];
+
+  const selected =
+    upcomingUnrecorded[0] ||
+    pastUnrecorded[0] ||
+    nearestMatching[0];
 
   if (selected) {
     treatmentAppointment.value = selected.id;
