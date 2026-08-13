@@ -2299,8 +2299,7 @@ function renderCustomerTreatmentRecords(
             <span class="es-customer-treatment-card-title">
               <strong>${escapeHtml(record.service_name || "Treatment record")}</strong>
               <small>${escapeHtml([
-                formatShortDate(record.treatment_date),
-                record.treatment_area,
+                formatDate(record.treatment_date),
                 appointmentLabel
               ].filter(Boolean).join(" · "))}</small>
             </span>
