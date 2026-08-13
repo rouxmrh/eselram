@@ -46,7 +46,10 @@ export async function onRequestGet({ request, env }) {
     return Response.json({
       ok: true,
       sale,
-      business: { name: business.name }
+      business: {
+        name: business.name,
+        website: business.website || null
+      }
     });
   } catch (error) {
     console.error("Public package status failed:", error);
