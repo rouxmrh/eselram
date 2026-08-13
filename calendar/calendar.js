@@ -597,10 +597,29 @@ function showBookingDetails(
       )
     )}
 
+    ${
+      Number(booking.consultation_credit_minor || 0) > 0
+        ? detailItem(
+            "Consultation credit",
+            formatMoney(booking.consultation_credit_minor)
+          )
+        : Number(booking.deposit_due_minor || 0) > 0
+          ? detailItem(
+              "Deposit",
+              formatMoney(booking.deposit_due_minor)
+            )
+          : ""
+    }
+
     ${detailItem(
-      "Deposit due",
+      "Remaining balance",
       formatMoney(
-        booking.deposit_due_minor
+        Math.max(
+          Number(booking.price_minor || 0) -
+          Number(booking.paid_minor || 0) -
+          Number(booking.consultation_credit_minor || 0),
+          0
+        )
       )
     )}
 
