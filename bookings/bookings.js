@@ -3165,6 +3165,52 @@ async function updateBookingAction({
    Form display
    ======================================================= */
 
+function setBookingCustomerFieldsReadOnly(
+  readOnly
+) {
+  [
+    "firstName",
+    "lastName",
+    "email",
+    "phone"
+  ].forEach((id) => {
+    const field =
+      document.getElementById(id);
+
+    if (field) {
+      field.readOnly =
+        Boolean(readOnly);
+
+      field.autocomplete =
+        readOnly
+          ? "off"
+          : (
+              id === "email"
+                ? "email"
+                : id === "phone"
+                  ? "tel"
+                  : "off"
+            );
+    }
+  });
+
+  if (customerSearch) {
+    customerSearch.disabled =
+      Boolean(readOnly);
+  }
+
+  const clearButton =
+    document.getElementById(
+      "clearSelectedCustomer"
+    );
+
+  if (clearButton) {
+    clearButton.hidden =
+      Boolean(readOnly);
+  }
+}
+
+
 function openBookingForm(
   booking = null
 ) {
@@ -3297,6 +3343,13 @@ function openBookingForm(
     selectedCustomer.hidden =
       false;
 
+    // Editing/rescheduling an appointment must never change who
+    // the customer is. Keep the booking's stored customer details
+    // visible and protect them from browser autofill/owner details.
+    setBookingCustomerFieldsReadOnly(
+      true
+    );
+
 
     loadAvailability(
       parts.time
@@ -3322,6 +3375,10 @@ function openBookingForm(
 
     saveBookingButton.textContent =
       "Create booking";
+
+    setBookingCustomerFieldsReadOnly(
+      false
+    );
   }
 
 
@@ -3352,6 +3409,10 @@ function resetBookingForm(
 ) {
 
   form.reset();
+
+  setBookingCustomerFieldsReadOnly(
+    false
+  );
 
   bookingId.value =
     "";
