@@ -359,6 +359,72 @@ function openPaymentForm() {
 }
 
 
+function openPaymentFormForAppointment(
+  appointmentId
+) {
+  const appointment =
+    appointments.find(
+      (item) =>
+        item.id ===
+        appointmentId
+    );
+
+  if (!appointment) {
+    return false;
+  }
+
+  openPaymentForm();
+
+  paymentCustomer.value =
+    appointment.customer_id;
+
+  renderAppointmentOptions();
+
+  paymentAppointment.value =
+    appointment.id;
+
+  prefillOutstandingAmount();
+
+  return true;
+}
+
+
+function applyPaymentQueryPrefill() {
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const appointmentId =
+    String(
+      params.get(
+        "appointment_id"
+      ) ||
+      ""
+    ).trim();
+
+  if (
+    !appointmentId ||
+    params.get("record") !==
+      "1"
+  ) {
+    return;
+  }
+
+  if (
+    openPaymentFormForAppointment(
+      appointmentId
+    )
+  ) {
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname
+    );
+  }
+}
+
+
 function closePaymentForm() {
 
   paymentFormPanel.hidden =
@@ -523,6 +589,10 @@ function prefillOutstandingAmount() {
     Number(
       appointment.paid_minor ||
       0
+    ) > 0 ||
+    Number(
+      appointment.consultation_credit_minor ||
+      0
     ) > 0
   ) {
 
@@ -677,7 +747,10 @@ paymentForm.addEventListener(
         "Payment recorded.";
 
 
-      await loadPayments();
+      await loadPayments()
+  .then(
+    applyPaymentQueryPrefill
+  );
 
 
       setTimeout(
