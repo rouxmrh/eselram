@@ -210,7 +210,8 @@ async function getReusablePendingCheckout({
   env,
   integration,
   businessId,
-  appointmentId
+  appointmentId,
+  plan
 }) {
 
   const pending =
@@ -246,7 +247,10 @@ async function getReusablePendingCheckout({
 
 
   if (!pending) {
-    return null;
+    return {
+      checkout: null,
+      paymentStateChanged: false
+    };
   }
 
 
@@ -263,70 +267,102 @@ async function getReusablePendingCheckout({
 
   if (
     sessionResult.response.ok &&
-    sessionResult.data?.status === "open" &&
+    sessionResult.data?.status ===
+      "open" &&
     sessionResult.data?.url
   ) {
 
-    return {
-      payment_id:
-        pending.id,
-      session_id:
-        sessionResult.data.id,
-      url:
-        sessionResult.data.url,
-      amount_minor:
-        Number(
-          pending.amount_minor ||
-          0
-        ),
-      currency:
-        String(
-          pending.currency ||
-          "GBP"
-        ).toUpperCase(),
-      payment_type:
-        pending.payment_type
-    };
-  }
+    const amountMatches =
+      Number(
+        pending.amount_minor ||
+        0
+      ) ===
+      Number(
+        plan.amountMinor ||
+        0
+      );
 
 
-  if (
-    sessionResult.response.ok &&
-    (
-      sessionResult.data?.status === "expired" ||
-      sessionResult.data?.status === "complete"
-    )
-  ) {
+    const typeMatches =
+      String(
+        pending.payment_type ||
+        ""
+      ) ===
+      String(
+        plan.paymentType ||
+        ""
+      );
+
+
+    if (
+      amountMatches &&
+      typeMatches
+    ) {
+
+      return {
+        checkout: {
+          payment_id:
+            pending.id,
+          session_id:
+            sessionResult.data.id,
+          url:
+            sessionResult.data.url,
+          amount_minor:
+            Number(
+              pending.amount_minor ||
+              0
+            ),
+          currency:
+            String(
+              pending.currency ||
+              "GBP"
+            ).toUpperCase(),
+          payment_type:
+            pending.payment_type
+        },
+        paymentStateChanged: false
+      };
+    }
+
+
+    /*
+      The appointment's financial state has changed since this
+      Checkout was created. Never reuse a stale amount.
+
+      Best effort: expire the old Stripe Checkout so the customer
+      cannot accidentally pay an obsolete amount.
+    */
+    try {
+
+      await stripeRequest({
+        secretKey:
+          integration.secretKey,
+        path:
+          `/v1/checkout/sessions/${encodeURIComponent(
+            pending.provider_reference
+          )}/expire`,
+        method:
+          "POST",
+        body:
+          new URLSearchParams()
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Unable to expire superseded Stripe Checkout:",
+        error
+      );
+    }
+
 
     await env.DB
       .prepare(`
         UPDATE payments
 
         SET
-          status =
-            CASE
-              WHEN ? = 'complete'
-                   AND ? = 'paid'
-              THEN 'paid'
-              ELSE 'failed'
-            END,
-          paid_at =
-            CASE
-              WHEN ? = 'complete'
-                   AND ? = 'paid'
-              THEN COALESCE(
-                paid_at,
-                CURRENT_TIMESTAMP
-              )
-              ELSE paid_at
-            END,
-          notes =
-            CASE
-              WHEN ? = 'complete'
-                   AND ? = 'paid'
-              THEN 'Stripe Checkout payment confirmed while checking existing session'
-              ELSE 'Stripe Checkout session is no longer payable'
-            END,
+          status = 'failed',
+          notes = ?,
           updated_at =
             CURRENT_TIMESTAMP
 
@@ -336,22 +372,135 @@ async function getReusablePendingCheckout({
           AND status = 'pending'
       `)
       .bind(
-        sessionResult.data.status,
-        sessionResult.data.payment_status,
-        sessionResult.data.status,
-        sessionResult.data.payment_status,
-        sessionResult.data.status,
-        sessionResult.data.payment_status,
+        `Superseded Stripe Checkout. Previous ${String(
+          pending.payment_type ||
+          "payment"
+        )} ${Number(
+          pending.amount_minor ||
+          0
+        )}; current ${String(
+          plan.paymentType ||
+          "payment"
+        )} ${Number(
+          plan.amountMinor ||
+          0
+        )}.`,
         pending.id,
         businessId
       )
       .run();
+
+
+    return {
+      checkout: null,
+      paymentStateChanged: true
+    };
   }
 
 
-  return null;
-}
+  if (
+    sessionResult.response.ok &&
+    (
+      sessionResult.data?.status ===
+        "expired" ||
+      sessionResult.data?.status ===
+        "complete"
+    )
+  ) {
 
+    const paid =
+      sessionResult.data.status ===
+        "complete" &&
+      sessionResult.data.payment_status ===
+        "paid";
+
+
+    await env.DB
+      .prepare(`
+        UPDATE payments
+
+        SET
+          status =
+            CASE
+              WHEN ?
+              THEN 'paid'
+              ELSE 'failed'
+            END,
+
+          paid_at =
+            CASE
+              WHEN ?
+              THEN COALESCE(
+                paid_at,
+                CURRENT_TIMESTAMP
+              )
+              ELSE paid_at
+            END,
+
+          notes =
+            CASE
+              WHEN ?
+              THEN 'Stripe Checkout payment confirmed while checking existing session'
+              ELSE 'Stripe Checkout session is no longer payable'
+            END,
+
+          updated_at =
+            CURRENT_TIMESTAMP
+
+        WHERE
+          id = ?
+          AND business_id = ?
+          AND status = 'pending'
+      `)
+      .bind(
+        paid ? 1 : 0,
+        paid ? 1 : 0,
+        paid ? 1 : 0,
+        pending.id,
+        businessId
+      )
+      .run();
+
+
+    return {
+      checkout: null,
+      paymentStateChanged: true
+    };
+  }
+
+
+  /*
+    Stripe could not confirm that the old session is currently
+    payable. Do not silently reuse it.
+  */
+  await env.DB
+    .prepare(`
+      UPDATE payments
+
+      SET
+        status = 'failed',
+        notes =
+          'Stripe Checkout could not be verified and was superseded.',
+        updated_at =
+          CURRENT_TIMESTAMP
+
+      WHERE
+        id = ?
+        AND business_id = ?
+        AND status = 'pending'
+    `)
+    .bind(
+      pending.id,
+      businessId
+    )
+    .run();
+
+
+  return {
+    checkout: null,
+    paymentStateChanged: true
+  };
+}
 
 function getChargePlan(
   appointment,
@@ -458,7 +607,10 @@ function getChargePlan(
     amountMinor:
       outstanding,
     label:
-      netPaid > 0
+      (
+        netPaid > 0 ||
+        consultationCredit > 0
+      )
         ? `${appointment.service_name} balance`
         : appointment.service_name
   };
@@ -578,32 +730,7 @@ export async function onRequestPost({
     }
 
 
-    const reusableCheckout =
-      await getReusablePendingCheckout({
-        env,
-        integration,
-        businessId:
-          user.business_id,
-        appointmentId:
-          appointment.id
-      });
-
-
-    if (reusableCheckout) {
-
-      return Response.json({
-        ok: true,
-        reused: true,
-        checkout: {
-          ...reusableCheckout,
-          customer_email:
-            appointment.email
-        }
-      });
-    }
-
-
-    const netPaid =
+    let netPaid =
       await getNetPaid(
         env,
         user.business_id,
@@ -611,7 +738,7 @@ export async function onRequestPost({
       );
 
 
-    const plan =
+    let plan =
       getChargePlan(
         appointment,
         netPaid
@@ -623,6 +750,68 @@ export async function onRequestPost({
       return badRequest(
         plan.error
       );
+    }
+
+
+    const reusableResult =
+      await getReusablePendingCheckout({
+        env,
+        integration,
+        businessId:
+          user.business_id,
+        appointmentId:
+          appointment.id,
+        plan
+      });
+
+
+    if (
+      reusableResult.checkout
+    ) {
+
+      return Response.json({
+        ok: true,
+        reused: true,
+        checkout: {
+          ...reusableResult.checkout,
+          customer_email:
+            appointment.email
+        }
+      });
+    }
+
+
+    /*
+      Checking an older Checkout may have changed a pending
+      payment to paid/failed. Recalculate before creating a
+      replacement Checkout.
+    */
+    if (
+      reusableResult
+        .paymentStateChanged
+    ) {
+
+      netPaid =
+        await getNetPaid(
+          env,
+          user.business_id,
+          appointment.id
+        );
+
+
+      plan =
+        getChargePlan(
+          appointment,
+          netPaid
+        );
+
+
+      if (plan.error) {
+
+        return badRequest(
+          plan.error
+        );
+      }
     }
 
 
