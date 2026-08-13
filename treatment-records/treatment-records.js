@@ -94,6 +94,12 @@ const openTreatmentCustomerButton =
   );
 
 
+const createNextTreatmentButton =
+  document.getElementById(
+    "createNextTreatmentButton"
+  );
+
+
 let records = [];
 let customers = [];
 let appointments = [];
@@ -159,6 +165,18 @@ document
       );
     }
   );
+
+
+createNextTreatmentButton.addEventListener(
+  "click",
+  () => {
+    if (!activeRecord) return;
+    const source = activeRecord;
+    closeTreatmentDrawer();
+    openTreatmentForm();
+    applySafePreviousRecordDefaults(source);
+  }
+);
 
 
 treatmentSearch.addEventListener(
@@ -520,6 +538,53 @@ function openTreatmentForm(
   });
 }
 
+
+function applySafePreviousRecordDefaults(source) {
+  if (!source) return;
+
+  treatmentCustomer.value = source.customer_id || "";
+  renderAppointmentOptions();
+
+  treatmentService.value = source.service_id || "";
+  practitionerName.value = source.practitioner_name || currentUser?.name || "";
+  document.getElementById("treatmentArea").value = source.treatment_area || "";
+  document.getElementById("deviceName").value = source.device_name || "";
+
+  // Clinical observations and treatment settings deliberately stay blank.
+  document.getElementById("deviceSettings").value = "";
+  document.getElementById("treatmentNotes").value = "";
+  document.getElementById("clientResponse").value = "";
+  document.getElementById("clientTolerance").value = "";
+  document.getElementById("aftercareNotes").value = "";
+  document.getElementById("nextSessionPlan").value = "";
+  document.getElementById("nextTreatmentDate").value = "";
+  document.getElementById("treatmentStatus").value = "complete";
+
+  chooseSmartTreatmentAppointment(source.customer_id, source.service_id);
+}
+
+function chooseSmartTreatmentAppointment(customerId, serviceId = "") {
+  const candidates = appointments
+    .filter((appointment) =>
+      String(appointment.customer_id) === String(customerId) &&
+      (!serviceId || String(appointment.service_id) === String(serviceId))
+    )
+    .sort((a, b) => {
+      const now = Date.now();
+      return Math.abs(new Date(a.start_at).getTime() - now) -
+        Math.abs(new Date(b.start_at).getTime() - now);
+    });
+
+  const unrecorded = candidates.find((appointment) =>
+    !records.some((record) => String(record.appointment_id || "") === String(appointment.id))
+  );
+  const selected = unrecorded || candidates[0];
+
+  if (selected) {
+    treatmentAppointment.value = selected.id;
+    applyAppointmentDefaults();
+  }
+}
 
 function closeTreatmentForm() {
 
@@ -1542,25 +1607,22 @@ loadTreatmentRecords().then(() => {
       "customer"
     );
 
-  if (recordId) {
-    const record =
-      records.find(
-        (item) =>
-          item.id ===
-          recordId
-      );
+  const copyId =
+    params.get(
+      "copy"
+    );
 
-    if (record) {
-      showTreatmentDetails(
-        record
-      );
-    }
+  if (recordId) {
+    const record = records.find((item) => item.id === recordId);
+    if (record) showTreatmentDetails(record);
+  } else if (copyId) {
+    const source = records.find((item) => item.id === copyId);
+    openTreatmentForm();
+    if (source) applySafePreviousRecordDefaults(source);
   } else if (customerId) {
     openTreatmentForm();
-
-    treatmentCustomer.value =
-      customerId;
-
+    treatmentCustomer.value = customerId;
     renderAppointmentOptions();
+    chooseSmartTreatmentAppointment(customerId);
   }
 });
