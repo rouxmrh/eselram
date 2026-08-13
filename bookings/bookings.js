@@ -1,3649 +1,1482 @@
-const formPanel =
-  document.getElementById(
-    "bookingFormPanel"
-  );
-
-const form =
-  document.getElementById(
-    "bookingForm"
-  );
-
-const bookingId =
-  document.getElementById(
-    "bookingId"
-  );
-
-const selectedCustomerId =
-  document.getElementById(
-    "selectedCustomerId"
-  );
-
-
-const customerPackageId =
-  document.getElementById(
-    "customerPackageId"
-  );
-
-const packageBookingNotice =
-  document.getElementById(
-    "packageBookingNotice"
-  );
-
-const serviceSelect =
-  document.getElementById(
-    "serviceSelect"
-  );
-
-const bookingDate =
-  document.getElementById(
-    "bookingDate"
-  );
-
-const timeSelect =
-  document.getElementById(
-    "timeSelect"
-  );
-
-const availabilityStatus =
-  document.getElementById(
-    "availabilityStatus"
-  );
-
-const bookingStatus =
-  document.getElementById(
-    "bookingStatus"
-  );
-
-const saveBookingButton =
-  document.getElementById(
-    "saveBookingButton"
-  );
-
-const bookingsList =
-  document.getElementById(
-    "bookingsList"
-  );
-
-
-const bookingPackagesList =
-  document.getElementById(
-    "bookingPackagesList"
-  );
-
-const bookingSearch =
-  document.getElementById(
-    "bookingSearch"
-  );
-
-const bookingStatusFilter =
-  document.getElementById(
-    "bookingStatusFilter"
-  );
-
-const customerSearch =
-  document.getElementById(
-    "customerSearch"
-  );
-
-const customerSearchResults =
-  document.getElementById(
-    "customerSearchResults"
-  );
-
-const selectedCustomer =
-  document.getElementById(
-    "selectedCustomer"
-  );
-
-const selectedCustomerText =
-  document.getElementById(
-    "selectedCustomerText"
-  );
-
-const bookingDetailsDialog =
-  document.getElementById(
-    "bookingDetailsDialog"
-  );
-
-const bookingDetailContent =
-  document.getElementById(
-    "bookingDetailContent"
-  );
-
-const bookingDetailActions =
-  document.getElementById(
-    "bookingDetailActions"
-  );
-
-
-let services = [];
-let bookings = [];
-let bookingPackages = [];
-let currentDetailBookingId = null;
-
-let currentFormRequestBooking = null;
-let currentGeneratedFormRequest = null;
-
-const sendFormDialog =
-  document.getElementById("sendFormDialog");
-
-const sendFormTitle =
-  document.getElementById("sendFormTitle");
-
-const sendFormContext =
-  document.getElementById("sendFormContext");
-
-const sendFormTemplate =
-  document.getElementById("sendFormTemplate");
-
-const sendFormStatus =
-  document.getElementById("sendFormStatus");
-
-const generatedFormLinkWrap =
-  document.getElementById("generatedFormLinkWrap");
-
-const generatedFormLink =
-  document.getElementById("generatedFormLink");
-
-const bookingFormRequests =
-  document.getElementById("bookingFormRequests");
-
-let customerSearchTimer = null;
-
-
-/* =======================================================
-   Initial setup
-   ======================================================= */
-
-document
-  .getElementById(
-    "newBookingButton"
-  )
-  .addEventListener(
-    "click",
-    () =>
-      openBookingForm()
-  );
-
-
-document
-  .getElementById(
-    "cancelBookingButton"
-  )
-  .addEventListener(
-    "click",
-    closeBookingForm
-  );
-
-
-document
-  .getElementById(
-    "clearSelectedCustomer"
-  )
-  .addEventListener(
-    "click",
-    clearCustomerSelection
-  );
-
-
-document
-  .getElementById(
-    "closeBookingDialog"
-  )
-  .addEventListener(
-    "click",
-    () =>
-      bookingDetailsDialog.close()
-  );
-
-
-serviceSelect.addEventListener(
-  "change",
-  () => loadAvailability()
-);
-
-
-bookingDate.addEventListener(
-  "change",
-  () => loadAvailability()
-);
-
-
-bookingSearch.addEventListener(
-  "input",
-  renderBookings
-);
-
-
-bookingStatusFilter.addEventListener(
-  "change",
-  renderBookings
-);
-
-
-customerSearch.addEventListener(
-  "input",
-  () => {
-
-    clearTimeout(
-      customerSearchTimer
-    );
-
-
-    const query =
-      customerSearch
-        .value
-        .trim();
-
-
-    if (
-      query.length < 2
-    ) {
-
-      customerSearchResults.hidden =
-        true;
-
-      customerSearchResults.innerHTML =
-        "";
-
-      return;
-    }
-
-
-    customerSearchTimer =
-      setTimeout(
-        () =>
-          searchCustomers(
-            query
-          ),
-        250
-      );
-  }
-);
-
-
-document.addEventListener(
-  "click",
-  (event) => {
-
-    if (
-      !event.target.closest(
-        ".es-customer-search-wrap"
-      )
-    ) {
-
-      customerSearchResults.hidden =
-        true;
-    }
-  }
-);
-
-
-function setMinimumDate() {
-
-  const today =
-    new Date();
-
-
-  const yyyy =
-    today.getFullYear();
-
-  const mm =
-    String(
-      today.getMonth() + 1
-    ).padStart(2, "0");
-
-  const dd =
-    String(
-      today.getDate()
-    ).padStart(2, "0");
-
-
-  bookingDate.min =
-    `${yyyy}-${mm}-${dd}`;
-}
-
-
-/* =======================================================
-   Services
-   ======================================================= */
-
-function refreshServiceOptionLabels(packageServiceId = "") {
-
-  for (const service of services) {
-    const option = Array.from(serviceSelect.options).find(
-      (item) => item.value === service.id
-    );
-
-    if (!option) continue;
-
-    const packageCovered =
-      packageServiceId &&
-      service.id === packageServiceId;
-
-    option.textContent = packageCovered
-      ? `${service.name} · ${service.duration_minutes} min · Covered by package`
-      : `${service.name} · ${service.duration_minutes} min · ${formatMoney(service.price_minor)}`;
-  }
-}
-
-
-async function loadServices() {
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/services",
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-
-          cache:
-            "no-store"
-        }
-      );
-
-
-    handleAuthentication(
-      response
-    );
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
-      throw new Error(
-        data.error ||
-        "Unable to load services."
-      );
-    }
-
-
-    services =
-      data.services ||
-      [];
-
-
-    if (
-      services.length === 0
-    ) {
-
-      serviceSelect.innerHTML = `
-        <option value="">
-          No services available
-        </option>
-      `;
-
-      serviceSelect.disabled =
-        true;
-
-      return;
-    }
-
-
-    serviceSelect.disabled =
-      false;
-
-
-    serviceSelect.innerHTML = `
-      <option value="">
-        Choose a service
-      </option>
-
-      ${
-        services
-          .map(
-            (service) => `
-              <option
-                value="${escapeHtml(
-                  service.id
-                )}"
-              >
-                ${escapeHtml(
-                  service.name
-                )}
-                ·
-                ${service.duration_minutes} min
-                ·
-                ${formatMoney(
-                  service.price_minor
-                )}
-              </option>
-            `
-          )
-          .join("")
-      }
-    `;
-
-    refreshServiceOptionLabels();
-
-
-  } catch (error) {
-
-    serviceSelect.innerHTML = `
-      <option value="">
-        Unable to load services
-      </option>
-    `;
-
-    serviceSelect.disabled =
-      true;
-  }
-}
-
-
-/* =======================================================
-   Customers
-   ======================================================= */
-
-async function searchCustomers(
-  query
+import {
+  runServiceFormAutomation
+} from "../../../lib/form-automation.js";
+
+import {
+  sendPaymentReceipt
+} from "../../../lib/communications.js";
+
+import {
+  readSessionToken,
+  hashSessionToken
+} from "../../../lib/auth.js";
+
+
+async function getUserContext(
+  request,
+  env
 ) {
 
-  try {
-
-    const params =
-      new URLSearchParams({
-        customer_search:
-          query
-      });
-
-
-    const response =
-      await fetch(
-        `/api/bookings?${params.toString()}`,
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-
-          cache:
-            "no-store"
-        }
-      );
-
-
-    handleAuthentication(
-      response
+  const token =
+    readSessionToken(
+      request
     );
 
 
-    const data =
-      await response.json();
-
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
-      throw new Error(
-        data.error ||
-        "Unable to search customers."
-      );
-    }
-
-
-    const customers =
-      data.customers ||
-      [];
-
-
-    if (
-      customers.length === 0
-    ) {
-
-      customerSearchResults.innerHTML = `
-        <div class="es-customer-result">
-          <strong>
-            No customers found
-          </strong>
-
-          <span>
-            Continue below to create a new customer.
-          </span>
-        </div>
-      `;
-
-      customerSearchResults.hidden =
-        false;
-
-      return;
-    }
-
-
-    customerSearchResults.innerHTML =
-      customers
-        .map(
-          (customer) => `
-            <button
-              class="es-customer-result"
-              type="button"
-              data-customer-id="${escapeHtml(
-                customer.id
-              )}"
-            >
-              <strong>
-                ${escapeHtml(
-                  customer.first_name
-                )}
-                ${escapeHtml(
-                  customer.last_name
-                )}
-              </strong>
-
-              <span>
-                ${escapeHtml(
-                  [
-                    customer.email,
-                    customer.phone
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")
-                )}
-              </span>
-            </button>
-          `
-        )
-        .join("");
-
-
-    customerSearchResults
-      .querySelectorAll(
-        "[data-customer-id]"
-      )
-      .forEach(
-        (button) => {
-
-          button.addEventListener(
-            "click",
-            () => {
-
-              const customer =
-                customers.find(
-                  (item) =>
-                    item.id ===
-                    button.dataset
-                      .customerId
-                );
-
-
-              if (customer) {
-
-                selectCustomer(
-                  customer
-                );
-              }
-            }
-          );
-        }
-      );
-
-
-    customerSearchResults.hidden =
-      false;
-
-
-  } catch (error) {
-
-    customerSearchResults.innerHTML = `
-      <div class="es-customer-result">
-        <strong>
-          Unable to search customers
-        </strong>
-      </div>
-    `;
-
-    customerSearchResults.hidden =
-      false;
-  }
-}
-
-
-function selectCustomer(
-  customer
-) {
-
-  selectedCustomerId.value =
-    customer.id;
-
-
-  document
-    .getElementById(
-      "firstName"
-    )
-    .value =
-      customer.first_name ||
-      "";
-
-
-  document
-    .getElementById(
-      "lastName"
-    )
-    .value =
-      customer.last_name ||
-      "";
-
-
-  document
-    .getElementById(
-      "email"
-    )
-    .value =
-      customer.email ||
-      "";
-
-
-  document
-    .getElementById(
-      "phone"
-    )
-    .value =
-      customer.phone ||
-      "";
-
-
-  selectedCustomerText.textContent =
-    `${customer.first_name} ${customer.last_name}`;
-
-
-  selectedCustomer.hidden =
-    false;
-
-
-  customerSearch.value =
-    "";
-
-
-  customerSearchResults.hidden =
-    true;
-}
-
-
-function clearCustomerSelection() {
-
-  selectedCustomerId.value =
-    "";
-
-  customerPackageId.value =
-    "";
-
-  packageBookingNotice.hidden =
-    true;
-
-  packageBookingNotice.textContent =
-    "";
-
-  selectedCustomer.hidden =
-    true;
-
-  selectedCustomerText.textContent =
-    "";
-}
-
-
-/* =======================================================
-   Availability
-   ======================================================= */
-
-async function loadAvailability(
-  preferredTime = ""
-) {
-
-  const serviceId =
-    serviceSelect.value;
-
-  const date =
-    bookingDate.value;
-
-
-  timeSelect.disabled =
-    true;
-
-
-  if (
-    !serviceId ||
-    !date
-  ) {
-
-    timeSelect.innerHTML = `
-      <option value="">
-        Choose a service and date first
-      </option>
-    `;
-
-    availabilityStatus.textContent =
-      "Available times will appear after you choose a service and date.";
-
-    return;
+  if (!token) {
+    return null;
   }
 
 
-  timeSelect.innerHTML = `
-    <option value="">
-      Loading available times…
-    </option>
-  `;
-
-
-  availabilityStatus.textContent =
-    "Checking availability…";
-
-
-  try {
-
-    const query =
-      new URLSearchParams({
-        service_id:
-          serviceId,
-        date
-      });
-
-
-    const currentBookingId =
-      bookingId.value;
-
-
-    if (currentBookingId) {
-
-      query.set(
-        "exclude_appointment_id",
-        currentBookingId
-      );
-    }
-
-
-    const response =
-      await fetch(
-        `/api/bookings/availability?${query.toString()}`,
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-
-          cache:
-            "no-store"
-        }
-      );
-
-
-    handleAuthentication(
-      response
+  const tokenHash =
+    await hashSessionToken(
+      token
     );
 
 
-    const data =
-      await response.json();
+  return await env.DB
+    .prepare(`
+      SELECT
+        u.id AS user_id,
+        u.business_id,
+        b.currency
 
+      FROM user_sessions s
 
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
+      JOIN users u
+        ON u.id =
+           s.user_id
 
-      throw new Error(
-        data.error ||
-        "Unable to load availability."
-      );
-    }
+      JOIN businesses b
+        ON b.id =
+           u.business_id
 
+      WHERE
+        s.token_hash = ?
+        AND s.revoked_at IS NULL
+        AND datetime(
+          s.expires_at
+        ) > datetime('now')
+        AND u.is_active = 1
 
-    const slots =
-      data.slots ||
-      [];
-
-
-    if (
-      preferredTime &&
-      !slots.includes(
-        preferredTime
-      )
-    ) {
-
-      slots.unshift(
-        preferredTime
-      );
-    }
-
-
-    if (
-      slots.length === 0
-    ) {
-
-      timeSelect.innerHTML = `
-        <option value="">
-          No available times
-        </option>
-      `;
-
-      availabilityStatus.textContent =
-        "There are no available appointment times for this date.";
-
-      return;
-    }
-
-
-    timeSelect.innerHTML = `
-      <option value="">
-        Choose a time
-      </option>
-
-      ${
-        slots
-          .map(
-            (slot) => `
-              <option
-                value="${escapeHtml(
-                  slot
-                )}"
-              >
-                ${formatTime(
-                  slot
-                )}
-              </option>
-            `
-          )
-          .join("")
-      }
-    `;
-
-
-    timeSelect.disabled =
-      false;
-
-
-    if (
-      preferredTime &&
-      slots.includes(
-        preferredTime
-      )
-    ) {
-
-      timeSelect.value =
-        preferredTime;
-    }
-
-
-    availabilityStatus.textContent =
-      `${slots.length} available time${
-        slots.length === 1
-          ? ""
-          : "s"
-      } · ${data.timezone || ""}`;
-
-
-  } catch (error) {
-
-    timeSelect.innerHTML = `
-      <option value="">
-        Unable to load times
-      </option>
-    `;
-
-    timeSelect.disabled =
-      true;
-
-    availabilityStatus.textContent =
-      error.message ||
-      "Unable to load availability.";
-  }
+      LIMIT 1
+    `)
+    .bind(
+      tokenHash
+    )
+    .first();
 }
 
 
-/* =======================================================
-   Create / edit booking
-   ======================================================= */
+function unauthorized() {
 
-form.addEventListener(
-  "submit",
-  async (event) => {
-
-    event.preventDefault();
-
-
-    if (
-      !serviceSelect.value ||
-      !bookingDate.value ||
-      !timeSelect.value
-    ) {
-
-      showBookingError(
-        "Choose a service, date and available time."
-      );
-
-      return;
+  return Response.json(
+    {
+      ok: false,
+      error:
+        "Authentication required."
+    },
+    {
+      status: 401
     }
+  );
+}
 
 
-    const firstName =
-      document
-        .getElementById(
-          "firstName"
-        )
-        .value
-        .trim();
-
-    const lastName =
-      document
-        .getElementById(
-          "lastName"
-        )
-        .value
-        .trim();
-
-    const email =
-      document
-        .getElementById(
-          "email"
-        )
-        .value
-        .trim();
-
-    const phone =
-      document
-        .getElementById(
-          "phone"
-        )
-        .value
-        .trim();
-
-
-    if (
-      !firstName ||
-      !lastName
-    ) {
-
-      showBookingError(
-        "Enter the customer's first and last name."
-      );
-
-      return;
-    }
-
-
-    if (
-      !email &&
-      !phone
-    ) {
-
-      showBookingError(
-        "Enter an email address or phone number."
-      );
-
-      return;
-    }
-
-
-    const editing =
-      Boolean(
-        bookingId.value
-      );
-
-
-    bookingStatus.hidden =
-      false;
-
-    bookingStatus.className =
-      "es-status";
-
-    bookingStatus.textContent =
-      editing
-        ? "Saving changes…"
-        : "Creating booking…";
-
-
-    saveBookingButton.disabled =
-      true;
-
-
-    const payload = {
-
-      id:
-        bookingId.value ||
-        undefined,
-
-      customer_id:
-        selectedCustomerId.value ||
-        undefined,
-
-      customer_package_id:
-        customerPackageId.value ||
-        undefined,
-
-      service_id:
-        serviceSelect.value,
-
-      date:
-        bookingDate.value,
-
-      time:
-        timeSelect.value,
-
-      first_name:
-        firstName,
-
-      last_name:
-        lastName,
-
-      email,
-
-      phone,
-
-      notes:
-        document
-          .getElementById(
-            "notes"
-          )
-          .value
-          .trim()
-    };
-
-
-    if (editing) {
-
-      payload.action =
-        "update";
-    }
-
-
-    try {
-
-      const response =
-        await fetch(
-          "/api/bookings",
-          {
-            method:
-              editing
-                ? "PUT"
-                : "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-
-              Accept:
-                "application/json"
-            },
-
-            body:
-              JSON.stringify(
-                payload
-              )
-          }
-        );
-
-
-      handleAuthentication(
-        response
-      );
-
-
-      const data =
-        await response.json();
-
-
-      if (
-        !response.ok ||
-        !data.ok
-      ) {
-
-        throw new Error(
-          data.error ||
-          (
-            editing
-              ? "Unable to update booking."
-              : "Unable to create booking."
-          )
-        );
-      }
-
-
-      bookingStatus.className =
-        "es-status success";
-
-      bookingStatus.textContent =
-        editing
-          ? "Booking updated."
-          : "Booking created.";
-
-
-      await Promise.all([
-        loadBookings(),
-        loadBookingPackages()
-      ]);
-
-
-      if (editing) {
-
-        const updated =
-          bookings.find(
-            (booking) =>
-              booking.id ===
-              bookingId.value
-          );
-
-
-        if (updated) {
-
-          showBookingDetails(
-            updated
-          );
-        }
-      }
-
-
-      resetBookingForm();
-
-
-    } catch (error) {
-
-      showBookingError(
-        error.message ||
-        "Unable to save booking."
-      );
-
-
-    } finally {
-
-      saveBookingButton.disabled =
-        false;
-    }
-  }
-);
-
-
-function showBookingError(
+function badRequest(
   message
 ) {
 
-  bookingStatus.hidden =
-    false;
-
-  bookingStatus.className =
-    "es-status error";
-
-  bookingStatus.textContent =
-    message;
-}
-
-
-/* =======================================================
-   Booking list
-   ======================================================= */
-
-async function loadBookingPackages() {
-  if (!bookingPackagesList) {
-    return;
-  }
-
-  try {
-    const response =
-      await fetch(
-        "/api/packages",
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-          cache:
-            "no-store"
-        }
-      );
-
-    handleAuthentication(
-      response
-    );
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-      throw new Error(
-        data.error ||
-        "Unable to load packages."
-      );
-    }
-
-    bookingPackages =
-      data.customer_packages ||
-      [];
-
-    renderBookingPackages();
-  } catch (error) {
-    bookingPackagesList.className =
-      "es-status error";
-
-    bookingPackagesList.textContent =
-      error.message ||
-      "Unable to load packages.";
-  }
-}
-
-
-function renderBookingPackages() {
-  if (!bookingPackages.length) {
-    bookingPackagesList.className =
-      "es-empty-state";
-
-    bookingPackagesList.innerHTML = `
-      <strong>No customer packages yet.</strong>
-      <span>Sold or assigned packages will appear here alongside the booking schedule.</span>
-    `;
-
-    return;
-  }
-
-  bookingPackagesList.className =
-    "es-bookings-list";
-
-  bookingPackagesList.innerHTML =
-    bookingPackages
-      .map(
-        (item) => `
-          <article class="es-booking-row">
-            <div class="es-booking-date">
-              <strong>
-                ${escapeHtml(
-                  item.name_snapshot
-                )}
-              </strong>
-              <span>
-                ${escapeHtml(
-                  item.service_name
-                )}
-              </span>
-            </div>
-
-            <div class="es-booking-customer">
-              <strong>
-                ${escapeHtml(
-                  item.first_name
-                )}
-                ${escapeHtml(
-                  item.last_name
-                )}
-              </strong>
-              <span>
-                ${
-                  Number(
-                    item.sessions_completed ||
-                    0
-                  )
-                }/${
-                  Number(
-                    item.sessions_total ||
-                    0
-                  )
-                } completed · ${
-                  Number(
-                    item.sessions_booked ||
-                    0
-                  )
-                } booked · ${
-                  Number(
-                    item.sessions_available_to_book ||
-                    0
-                  )
-                } available
-              </span>
-            </div>
-
-            <div class="es-booking-money">
-              <strong>
-                ${formatMoney(
-                  item.outstanding_minor ||
-                  0
-                )}
-              </strong>
-              <small>Outstanding</small>
-              <small>
-                Value ${formatMoney(item.price_minor || 0)}
-                · Paid ${formatMoney(item.paid_minor || 0)}
-                ${
-                  Number(item.consultation_credit_minor || 0) > 0
-                    ? ` · Consultation credit ${formatMoney(item.consultation_credit_minor)}`
-                    : ""
-                }
-              </small>
-            </div>
-
-            <div>
-              <span
-                class="es-booking-status"
-              >
-                ${escapeHtml(
-                  formatStatus(
-                    item.status
-                  )
-                )}
-              </span>
-            </div>
-
-            <div class="es-booking-actions">
-              ${
-                item.status ===
-                  "active" &&
-                Number(
-                  item.sessions_available_to_book ||
-                  0
-                ) > 0
-                  ? `
-                    <a
-                      class="es-booking-action"
-                      href="/bookings/?package=${encodeURIComponent(
-                        item.id
-                      )}"
-                      style="text-decoration:none;display:inline-flex;align-items:center;"
-                    >
-                      Book session
-                    </a>
-                  `
-                  : ""
-              }
-
-              <a
-                class="es-booking-action"
-                href="/packages/"
-                style="text-decoration:none;display:inline-flex;align-items:center;"
-              >
-                Manage
-              </a>
-            </div>
-          </article>
-        `
-      )
-      .join("");
-}
-
-
-async function loadBookings() {
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/bookings",
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-
-          cache:
-            "no-store"
-        }
-      );
-
-
-    handleAuthentication(
-      response
-    );
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
-      throw new Error(
-        data.error ||
-        "Unable to load bookings."
-      );
-    }
-
-
-    bookings =
-      data.bookings ||
-      [];
-
-
-    renderBookings();
-
-
-  } catch (error) {
-
-    bookingsList.className =
-      "es-status error";
-
-    bookingsList.textContent =
-      error.message ||
-      "Unable to load bookings.";
-  }
-}
-
-
-function renderBookings() {
-
-  const query =
-    bookingSearch.value
-      .trim()
-      .toLowerCase();
-
-  const statusFilter =
-    bookingStatusFilter.value;
-
-
-  const filtered =
-    bookings.filter(
-      (booking) => {
-
-        if (
-          statusFilter !==
-            "all" &&
-          booking.status !==
-            statusFilter
-        ) {
-
-          return false;
-        }
-
-
-        if (!query) {
-          return true;
-        }
-
-
-        const searchable = [
-          booking.first_name,
-          booking.last_name,
-          booking.email,
-          booking.phone,
-          booking.service_name,
-          booking.package_name,
-          booking.status,
-          formatStatus(
-            booking.status
-          ),
-          formatDate(
-            booking.start_at
-          )
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-
-        return searchable.includes(
-          query
-        );
-      }
-    );
-
-
-  if (
-    filtered.length === 0
-  ) {
-
-    bookingsList.className =
-      "es-empty-state";
-
-    bookingsList.innerHTML = `
-      <strong>
-        ${
-          bookings.length === 0
-            ? "No bookings yet."
-            : "No bookings match your filters."
-        }
-      </strong>
-
-      <span>
-        ${
-          bookings.length === 0
-            ? "Create your first appointment to get started."
-            : "Try changing your search or status filter."
-        }
-      </span>
-    `;
-
-    return;
-  }
-
-
-  bookingsList.className =
-    "es-bookings-list";
-
-
-  bookingsList.innerHTML =
-    filtered
-      .map(
-        (booking) => `
-          <article class="es-booking-row">
-
-            <div class="es-booking-date">
-
-              <strong>
-                ${formatDate(
-                  booking.start_at
-                )}
-              </strong>
-
-              <span>
-                ${formatDateTimeRange(
-                  booking.start_at,
-                  booking.end_at
-                )}
-              </span>
-
-            </div>
-
-
-            <div class="es-booking-customer">
-
-              <strong>
-                ${escapeHtml(
-                  booking.first_name
-                )}
-                ${escapeHtml(
-                  booking.last_name
-                )}
-              </strong>
-
-              <span>
-                ${escapeHtml(
-                  booking.booking_kind ===
-                    "consultation"
-                    ? `Consultation · ${
-                        booking.service_name
-                      }`
-                    : booking.service_name
-                )}
-              </span>
-
-              <small>
-                ${escapeHtml(
-                  booking.email ||
-                  booking.phone ||
-                  ""
-                )}
-              </small>
-
-            </div>
-
-
-            <div class="es-booking-money">
-
-              <strong>
-                ${formatMoney(
-                  booking.price_minor
-                )}
-              </strong>
-
-              ${
-                booking.status !== "cancelled" &&
-                Number(
-                  booking.consultation_credit_minor ||
-                  0
-                ) > 0
-                  ? `
-                    <small>
-                      Consultation credit:
-                      ${formatMoney(
-                        booking.consultation_credit_minor
-                      )}
-                    </small>
-                  `
-                  : ""
-              }
-
-              ${
-                Number(
-                  booking.deposit_due_minor ||
-                  0
-                ) > 0
-                  ? `
-                    <small>
-                      Deposit:
-                      ${formatMoney(
-                        booking.deposit_due_minor
-                      )}
-                    </small>
-                  `
-                  : ""
-              }
-
-            </div>
-
-
-            <div>
-
-              <span
-                class="es-booking-status es-booking-status-${escapeHtml(
-                  booking.status
-                )}"
-              >
-                ${formatStatus(
-                  booking.status
-                )}
-              </span>
-
-            </div>
-
-
-            <div class="es-booking-actions">
-
-              <button
-                class="es-booking-action"
-                type="button"
-                data-view="${escapeHtml(
-                  booking.id
-                )}"
-              >
-                View
-              </button>
-
-              ${
-                booking.status ===
-                  "confirmed"
-                  ? `
-                    <button
-                      class="es-booking-action"
-                      type="button"
-                      data-edit="${escapeHtml(
-                        booking.id
-                      )}"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      class="es-booking-action"
-                      type="button"
-                      data-complete="${escapeHtml(
-                        booking.id
-                      )}"
-                    >
-                      Complete
-                    </button>
-
-                    <button
-                      class="es-booking-action danger"
-                      type="button"
-                      data-cancel="${escapeHtml(
-                        booking.id
-                      )}"
-                    >
-                      Cancel
-                    </button>
-                  `
-                  : ""
-              }
-
-            </div>
-
-          </article>
-        `
-      )
-      .join("");
-
-
-  bindBookingRowActions();
-}
-
-
-function bindBookingRowActions() {
-
-  document
-    .querySelectorAll(
-      "[data-view]"
-    )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            const booking =
-              getBooking(
-                button.dataset.view
-              );
-
-
-            if (booking) {
-
-              showBookingDetails(
-                booking
-              );
-            }
-          }
-        );
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-edit]"
-    )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            const booking =
-              getBooking(
-                button.dataset.edit
-              );
-
-
-            if (booking) {
-
-              openBookingForm(
-                booking
-              );
-            }
-          }
-        );
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-complete]"
-    )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () =>
-            completeBooking(
-              button.dataset
-                .complete
-            )
-        );
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-cancel]"
-    )
-    .forEach(
-      (button) => {
-
-        button.addEventListener(
-          "click",
-          () =>
-            cancelBooking(
-              button.dataset
-                .cancel
-            )
-        );
-      }
-    );
-}
-
-
-
-/* =======================================================
-   Secure client form links
-   ======================================================= */
-
-document
-  .getElementById("closeSendFormDialog")
-  ?.addEventListener("click", () => {
-    sendFormDialog.close();
-  });
-
-document
-  .getElementById("generateFormLinkButton")
-  ?.addEventListener("click", generateBookingFormLink);
-
-document
-  .getElementById("copyGeneratedFormLink")
-  ?.addEventListener("click", async () => {
-    if (!generatedFormLink.value) return;
-
-    try {
-      await navigator.clipboard.writeText(
-        generatedFormLink.value
-      );
-
-      showBookingFormRequestStatus(
-        "Secure form link copied.",
-        "success"
-      );
-    } catch {
-      generatedFormLink.select();
-      document.execCommand("copy");
-    }
-  });
-
-
-document
-  .getElementById("emailGeneratedFormLink")
-  ?.addEventListener(
-    "click",
-    async () => {
-      if (!currentGeneratedFormRequest?.id) {
-        showBookingFormRequestStatus(
-          "Generate the secure consultation link first.",
-          "error"
-        );
-        return;
-      }
-
-      await sendBookingConsultationEmail(
-        currentGeneratedFormRequest.id
-      );
+  return Response.json(
+    {
+      ok: false,
+      error:
+        message
+    },
+    {
+      status: 400
     }
   );
+}
 
 
-async function sendBookingConsultationEmail(
-  formRequestId
+function notFound(
+  message
 ) {
-  const button =
-    document.getElementById(
-      "emailGeneratedFormLink"
-    );
 
-  if (button) {
-    button.disabled = true;
-    button.textContent =
-      "Sending…";
-  }
-
-  try {
-    const response =
-      await fetch(
-        "/api/form-requests/email",
-        {
-          method:
-            "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Accept:
-              "application/json"
-          },
-          body:
-            JSON.stringify({
-              form_request_id:
-                formRequestId
-            })
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-      throw new Error(
-        data.error ||
-        "Unable to send consultation email."
-      );
+  return Response.json(
+    {
+      ok: false,
+      error:
+        message
+    },
+    {
+      status: 404
     }
-
-    showBookingFormRequestStatus(
-      data.duplicate || data.skipped
-        ? "This form email has already been sent."
-        : "Consultation email sent successfully.",
-      "success"
-    );
-
-    if (currentFormRequestBooking) {
-      await loadBookingFormRequests(
-        currentFormRequestBooking.id
-      );
-    }
-  } catch (error) {
-    showBookingFormRequestStatus(
-      error.message ||
-      "Unable to send consultation email.",
-      "error"
-    );
-  } finally {
-    if (button) {
-      button.disabled = false;
-      button.textContent =
-        "Send by email";
-    }
-  }
-}
-
-
-async function openBookingFormRequest(
-  booking
-) {
-  currentFormRequestBooking =
-    booking;
-
-  currentGeneratedFormRequest =
-    null;
-
-  sendFormTitle.textContent =
-    "Send client form";
-
-  sendFormContext.textContent =
-    `${booking.first_name} ${booking.last_name} · ${booking.service_name} · ${formatFullDate(booking.start_at)}`;
-
-  sendFormTemplate.innerHTML =
-    `<option value="">Loading forms…</option>`;
-
-  bookingFormRequests.innerHTML =
-    `<div class="es-empty-state">Loading form history…</div>`;
-
-  generatedFormLinkWrap.hidden =
-    true;
-
-  sendFormStatus.hidden =
-    true;
-
-  if (
-    typeof sendFormDialog.showModal ===
-    "function"
-  ) {
-    sendFormDialog.showModal();
-  }
-
-  await loadBookingFormRequests(
-    booking.id
-  );
-}
-
-
-async function loadBookingFormRequests(
-  appointmentId
-) {
-  try {
-    const response =
-      await fetch(
-        `/api/form-requests?appointment_id=${encodeURIComponent(appointmentId)}`,
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-          cache:
-            "no-store"
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-      throw new Error(
-        data.error ||
-        "Unable to load forms."
-      );
-    }
-
-    sendFormTemplate.innerHTML =
-      `<option value="">Choose a form</option>` +
-      (data.templates || [])
-        .map(
-          template => `
-            <option value="${escapeHtml(template.id)}">
-              ${escapeHtml(template.name)}
-            </option>
-          `
-        )
-        .join("");
-
-    if (!(data.templates || []).length) {
-      showBookingFormRequestStatus(
-        "Publish at least one Clinical Template before sending a form.",
-        "error"
-      );
-    }
-
-    renderBookingFormRequests(
-      data.requests || []
-    );
-  } catch (error) {
-    showBookingFormRequestStatus(
-      error.message ||
-      "Unable to load forms.",
-      "error"
-    );
-  }
-}
-
-
-function renderBookingFormRequests(
-  requests
-) {
-  if (!requests.length) {
-    bookingFormRequests.innerHTML = `
-      <div class="es-empty-state">
-        <strong>No forms sent for this appointment yet.</strong>
-      </div>
-    `;
-
-    return;
-  }
-
-  bookingFormRequests.innerHTML =
-    requests
-      .map(
-        request => `
-          <div class="es-form-request-item">
-            <div class="es-form-request-item-main">
-              <strong>
-                ${escapeHtml(request.template_name)}
-              </strong>
-
-              <span>
-                Created ${formatFullDateTime(request.created_at)}
-              </span>
-
-              <small>
-                ${
-                  request.email_status === "sent"
-                    ? `Email sent to ${escapeHtml(request.email_to || "")}${request.email_send_count > 1 ? ` · ${request.email_send_count} sends` : ""}`
-                    : request.email_status === "failed"
-                      ? "Last email attempt failed"
-                      : "Email not sent"
-                }
-              </small>
-            </div>
-
-            <div class="es-customer-appointment-actions">
-              ${
-                ["created", "opened"].includes(request.status)
-                  ? `
-                    <button
-                      type="button"
-                      class="es-secondary-button"
-                      data-resend-consultation="${escapeHtml(request.id)}"
-                    >
-                      ${request.email_status === "sent" ? "Resend email" : "Send email"}
-                    </button>
-                  `
-                  : ""
-              }
-
-              <span class="es-form-request-status ${escapeHtml(request.display_status)}">
-                ${escapeHtml(formatFormRequestStatus(request.display_status))}
-              </span>
-            </div>
-          </div>
-        `
-      )
-      .join("");
-
-  bookingFormRequests
-    .querySelectorAll(
-      "[data-resend-consultation]"
-    )
-    .forEach(
-      button => {
-        button.addEventListener(
-          "click",
-          () =>
-            sendBookingConsultationEmail(
-              button.dataset.resendConsultation
-            )
-        );
-      }
-    );
-}
-
-
-async function generateBookingFormLink() {
-  if (!currentFormRequestBooking) {
-    return;
-  }
-
-  const templateId =
-    sendFormTemplate.value;
-
-  if (!templateId) {
-    showBookingFormRequestStatus(
-      "Choose a form first.",
-      "error"
-    );
-
-    return;
-  }
-
-  const button =
-    document.getElementById(
-      "generateFormLinkButton"
-    );
-
-  button.disabled =
-    true;
-
-  button.textContent =
-    "Generating…";
-
-  try {
-    const response =
-      await fetch(
-        "/api/form-requests",
-        {
-          method:
-            "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-            Accept:
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              template_id:
-                templateId,
-              appointment_id:
-                currentFormRequestBooking.id
-            })
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-      throw new Error(
-        data.error ||
-        "Unable to generate form link."
-      );
-    }
-
-    currentGeneratedFormRequest =
-      data.request;
-
-    generatedFormLink.value =
-      `${location.origin}${data.request.url_path}`;
-
-    generatedFormLinkWrap.hidden =
-      false;
-
-    showBookingFormRequestStatus(
-      data.reused
-        ? "Existing secure link ready to copy."
-        : "Secure form link created.",
-      "success"
-    );
-
-    await loadBookingFormRequests(
-      currentFormRequestBooking.id
-    );
-  } catch (error) {
-    showBookingFormRequestStatus(
-      error.message ||
-      "Unable to generate form link.",
-      "error"
-    );
-  } finally {
-    button.disabled =
-      false;
-
-    button.textContent =
-      "Generate secure link";
-  }
-}
-
-
-function showBookingFormRequestStatus(
-  message,
-  type = ""
-) {
-  sendFormStatus.hidden =
-    false;
-
-  sendFormStatus.className =
-    `es-status ${type}`.trim();
-
-  sendFormStatus.textContent =
-    message;
-}
-
-
-function formatFormRequestStatus(
-  status
-) {
-  return {
-    created:
-      "Link created",
-    opened:
-      "Opened",
-    submitted:
-      "Completed",
-    reviewed:
-      "Reviewed",
-    revoked:
-      "Revoked"
-  }[status] ||
-  formatStatus(status);
-}
-
-function getBooking(id) {
-
-  return bookings.find(
-    (booking) =>
-      booking.id === id
   );
 }
 
 
 /* =======================================================
-   Booking details
+   GET
    ======================================================= */
 
-
-
-/* =======================================================
-   Stripe Checkout payment links
-   ======================================================= */
-
-const paymentLinkDialog =
-  document.getElementById(
-    "paymentLinkDialog"
-  );
-
-const paymentLinkStatus =
-  document.getElementById(
-    "paymentLinkStatus"
-  );
-
-const paymentLinkResult =
-  document.getElementById(
-    "paymentLinkResult"
-  );
-
-const generatedPaymentLink =
-  document.getElementById(
-    "generatedPaymentLink"
-  );
-
-const openPaymentLink =
-  document.getElementById(
-    "openPaymentLink"
-  );
-
-const paymentLinkContext =
-  document.getElementById(
-    "paymentLinkContext"
-  );
-
-
-document
-  .getElementById(
-    "closePaymentLinkDialog"
-  )
-  ?.addEventListener(
-    "click",
-    () =>
-      paymentLinkDialog.close()
-  );
-
-
-document
-  .getElementById(
-    "copyPaymentLink"
-  )
-  ?.addEventListener(
-    "click",
-    async () => {
-
-      if (
-        !generatedPaymentLink.value
-      ) {
-        return;
-      }
-
-
-      try {
-
-        await navigator.clipboard.writeText(
-          generatedPaymentLink.value
-        );
-
-      } catch {
-
-        generatedPaymentLink.select();
-
-        document.execCommand(
-          "copy"
-        );
-      }
-
-
-      paymentLinkStatus.hidden =
-        false;
-
-      paymentLinkStatus.className =
-        "es-status success";
-
-      paymentLinkStatus.textContent =
-        "Payment link copied.";
-    }
-  );
-
-
-async function createStripePaymentLink(
-  booking
-) {
-
-  paymentLinkResult.hidden =
-    true;
-
-  paymentLinkStatus.hidden =
-    false;
-
-  paymentLinkStatus.className =
-    "es-status";
-
-  paymentLinkStatus.textContent =
-    "Creating secure Stripe Checkout…";
-
-
-  paymentLinkContext.textContent =
-    `${booking.first_name} ${booking.last_name} · ${booking.service_name}`;
-
-
-  if (
-    typeof paymentLinkDialog
-      .showModal === "function"
-  ) {
-
-    paymentLinkDialog.showModal();
-  }
-
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/payments/stripe/checkout",
-        {
-          method:
-            "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Accept:
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              appointment_id:
-                booking.id
-            })
-        }
-      );
-
-
-    if (
-      response.status === 401
-    ) {
-
-      window.location.href =
-        "/auth/login.html";
-
-      return;
-    }
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
-      throw new Error(
-        data.error ||
-        "Unable to create payment link."
-      );
-    }
-
-
-    generatedPaymentLink.value =
-      data.checkout.url;
-
-
-    openPaymentLink.href =
-      data.checkout.url;
-
-
-    paymentLinkResult.hidden =
-      false;
-
-    paymentLinkStatus.className =
-      "es-status success";
-
-    paymentLinkStatus.textContent =
-      `${formatMoney(
-        data.checkout.amount_minor
-      )} Checkout created for ${data.checkout.customer_email}.`;
-
-
-  } catch (error) {
-
-    paymentLinkStatus.className =
-      "es-status error";
-
-    paymentLinkStatus.textContent =
-      error.message ||
-      "Unable to create payment link.";
-  }
-}
-
-
-function showBookingDetails(
-  booking
-) {
-
-  currentDetailBookingId =
-    booking.id;
-
-
-  document
-    .getElementById(
-      "detailCustomerName"
-    )
-    .textContent =
-      `${booking.first_name} ${booking.last_name}`;
-
-
-  bookingDetailContent.innerHTML = `
-    ${detailItem(
-      "Service",
-      booking.service_name
-    )}
-
-    ${detailItem(
-      "Status",
-      formatStatus(
-        booking.status
-      )
-    )}
-
-    ${detailItem(
-      "Date",
-      formatFullDate(
-        booking.start_at
-      )
-    )}
-
-    ${detailItem(
-      "Time",
-      formatDateTimeRange(
-        booking.start_at,
-        booking.end_at
-      )
-    )}
-
-    ${detailItem(
-      "Price",
-      formatMoney(
-        booking.price_minor
-      )
-    )}
-
-    ${
-      Number(booking.consultation_credit_minor || 0) > 0
-        ? detailItem(
-            "Consultation credit",
-            formatMoney(booking.consultation_credit_minor)
-          )
-        : ""
-    }
-
-    ${detailItem(
-      "Deposit due",
-      formatMoney(
-        booking.deposit_due_minor
-      )
-    )}
-
-    ${detailItem(
-      "Email",
-      booking.email ||
-      "—"
-    )}
-
-    ${detailItem(
-      "Phone",
-      booking.phone ||
-      "—"
-    )}
-
-    ${detailItem(
-      "Customer notes",
-      booking.notes ||
-      "No notes",
-      true
-    )}
-
-    ${detailItem(
-      "Booking source",
-      booking.booking_source ||
-      "—"
-    )}
-
-    ${detailItem(
-      "Created",
-      booking.created_at
-        ? formatFullDateTime(
-            booking.created_at
-          )
-        : "—"
-    )}
-  `;
-
-
-  bookingDetailActions.innerHTML = `
-    ${
-      booking.status !== "cancelled"
-        ? `
-          <button
-            id="detailPaymentLinkButton"
-            class="es-button"
-            type="button"
-          >
-            Create payment link
-          </button>
-
-          <button
-            id="detailSendFormButton"
-            class="es-button"
-            type="button"
-          >
-            Send form
-          </button>
-        `
-        : ""
-    }
-
-    ${
-      booking.status === "confirmed"
-        ? `
-        <button
-          id="detailEditButton"
-          class="es-secondary-button"
-          type="button"
-        >
-          Edit / reschedule
-        </button>
-
-        <button
-          id="detailCompleteButton"
-          class="es-secondary-button"
-          type="button"
-        >
-          Mark completed
-        </button>
-
-        <button
-          id="detailCancelButton"
-          class="es-secondary-button"
-          type="button"
-        >
-          Cancel booking
-        </button>
-        `
-        : ""
-    }
-  `;
-
-  const detailPaymentLinkButton =
-    document.getElementById(
-      "detailPaymentLinkButton"
-    );
-
-
-  if (detailPaymentLinkButton) {
-
-    detailPaymentLinkButton.addEventListener(
-      "click",
-      () => {
-
-        bookingDetailsDialog.close();
-
-        createStripePaymentLink(
-          booking
-        );
-      }
-    );
-  }
-
-
-  const detailSendFormButton =
-    document.getElementById(
-      "detailSendFormButton"
-    );
-
-  if (detailSendFormButton) {
-    detailSendFormButton.addEventListener(
-      "click",
-      () => {
-        bookingDetailsDialog.close();
-        openBookingFormRequest(booking);
-      }
-    );
-  }
-
-
-  if (
-    booking.status ===
-    "confirmed"
-  ) {
-
-    document
-      .getElementById(
-        "detailEditButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-
-          bookingDetailsDialog.close();
-
-          openBookingForm(
-            booking
-          );
-        }
-      );
-
-
-    document
-      .getElementById(
-        "detailCompleteButton"
-      )
-      .addEventListener(
-        "click",
-        () =>
-          completeBooking(
-            booking.id
-          )
-      );
-
-
-    document
-      .getElementById(
-        "detailCancelButton"
-      )
-      .addEventListener(
-        "click",
-        () =>
-          cancelBooking(
-            booking.id
-          )
-      );
-  }
-
-
-  if (
-    typeof bookingDetailsDialog
-      .showModal ===
-    "function"
-  ) {
-
-    bookingDetailsDialog.showModal();
-  }
-}
-
-
-function detailItem(
-  label,
-  value,
-  full = false
-) {
-
-  return `
-    <div
-      class="es-booking-detail ${
-        full
-          ? "es-booking-detail-full"
-          : ""
-      }"
-    >
-      <span>
-        ${escapeHtml(label)}
-      </span>
-
-      <strong>
-        ${escapeHtml(
-          value ??
-          "—"
-        )}
-      </strong>
-    </div>
-  `;
-}
-
-
-/* =======================================================
-   Status actions
-   ======================================================= */
-
-async function completeBooking(
-  id
-) {
-
-  const booking =
-    getBooking(id);
-
-
-  if (!booking) {
-    return;
-  }
-
-
-  const confirmed =
-    window.confirm(
-      `Mark ${booking.first_name} ${booking.last_name}'s booking as completed?`
-    );
-
-
-  if (!confirmed) {
-    return;
-  }
-
-
-  await updateBookingAction({
-    id,
-    action:
-      "complete",
-    successMessage:
-      "Booking marked as completed."
-  });
-}
-
-
-async function cancelBooking(
-  id
-) {
-
-  const booking =
-    getBooking(id);
-
-
-  if (!booking) {
-    return;
-  }
-
-
-  const confirmed =
-    window.confirm(
-      `Cancel ${booking.first_name} ${booking.last_name}'s booking?`
-    );
-
-
-  if (!confirmed) {
-    return;
-  }
-
-
-  const reason =
-    window.prompt(
-      "Cancellation reason (optional):",
-      ""
-    );
-
-
-  if (reason === null) {
-    return;
-  }
-
-
-  await updateBookingAction({
-    id,
-    action:
-      "cancel",
-    reason,
-    successMessage:
-      "Booking cancelled."
-  });
-}
-
-
-async function updateBookingAction({
-  id,
-  action,
-  reason = "",
-  successMessage
+export async function onRequestGet({
+  request,
+  env
 }) {
 
   try {
 
-    const response =
-      await fetch(
-        "/api/bookings",
-        {
-          method:
-            "PUT",
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
 
-          headers: {
-            "Content-Type":
-              "application/json",
 
-            Accept:
-              "application/json"
-          },
+    if (!user) {
+      return unauthorized();
+    }
 
-          body:
-            JSON.stringify({
+
+    const [
+      paymentRows,
+      customerRows,
+      appointmentRows,
+      providerRows,
+      paidMonth,
+      refundMonth
+    ] =
+      await Promise.all([
+
+        env.DB
+          .prepare(`
+            SELECT
+              p.id,
+              p.appointment_id,
+              p.customer_id,
+              p.provider,
+              p.payment_type,
+              p.amount_minor,
+              p.currency,
+              p.status,
+              p.provider_reference,
+              p.paid_at,
+              p.created_at,
+              p.updated_at,
+              p.payment_method,
+              p.notes,
+
+              c.first_name,
+              c.last_name,
+
+              a.start_at,
+              a.booking_kind AS appointment_booking_kind,
+              s.name AS service_name,
+
+              pp.display_name
+                AS provider_display_name,
+
+              CASE
+                WHEN
+                  p.payment_type = 'refund'
+                THEN 0
+
+                ELSE
+                  MAX(
+                    p.amount_minor -
+                    COALESCE(
+                      (
+                        SELECT
+                          SUM(r.amount_minor)
+
+                        FROM payments r
+
+                        WHERE
+                          r.business_id =
+                            p.business_id
+                          AND r.payment_type =
+                            'refund'
+                          AND r.status =
+                            'paid'
+                          AND (
+                            r.provider_reference =
+                              'refund:' || p.id
+                            OR instr(
+                              COALESCE(r.notes, ''),
+                              'original_payment=' || p.id
+                            ) > 0
+                          )
+                      ),
+                      0
+                    ),
+                    0
+                  )
+              END
+              AS refundable_minor
+
+            FROM payments p
+
+            LEFT JOIN customers c
+              ON c.id =
+                 p.customer_id
+
+            LEFT JOIN appointments a
+              ON a.id =
+                 p.appointment_id
+
+            LEFT JOIN services s
+              ON s.id =
+                 a.service_id
+
+            LEFT JOIN payment_providers pp
+              ON pp.provider_key =
+                 p.provider
+
+            WHERE
+              p.business_id = ?
+
+            ORDER BY
+              datetime(
+                COALESCE(
+                  p.paid_at,
+                  p.created_at
+                )
+              ) DESC
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
               id,
-              action,
-              reason
-            })
+              first_name,
+              last_name
+
+            FROM customers
+
+            WHERE
+              business_id = ?
+
+            ORDER BY
+              last_name COLLATE NOCASE,
+              first_name COLLATE NOCASE
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              a.id,
+              a.customer_id,
+              a.start_at,
+              a.price_minor,
+              a.consultation_credit_minor,
+              a.status,
+
+              c.first_name,
+              c.last_name,
+
+              s.name AS service_name,
+
+              COALESCE(
+                (
+                  SELECT
+                    SUM(
+                      CASE
+                        WHEN
+                          p.payment_type =
+                            'refund'
+                        THEN -p.amount_minor
+                        ELSE p.amount_minor
+                      END
+                    )
+
+                  FROM payments p
+
+                  WHERE
+                    p.appointment_id =
+                      a.id
+                    AND p.business_id =
+                      a.business_id
+                    AND p.status IN (
+                      'paid',
+                      'partially_refunded',
+                      'refunded'
+                    )
+                ),
+                0
+              ) AS paid_minor
+
+            FROM appointments a
+
+            JOIN customers c
+              ON c.id =
+                 a.customer_id
+
+            JOIN services s
+              ON s.id =
+                 a.service_id
+
+            WHERE
+              a.business_id = ?
+              AND a.status !=
+                  'cancelled'
+
+            ORDER BY
+              datetime(a.start_at) DESC
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              pp.provider_key,
+              pp.display_name,
+              pp.provider_type,
+
+              COALESCE(
+                bpp.is_enabled,
+                CASE
+                  WHEN
+                    pp.provider_key =
+                      'manual'
+                  THEN 1
+                  ELSE 0
+                END
+              ) AS is_enabled,
+
+              COALESCE(
+                bpp.connection_status,
+                'not_connected'
+              ) AS connection_status
+
+            FROM payment_providers pp
+
+            LEFT JOIN
+              business_payment_providers
+              bpp
+
+              ON bpp.provider_key =
+                 pp.provider_key
+              AND bpp.business_id = ?
+
+            WHERE
+              pp.is_available = 1
+              AND (
+                pp.provider_key =
+                  'manual'
+                OR bpp.is_enabled = 1
+              )
+
+            ORDER BY
+              pp.sort_order,
+              pp.display_name
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              COALESCE(
+                SUM(
+                  CASE
+                    WHEN
+                      payment_type =
+                        'refund'
+                    THEN -amount_minor
+                    ELSE amount_minor
+                  END
+                ),
+                0
+              ) AS total
+
+            FROM payments
+
+            WHERE
+              business_id = ?
+              AND status IN (
+                'paid',
+                'partially_refunded',
+                'refunded'
+              )
+              AND strftime(
+                '%Y-%m',
+                COALESCE(
+                  paid_at,
+                  created_at
+                )
+              ) =
+              strftime(
+                '%Y-%m',
+                'now'
+              )
+          `)
+          .bind(
+            user.business_id
+          )
+          .first(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
+              COALESCE(
+                SUM(amount_minor),
+                0
+              ) AS total
+
+            FROM payments
+
+            WHERE
+              business_id = ?
+              AND payment_type =
+                  'refund'
+              AND status = 'paid'
+              AND strftime(
+                '%Y-%m',
+                COALESCE(
+                  paid_at,
+                  created_at
+                )
+              ) =
+              strftime(
+                '%Y-%m',
+                'now'
+              )
+          `)
+          .bind(
+            user.business_id
+          )
+          .first()
+      ]);
+
+
+    const appointments =
+      (
+        appointmentRows.results ||
+        []
+      ).map(
+        (appointment) => {
+
+          const paidMinor =
+            Number(
+              appointment.paid_minor ||
+              0
+            );
+
+
+          const priceMinor =
+            Number(
+              appointment.price_minor ||
+              0
+            );
+
+          const consultationCreditMinor =
+            Number(
+              appointment.consultation_credit_minor ||
+              0
+            );
+
+
+          return {
+            ...appointment,
+
+            paid_minor:
+              paidMinor,
+
+            consultation_credit_minor:
+              consultationCreditMinor,
+
+            credited_paid_minor:
+              paidMinor +
+              consultationCreditMinor,
+
+            balance_minor:
+              Math.max(
+                priceMinor -
+                paidMinor -
+                consultationCreditMinor,
+                0
+              )
+          };
         }
       );
 
 
-    handleAuthentication(
-      response
-    );
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
-      throw new Error(
-        data.error ||
-        "Unable to update booking."
-      );
-    }
-
-
-    await Promise.all([
-      loadBookings(),
-      loadBookingPackages()
-    ]);
-
-
-    if (
-      bookingDetailsDialog.open
-    ) {
-
-      bookingDetailsDialog.close();
-    }
-
-
-    const status =
-      document.createElement(
-        "div"
+    const outstanding =
+      appointments.filter(
+        (appointment) =>
+          Number(
+            appointment.balance_minor
+          ) > 0
       );
 
-    status.className =
-      "es-status success";
 
-    status.textContent =
-      successMessage;
+    const outstandingMinor =
+      outstanding.reduce(
+        (
+          total,
+          appointment
+        ) =>
+          total +
+          Number(
+            appointment.balance_minor ||
+            0
+          ),
+        0
+      );
 
-    bookingsList.parentElement
-      .prepend(status);
 
+    return Response.json({
+      ok: true,
 
-    setTimeout(
-      () =>
-        status.remove(),
-      3000
-    );
+      currency:
+        user.currency ||
+        "GBP",
+
+      stats: {
+        paid_month_minor:
+          Number(
+            paidMonth?.total ||
+            0
+          ),
+
+        outstanding_minor:
+          outstandingMinor,
+
+        refund_month_minor:
+          Number(
+            refundMonth?.total ||
+            0
+          ),
+
+        transaction_count:
+          (
+            paymentRows.results ||
+            []
+          ).length
+      },
+
+      payments:
+        paymentRows.results ||
+        [],
+
+      customers:
+        customerRows.results ||
+        [],
+
+      appointments,
+
+      outstanding,
+
+      providers:
+        providerRows.results ||
+        []
+    });
 
 
   } catch (error) {
 
-    window.alert(
-      error.message ||
-      "Unable to update booking."
+    console.error(
+      "Payments GET failed:",
+      error
+    );
+
+
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to load payments."
+      },
+      {
+        status: 500
+      }
     );
   }
 }
 
 
 /* =======================================================
-   Form display
+   POST payment / refund
    ======================================================= */
 
-function openBookingForm(
-  booking = null
-) {
+export async function onRequestPost({
+  request,
+  env
+}) {
 
-  resetBookingForm(
-    false
-  );
+  try {
+
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
 
 
-  bookingStatus.hidden =
-    true;
+    if (!user) {
+      return unauthorized();
+    }
 
 
-  if (booking) {
-
-    bookingId.value =
-      booking.id;
-
-    selectedCustomerId.value =
-      booking.customer_id ||
-      "";
+    const body =
+      await request.json();
 
 
     if (
-      booking.customer_package_id
+      body.action ===
+      "refund"
     ) {
-      customerPackageId.value =
-        booking.customer_package_id;
 
-      packageBookingNotice.hidden =
-        false;
+      return await createRefund({
+        body,
+        user,
+        env
+      });
+    }
 
-      packageBookingNotice.textContent =
-        `${booking.package_name || "Package"} · this appointment is covered by the package.`;
 
-      refreshServiceOptionLabels(
-        booking.service_id
+    const customerId =
+      String(
+        body.customer_id ||
+        ""
+      ).trim();
+
+    const appointmentId =
+      String(
+        body.appointment_id ||
+        ""
+      ).trim();
+
+
+    const customerPackageId =
+      String(
+        body.customer_package_id ||
+        ""
+      ).trim();
+
+    const provider =
+      String(
+        body.provider ||
+        ""
+      ).trim();
+
+    const paymentMethod =
+      String(
+        body.payment_method ||
+        ""
+      ).trim();
+
+    const paymentType =
+      String(
+        body.payment_type ||
+        ""
+      ).trim();
+
+    const amountMinor =
+      Number(
+        body.amount_minor
+      );
+
+    const providerReference =
+      String(
+        body.provider_reference ||
+        ""
+      ).trim();
+
+    const notes =
+      String(
+        body.notes ||
+        ""
+      ).trim();
+
+
+    if (!customerId) {
+
+      return badRequest(
+        "Customer is required."
       );
     }
 
 
-    document
-      .getElementById(
-        "bookingFormEyebrow"
-      )
-      .textContent =
-        "Edit booking";
+    if (
+      !Number.isInteger(
+        amountMinor
+      ) ||
+      amountMinor <= 0
+    ) {
 
-
-    document
-      .getElementById(
-        "bookingFormTitle"
-      )
-      .textContent =
-        "Edit or reschedule appointment";
-
-
-    saveBookingButton.textContent =
-      "Save changes";
-
-
-    serviceSelect.value =
-      booking.service_id;
-
-    serviceSelect.disabled =
-      Boolean(
-        booking.customer_package_id
+      return badRequest(
+        "A valid amount is required."
       );
+    }
 
 
-    const parts =
-      splitDateTime(
-        booking.start_at
+    const allowedTypes = [
+      "full",
+      "deposit",
+      "balance",
+      "pay_at_appointment"
+    ];
+
+
+    if (
+      !allowedTypes.includes(
+        paymentType
+      )
+    ) {
+
+      return badRequest(
+        "Invalid payment type."
       );
+    }
 
 
-    bookingDate.value =
-      parts.date;
+    const allowedMethods = [
+      "paypal",
+      "apple_pay",
+      "google_pay",
+      "card",
+      "cash",
+      "bank_transfer",
+      "other"
+    ];
 
 
-    document
-      .getElementById(
-        "firstName"
+    if (
+      !allowedMethods.includes(
+        paymentMethod
       )
-      .value =
-        booking.first_name ||
-        "";
+    ) {
+
+      return badRequest(
+        "Invalid payment method."
+      );
+    }
 
 
-    document
-      .getElementById(
-        "lastName"
+    const customer =
+      await env.DB
+        .prepare(`
+          SELECT id
+
+          FROM customers
+
+          WHERE
+            id = ?
+            AND business_id = ?
+
+          LIMIT 1
+        `)
+        .bind(
+          customerId,
+          user.business_id
+        )
+        .first();
+
+
+    if (!customer) {
+
+      return badRequest(
+        "Customer not found."
+      );
+    }
+
+
+    let customerPackage = null;
+
+
+    if (customerPackageId) {
+      customerPackage =
+        await env.DB
+          .prepare(`
+            SELECT
+              cp.id,
+              cp.customer_id,
+              cp.price_minor,
+              cp.status,
+
+              (
+                SELECT COALESCE(
+                  SUM(
+                    CASE
+                      WHEN p.payment_type = 'refund' AND p.status = 'paid'
+                        THEN -ABS(p.amount_minor)
+                      WHEN p.payment_type != 'refund'
+                           AND p.status IN ('paid', 'partially_refunded', 'refunded')
+                        THEN ABS(p.amount_minor)
+                      ELSE 0
+                    END
+                  ),
+                  0
+                )
+                FROM customer_package_payments cpp
+                JOIN payments p
+                  ON p.id = cpp.payment_id
+                WHERE cpp.customer_package_id = cp.id
+              ) AS paid_minor,
+
+              (
+                SELECT COALESCE(
+                  SUM(ps.consultation_credit_minor),
+                  0
+                )
+                FROM package_sales ps
+                WHERE
+                  ps.business_id = cp.business_id
+                  AND ps.customer_package_id = cp.id
+                  AND ps.status = 'paid'
+              ) AS consultation_credit_minor
+
+            FROM customer_packages cp
+
+            WHERE
+              cp.id = ?
+              AND cp.business_id = ?
+
+            LIMIT 1
+          `)
+          .bind(
+            customerPackageId,
+            user.business_id
+          )
+          .first();
+
+
+      if (!customerPackage) {
+        return badRequest(
+          "Customer package not found."
+        );
+      }
+
+
+      if (
+        customerPackage.customer_id !==
+          customerId
+      ) {
+        return badRequest(
+          "Package does not belong to the selected customer."
+        );
+      }
+
+
+      if (
+        customerPackage.status ===
+          "cancelled" ||
+        customerPackage.status ===
+          "expired"
+      ) {
+        return badRequest(
+          "A payment cannot be recorded against this package."
+        );
+      }
+
+
+      const packageOutstanding =
+        Math.max(
+          Number(
+            customerPackage.price_minor ||
+            0
+          ) -
+          Number(
+            customerPackage.paid_minor ||
+            0
+          ) -
+          Number(
+            customerPackage.consultation_credit_minor ||
+            0
+          ),
+          0
+        );
+
+
+      if (
+        amountMinor >
+          packageOutstanding
+      ) {
+        return badRequest(
+          `Payment cannot exceed the remaining package balance of ${(
+            packageOutstanding /
+            100
+          ).toFixed(2)}.`
+        );
+      }
+    }
+
+
+    let appointment = null;
+
+
+    if (appointmentId) {
+
+      appointment =
+        await env.DB
+          .prepare(`
+            SELECT
+              id,
+              customer_id,
+              price_minor,
+              consultation_credit_minor,
+              status
+
+            FROM appointments
+
+            WHERE
+              id = ?
+              AND business_id = ?
+
+            LIMIT 1
+          `)
+          .bind(
+            appointmentId,
+            user.business_id
+          )
+          .first();
+
+
+      if (!appointment) {
+
+        return badRequest(
+          "Appointment not found."
+        );
+      }
+
+
+      if (
+        appointment.customer_id !==
+        customerId
+      ) {
+
+        return badRequest(
+          "Appointment does not belong to the selected customer."
+        );
+      }
+
+
+      if (
+        String(
+          appointment.status ||
+          ""
+        ).toLowerCase() ===
+          "cancelled"
+      ) {
+
+        return badRequest(
+          "A payment cannot be recorded against a cancelled appointment."
+        );
+      }
+
+
+      const paymentSummary =
+        await env.DB
+          .prepare(`
+            SELECT
+              COALESCE(
+                SUM(
+                  CASE
+                    WHEN
+                      payment_type = 'refund'
+                    THEN -ABS(amount_minor)
+
+                    WHEN
+                      payment_type != 'refund'
+                      AND status IN (
+                        'paid',
+                        'partially_refunded',
+                        'refunded'
+                      )
+                    THEN amount_minor
+
+                    ELSE 0
+                  END
+                ),
+                0
+              ) AS net_paid_minor
+
+            FROM payments
+
+            WHERE
+              business_id = ?
+              AND appointment_id = ?
+              AND status IN (
+                'paid',
+                'partially_refunded',
+                'refunded'
+              )
+          `)
+          .bind(
+            user.business_id,
+            appointmentId
+          )
+          .first();
+
+
+      const appointmentPriceMinor =
+        Number(
+          appointment.price_minor ||
+          0
+        );
+
+
+      const netPaidMinor =
+        Number(
+          paymentSummary?.net_paid_minor ||
+          0
+        );
+
+
+      const outstandingMinor =
+        Math.max(
+          appointmentPriceMinor -
+          netPaidMinor -
+          Number(
+            appointment.consultation_credit_minor ||
+            0
+          ),
+          0
+        );
+
+
+      if (
+        outstandingMinor <= 0
+      ) {
+
+        return badRequest(
+          "This appointment has already been paid in full."
+        );
+      }
+
+
+      if (
+        amountMinor >
+        outstandingMinor
+      ) {
+
+        return badRequest(
+          `Payment cannot exceed the remaining outstanding balance of ${
+            (
+              outstandingMinor /
+              100
+            ).toFixed(2)
+          }.`
+        );
+      }
+    }
+
+
+    const providerRecord =
+      await env.DB
+        .prepare(`
+          SELECT
+            pp.provider_key,
+
+            COALESCE(
+              bpp.is_enabled,
+              CASE
+                WHEN
+                  pp.provider_key =
+                    'manual'
+                THEN 1
+                ELSE 0
+              END
+            ) AS is_enabled
+
+          FROM payment_providers pp
+
+          LEFT JOIN
+            business_payment_providers
+            bpp
+
+            ON bpp.provider_key =
+               pp.provider_key
+            AND bpp.business_id = ?
+
+          WHERE
+            pp.provider_key = ?
+            AND pp.is_available = 1
+
+          LIMIT 1
+        `)
+        .bind(
+          user.business_id,
+          provider
+        )
+        .first();
+
+
+    if (
+      !providerRecord ||
+      providerRecord.is_enabled !== 1
+    ) {
+
+      return badRequest(
+        "Selected payment provider is not enabled."
+      );
+    }
+
+
+    const id =
+      `pay_${
+        crypto.randomUUID()
+      }`;
+
+
+    await env.DB
+      .prepare(`
+        INSERT INTO payments (
+          id,
+          business_id,
+          appointment_id,
+          customer_id,
+          provider,
+          payment_type,
+          amount_minor,
+          currency,
+          status,
+          provider_reference,
+          paid_at,
+          payment_method,
+          notes
+        )
+
+        VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?,
+          'paid',
+          ?,
+          CURRENT_TIMESTAMP,
+          ?,
+          ?
+        )
+      `)
+      .bind(
+        id,
+        user.business_id,
+        appointmentId || null,
+        customerId,
+        provider,
+        paymentType,
+        amountMinor,
+        user.currency ||
+          "GBP",
+        providerReference || null,
+        paymentMethod,
+        notes || null
       )
-      .value =
-        booking.last_name ||
-        "";
+      .run();
 
 
-    document
-      .getElementById(
-        "email"
-      )
-      .value =
-        booking.email ||
-        "";
+    if (customerPackageId) {
+      await env.DB
+        .prepare(`
+          INSERT INTO customer_package_payments (
+            customer_package_id,
+            payment_id
+          )
+          VALUES (?, ?)
+        `)
+        .bind(
+          customerPackageId,
+          id
+        )
+        .run();
+    }
 
 
-    document
-      .getElementById(
-        "phone"
-      )
-      .value =
-        booking.phone ||
-        "";
+    if (appointmentId) {
+      await runServiceFormAutomation({
+        env,
+        businessId:
+          user.business_id,
+        appointmentId,
+        triggerEvent:
+          "payment_received",
+        baseUrl:
+          new URL(request.url).origin,
+        createdByUserId:
+          user.user_id
+      });
+    }
 
 
-    document
-      .getElementById(
-        "notes"
-      )
-      .value =
-        booking.notes ||
-        "";
+    try {
+      await sendPaymentReceipt({
+        env,
+        businessId:
+          user.business_id,
+        paymentId:
+          id
+      });
+    } catch (emailError) {
+      console.error(
+        "Automatic payment receipt failed:",
+        emailError
+      );
+    }
 
 
-    selectedCustomerText.textContent =
-      `${booking.first_name} ${booking.last_name}`;
+    return Response.json({
+      ok: true,
+      payment: {
+        id
+      }
+    });
 
 
-    selectedCustomer.hidden =
-      false;
+  } catch (error) {
 
-
-    loadAvailability(
-      parts.time
+    console.error(
+      "Payment creation failed:",
+      error
     );
 
-  } else {
 
-    document
-      .getElementById(
-        "bookingFormEyebrow"
-      )
-      .textContent =
-        "New booking";
-
-
-    document
-      .getElementById(
-        "bookingFormTitle"
-      )
-      .textContent =
-        "Create appointment";
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to record payment."
+      },
+      {
+        status: 500
+      }
+    );
+  }
+}
 
 
-    saveBookingButton.textContent =
-      "Create booking";
+async function createRefund({
+  body,
+  user,
+  env
+}) {
+
+  const paymentId =
+    String(
+      body.payment_id ||
+      ""
+    ).trim();
+
+  const amountMinor =
+    Number(
+      body.amount_minor
+    );
+
+  const notes =
+    String(
+      body.notes ||
+      ""
+    ).trim();
+
+
+  if (
+    !paymentId ||
+    !Number.isInteger(
+      amountMinor
+    ) ||
+    amountMinor <= 0
+  ) {
+
+    return badRequest(
+      "Payment and refund amount are required."
+    );
   }
 
 
-  formPanel.hidden =
-    false;
+  const original =
+    await env.DB
+      .prepare(`
+        SELECT
+          id,
+          appointment_id,
+          customer_id,
+          provider,
+          payment_method,
+          amount_minor,
+          currency,
+          status,
+          payment_type
+
+        FROM payments
+
+        WHERE
+          id = ?
+          AND business_id = ?
+
+        LIMIT 1
+      `)
+      .bind(
+        paymentId,
+        user.business_id
+      )
+      .first();
 
 
-  formPanel.scrollIntoView({
-    behavior:
-      "smooth",
-    block:
-      "start"
+  if (!original) {
+
+    return notFound(
+      "Payment not found."
+    );
+  }
+
+
+  if (
+    original.payment_type ===
+      "refund" ||
+    original.status !==
+      "paid"
+  ) {
+
+    return badRequest(
+      "This payment cannot be refunded."
+    );
+  }
+
+
+  const existingRefunds =
+    await env.DB
+      .prepare(`
+        SELECT
+          COALESCE(
+            SUM(amount_minor),
+            0
+          ) AS total
+
+        FROM payments
+
+        WHERE
+          business_id = ?
+          AND payment_type =
+              'refund'
+          AND status = 'paid'
+          AND (
+            provider_reference =
+              ?
+            OR instr(
+              COALESCE(notes, ''),
+              ?
+            ) > 0
+          )
+      `)
+      .bind(
+        user.business_id,
+        `refund:${paymentId}`,
+        `original_payment=${paymentId}`
+      )
+      .first();
+
+
+  const alreadyRefunded =
+    Number(
+      existingRefunds?.total ||
+      0
+    );
+
+
+  const refundable =
+    Number(
+      original.amount_minor
+    ) -
+    alreadyRefunded;
+
+
+  if (
+    amountMinor >
+    refundable
+  ) {
+
+    return badRequest(
+      "Refund amount exceeds the remaining refundable amount."
+    );
+  }
+
+
+  const refundId =
+    `pay_${
+      crypto.randomUUID()
+    }`;
+
+
+  const refundNotes = [
+    `original_payment=${paymentId}`,
+    notes
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+
+  await env.DB
+    .prepare(`
+      INSERT INTO payments (
+        id,
+        business_id,
+        appointment_id,
+        customer_id,
+        provider,
+        payment_type,
+        amount_minor,
+        currency,
+        status,
+        provider_reference,
+        paid_at,
+        payment_method,
+        notes
+      )
+
+      VALUES (
+        ?, ?, ?, ?, ?,
+        'refund',
+        ?, ?,
+        'paid',
+        ?,
+        CURRENT_TIMESTAMP,
+        ?,
+        ?
+      )
+    `)
+    .bind(
+      refundId,
+      user.business_id,
+      original.appointment_id ||
+        null,
+      original.customer_id ||
+        null,
+      original.provider,
+      amountMinor,
+      original.currency ||
+        user.currency ||
+        "GBP",
+      `refund:${paymentId}`,
+      original.payment_method ||
+        "other",
+      refundNotes
+    )
+    .run();
+
+
+  return Response.json({
+    ok: true,
+    refund: {
+      id:
+        refundId
+    }
   });
 }
-
-
-function closeBookingForm() {
-
-  formPanel.hidden =
-    true;
-
-  resetBookingForm();
-}
-
-
-function resetBookingForm(
-  hidePanel = true
-) {
-
-  form.reset();
-
-  bookingId.value =
-    "";
-
-  selectedCustomerId.value =
-    "";
-
-  customerPackageId.value =
-    "";
-
-  packageBookingNotice.hidden =
-    true;
-
-  packageBookingNotice.textContent =
-    "";
-
-  serviceSelect.disabled =
-    false;
-
-  refreshServiceOptionLabels();
-
-  selectedCustomer.hidden =
-    true;
-
-  selectedCustomerText.textContent =
-    "";
-
-  customerSearchResults.hidden =
-    true;
-
-  customerSearchResults.innerHTML =
-    "";
-
-  bookingStatus.hidden =
-    true;
-
-  timeSelect.disabled =
-    true;
-
-  timeSelect.innerHTML = `
-    <option value="">
-      Choose a service and date first
-    </option>
-  `;
-
-  availabilityStatus.textContent =
-    "Available times will appear after you choose a service and date.";
-
-  document
-    .getElementById(
-      "bookingFormEyebrow"
-    )
-    .textContent =
-      "New booking";
-
-  document
-    .getElementById(
-      "bookingFormTitle"
-    )
-    .textContent =
-      "Create appointment";
-
-  saveBookingButton.textContent =
-    "Create booking";
-
-
-  setMinimumDate();
-
-
-  if (hidePanel) {
-
-    formPanel.hidden =
-      true;
-  }
-}
-
-
-/* =======================================================
-   Helpers / formatters
-   ======================================================= */
-
-function handleAuthentication(
-  response
-) {
-
-  if (
-    response.status ===
-    401
-  ) {
-
-    window.location.href =
-      "/auth/login.html";
-
-    throw new Error(
-      "Authentication required."
-    );
-  }
-}
-
-
-function splitDateTime(value) {
-
-  const raw =
-    String(value || "");
-
-
-  if (
-    raw.includes("T")
-  ) {
-
-    const [
-      date,
-      timePart
-    ] =
-      raw.split("T");
-
-
-    return {
-      date,
-      time:
-        timePart
-          .slice(0, 5)
-    };
-  }
-
-
-  return {
-    date: "",
-    time: ""
-  };
-}
-
-
-function formatMoney(
-  amountMinor
-) {
-
-  return new Intl.NumberFormat(
-    "en-GB",
-    {
-      style:
-        "currency",
-      currency:
-        "GBP"
-    }
-  ).format(
-    Number(
-      amountMinor ||
-      0
-    ) / 100
-  );
-}
-
-
-function formatDate(value) {
-
-  return new Intl.DateTimeFormat(
-    "en-GB",
-    {
-      weekday:
-        "short",
-      day:
-        "numeric",
-      month:
-        "short"
-    }
-  ).format(
-    new Date(value)
-  );
-}
-
-
-function formatFullDate(value) {
-
-  return new Intl.DateTimeFormat(
-    "en-GB",
-    {
-      weekday:
-        "long",
-      day:
-        "numeric",
-      month:
-        "long",
-      year:
-        "numeric"
-    }
-  ).format(
-    new Date(value)
-  );
-}
-
-
-function formatFullDateTime(
-  value
-) {
-
-  return new Intl.DateTimeFormat(
-    "en-GB",
-    {
-      dateStyle:
-        "medium",
-      timeStyle:
-        "short"
-    }
-  ).format(
-    new Date(value)
-  );
-}
-
-
-function formatDateTimeRange(
-  startValue,
-  endValue
-) {
-
-  const formatter =
-    new Intl.DateTimeFormat(
-      "en-GB",
-      {
-        hour:
-          "2-digit",
-        minute:
-          "2-digit"
-      }
-    );
-
-
-  return `${
-    formatter.format(
-      new Date(startValue)
-    )
-  } – ${
-    formatter.format(
-      new Date(endValue)
-    )
-  }`;
-}
-
-
-function formatTime(value) {
-
-  const [
-    hour,
-    minute
-  ] =
-    value
-      .split(":")
-      .map(Number);
-
-
-  const date =
-    new Date();
-
-
-  date.setHours(
-    hour,
-    minute,
-    0,
-    0
-  );
-
-
-  return new Intl.DateTimeFormat(
-    "en-GB",
-    {
-      hour:
-        "2-digit",
-      minute:
-        "2-digit"
-    }
-  ).format(date);
-}
-
-
-function formatStatus(value) {
-
-  const statuses = {
-    confirmed:
-      "Confirmed",
-    completed:
-      "Completed",
-    cancelled:
-      "Cancelled",
-    pending:
-      "Pending"
-  };
-
-
-  return statuses[value] ||
-    value;
-}
-
-
-function escapeHtml(value) {
-
-  return String(
-    value ??
-    ""
-  )
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
-}
-
-
-/* =======================================================
-   Start
-   ======================================================= */
-
-async function openPackageBooking(
-  packageId
-) {
-  const response =
-    await fetch(
-      `/api/packages?customer_package_id=${encodeURIComponent(
-        packageId
-      )}`,
-      {
-        headers: {
-          Accept:
-            "application/json"
-        },
-        cache:
-          "no-store"
-      }
-    );
-
-  handleAuthentication(
-    response
-  );
-
-  const data =
-    await response.json();
-
-  if (
-    !response.ok ||
-    !data.ok
-  ) {
-    throw new Error(
-      data.error ||
-      "Unable to load package."
-    );
-  }
-
-  const item =
-    data.customer_package;
-
-  if (
-    item.status !==
-      "active" ||
-    Number(
-      item.sessions_available_to_book ||
-      0
-    ) <= 0
-  ) {
-    throw new Error(
-      "This package has no sessions available to book."
-    );
-  }
-
-  openBookingForm();
-
-  customerPackageId.value =
-    item.id;
-
-  selectedCustomerId.value =
-    item.customer_id;
-
-  serviceSelect.value =
-    item.service_id;
-
-  refreshServiceOptionLabels(
-    item.service_id
-  );
-
-  document.getElementById(
-    "firstName"
-  ).value =
-    item.first_name ||
-    "";
-
-  document.getElementById(
-    "lastName"
-  ).value =
-    item.last_name ||
-    "";
-
-  document.getElementById(
-    "email"
-  ).value =
-    item.email ||
-    "";
-
-  document.getElementById(
-    "phone"
-  ).value =
-    item.phone ||
-    "";
-
-  selectedCustomerText.textContent =
-    `${item.first_name} ${item.last_name}`;
-
-  selectedCustomer.hidden =
-    false;
-
-  packageBookingNotice.hidden =
-    false;
-
-  packageBookingNotice.textContent =
-    `${item.name_snapshot} · ${item.sessions_available_to_book} session${
-      Number(item.sessions_available_to_book) === 1
-        ? ""
-        : "s"
-    } available · this appointment is covered by the package.`;
-
-  document.getElementById(
-    "bookingFormTitle"
-  ).textContent =
-    `Book package session · ${item.name_snapshot}`;
-}
-
-
-async function initialiseBookingsPage() {
-
-  setMinimumDate();
-
-  await Promise.all([
-    loadServices(),
-    loadBookings(),
-    loadBookingPackages()
-  ]);
-
-
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
-
-
-  const date =
-    params.get(
-      "date"
-    );
-
-
-  const bookingIdFromUrl =
-    params.get(
-      "booking"
-    );
-
-
-  const packageIdFromUrl =
-    params.get(
-      "package"
-    );
-
-
-  if (packageIdFromUrl) {
-    await openPackageBooking(
-      packageIdFromUrl
-    );
-  }
-
-
-  if (date && !packageIdFromUrl) {
-
-    openBookingForm();
-
-    bookingDate.value =
-      date;
-
-
-    if (
-      serviceSelect.value
-    ) {
-
-      await loadAvailability();
-    }
-  }
-
-
-  if (
-    bookingIdFromUrl
-  ) {
-
-    const booking =
-      bookings.find(
-        (item) =>
-          item.id ===
-          bookingIdFromUrl
-      );
-
-
-    if (booking) {
-
-      showBookingDetails(
-        booking
-      );
-    }
-  }
-}
-
-
-initialiseBookingsPage();
