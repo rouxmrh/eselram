@@ -382,8 +382,8 @@ function getChargePlan(
     Math.max(
       0,
       Number(
-        appointment.deposit_due_minor ||
-        appointment.deposit_minor ||
+        appointment.deposit_due_minor ??
+        appointment.deposit_minor ??
         0
       )
     );
@@ -405,7 +405,10 @@ function getChargePlan(
   if (
     appointment.payment_timing ===
     "online_deposit" &&
-    netPaid < deposit
+    (
+      netPaid +
+      consultationCredit
+    ) < deposit
   ) {
 
     return {
@@ -414,7 +417,9 @@ function getChargePlan(
       amountMinor:
         Math.max(
           0,
-          deposit - netPaid
+          deposit -
+          netPaid -
+          consultationCredit
         ),
       label:
         `${appointment.service_name} deposit`
