@@ -3415,32 +3415,41 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 
 .es-treatment-record-controls {
   display: grid;
-  justify-items: end;
-  align-self: stretch;
-  align-content: center;
-  gap: 12px;
-}
-
-.es-treatment-record-actions {
-  display: grid;
-  grid-template-columns: 98px 120px;
+  grid-template-columns: 108px 108px;
+  grid-template-rows: auto 40px;
+  gap: 10px 8px;
   align-items: stretch;
-  gap: 8px;
+  justify-content: end;
+  align-self: center;
 }
 
-.es-treatment-record-actions .es-button,
-.es-treatment-record-actions .es-secondary-button {
+.es-treatment-record-controls .es-treatment-status {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  align-self: end;
+}
+
+.es-treatment-record-controls .es-treatment-customer-link,
+.es-treatment-record-controls .es-treatment-view-record {
+  min-height: 40px;
+  width: 108px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-}
-
-.es-treatment-record-actions .es-button,
-.es-treatment-record-actions .es-secondary-button {
-  min-height: 38px;
+  box-sizing: border-box;
   white-space: nowrap;
   text-decoration: none;
+}
+
+.es-treatment-record-controls .es-treatment-customer-link {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.es-treatment-record-controls .es-treatment-view-record {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .es-treatment-status-complete {
@@ -3497,12 +3506,7 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
   }
 
   .es-treatment-record-controls {
-    justify-items: start;
-    align-content: start;
-  }
-
-  .es-treatment-record-actions {
-    justify-content: flex-start;
+    justify-content: start;
   }
 
   .es-treatment-record-heading {
@@ -3515,15 +3519,6 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
     grid-template-columns: 1fr;
   }
 
-  .es-treatment-record-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .es-treatment-record-actions .es-button,
-  .es-treatment-record-actions .es-secondary-button {
-    justify-content: center;
-  }
 }
 
 .es-treatment-photo-strip {
