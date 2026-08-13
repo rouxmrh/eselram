@@ -588,11 +588,34 @@ async function submitForm(event) {
       </div>
     `;
 
-    if (internalRecord && window.opener) {
-      window.opener.postMessage(
-        { type: "eselram:clinical-record-saved" },
-        location.origin
-      );
+    if (internalRecord) {
+      const customerId = String(
+        formDefinition?.request?.customer_id || ""
+      ).trim();
+
+      if (window.opener) {
+        window.opener.postMessage(
+          { type: "eselram:clinical-record-saved" },
+          location.origin
+        );
+
+        setTimeout(() => {
+          try {
+            window.opener.focus();
+            window.close();
+          } catch {}
+
+          if (!window.closed && customerId) {
+            window.location.href =
+              `/customers/?customer=${encodeURIComponent(customerId)}`;
+          }
+        }, 600);
+      } else if (customerId) {
+        setTimeout(() => {
+          window.location.href =
+            `/customers/?customer=${encodeURIComponent(customerId)}`;
+        }, 600);
+      }
     }
   } catch (error) {
     errorBox.hidden = false;
