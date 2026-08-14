@@ -85,6 +85,21 @@ export function renderSidebar(activeKey) {
         </div>
       </div>
 
+      <div
+        class="es-sidebar-powered-by"
+        aria-label="Powered by Eselram"
+      >
+        <img
+          class="es-sidebar-powered-logo"
+          src="/assets/eselram_logo.png"
+          alt=""
+        >
+
+        <span class="es-sidebar-powered-copy">
+          Powered by esel<strong>ram</strong>
+        </span>
+      </div>
+
       <a
         class="es-sidebar-signout"
         href="/auth/logout.html"
