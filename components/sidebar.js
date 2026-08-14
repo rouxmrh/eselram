@@ -47,7 +47,7 @@ export function renderSidebar(activeKey) {
   sidebar.innerHTML = `
     <div
       class="es-sidebar-brand-lockup"
-      aria-label="Powered by Eselram"
+      aria-label="Inspired by Eselram"
     >
       <img
         class="es-sidebar-brand-logo"
@@ -59,7 +59,7 @@ export function renderSidebar(activeKey) {
 
       <div class="es-sidebar-brand-copy">
         <span class="es-sidebar-powered-label">
-          Powered by
+          Inspired by
         </span>
         <span class="es-sidebar-brand-name">
           eselram
