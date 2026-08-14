@@ -4161,3 +4161,34 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
   padding: 0 !important;
   border-radius: 6px !important;
 }
+
+
+/* =======================================================
+   Sidebar — stay visible while page content scrolls
+   ======================================================= */
+
+.es-dashboard-layout {
+  align-items: start;
+}
+
+.es-sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  align-self: start !important;
+}
+
+.es-sidebar-footer {
+  margin-top: auto !important;
+}
+
+@media (max-width: 900px) {
+  .es-sidebar {
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
