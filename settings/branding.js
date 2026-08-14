@@ -135,7 +135,7 @@ async function loadBranding() {
 
     const branding = data.branding || {};
 
-    setValue("primaryColour", branding.primary_colour || "#365c50");
+    setValue("primaryColour", branding.primary_colour || "#365178");
     setValue("accentColour", branding.accent_colour || "#6f8079");
     setValue("backgroundColour", branding.background_colour || "#f5f4ef");
     setValue("surfaceColour", branding.surface_colour || "#ffffff");
