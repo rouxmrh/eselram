@@ -91,5 +91,5 @@ ON customer_communications (business_id, status, scheduled_for);
 
 PRAGMA foreign_keys = ON;
 
-INSERT OR IGNORE INTO schema_migrations (migration_name)
+INSERT OR IGNORE INTO schema_migrations (version)
 VALUES ('031_treatment_aftercare_communications');
