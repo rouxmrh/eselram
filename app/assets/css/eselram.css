@@ -3889,3 +3889,22 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 .es-sidebar-signout:hover {
   color: #ffffff !important;
 }
+
+
+/* Logout — keep text and icon white in all states */
+.es-sidebar .es-sidebar-signout,
+.es-sidebar .es-sidebar-signout:link,
+.es-sidebar .es-sidebar-signout:visited,
+.es-sidebar .es-sidebar-signout:hover,
+.es-sidebar .es-sidebar-signout:focus,
+.es-sidebar .es-sidebar-signout:active {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.es-sidebar .es-sidebar-signout .es-sidebar-nav-icon,
+.es-sidebar .es-sidebar-signout .es-sidebar-nav-icon svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  opacity: 1 !important;
+}
