@@ -103,7 +103,8 @@ async function cloneStarter(key) {
 
     templateStatus.hidden = false;
     templateStatus.className = "es-status success";
-    templateStatus.textContent = "Starter template added to your business.";
+    templateStatus.textContent =
+      "Starter loaded as an unpublished form. Edit it here, then publish it when it is ready.";
 
     await loadTemplates();
 
@@ -119,43 +120,145 @@ async function cloneStarter(key) {
 }
 
 function renderTemplateList() {
-  if (templates.length === 0) {
-    templateList.innerHTML = `
-      <div class="es-empty-state">
-        <strong>No business templates yet.</strong>
-        <span>Choose a starter above or create a blank template.</span>
+  const publishedTemplates =
+    templates.filter(
+      template =>
+        Number(template.is_active) === 1 &&
+        Number(template.is_published) === 1
+    );
+
+  const archivedTemplates =
+    templates.filter(
+      template =>
+        Number(template.is_active) === 0
+    );
+
+  const publishedMarkup =
+    publishedTemplates.length
+      ? publishedTemplates
+          .map(
+            template => `
+              <button
+                class="es-template-list-button ${
+                  activeTemplate?.id === template.id
+                    ? "active"
+                    : ""
+                }"
+                type="button"
+                data-template-id="${escapeHtml(template.id)}"
+              >
+                <strong>${escapeHtml(template.name)}</strong>
+                <span>
+                  ${escapeHtml(
+                    formatTemplateType(
+                      template.template_type
+                    )
+                  )}
+                  · Published
+                </span>
+              </button>
+            `
+          )
+          .join("")
+      : `
+          <div class="es-template-list-empty">
+            <strong>No published forms yet.</strong>
+            <span>
+              Choose a starter or create a blank template, then publish it when it is ready.
+            </span>
+          </div>
+        `;
+
+  const archivedMarkup =
+    archivedTemplates.length
+      ? archivedTemplates
+          .map(
+            template => `
+              <button
+                class="es-template-list-button es-template-list-button-archived ${
+                  activeTemplate?.id === template.id
+                    ? "active"
+                    : ""
+                }"
+                type="button"
+                data-template-id="${escapeHtml(template.id)}"
+              >
+                <strong>${escapeHtml(template.name)}</strong>
+                <span>
+                  ${escapeHtml(
+                    formatTemplateType(
+                      template.template_type
+                    )
+                  )}
+                  · Archived
+                </span>
+              </button>
+            `
+          )
+          .join("")
+      : `
+          <div class="es-template-list-empty compact">
+            <span>No archived forms.</span>
+          </div>
+        `;
+
+  templateList.innerHTML = `
+    <section class="es-template-list-section">
+      <div class="es-template-list-heading">
+        <strong>Published</strong>
+        <span>${publishedTemplates.length}</span>
       </div>
-    `;
-    return;
-  }
 
-  templateList.innerHTML = templates.map(template => `
-    <button
-      class="es-template-list-button ${
-        activeTemplate?.id === template.id ? "active" : ""
-      }"
-      type="button"
-      data-template-id="${escapeHtml(template.id)}"
-    >
-      <strong>${escapeHtml(template.name)}</strong>
-      <span>
-        ${escapeHtml(formatTemplateType(template.template_type))}
-        ${template.is_active === 1 ? "" : " · Inactive"}
-      </span>
-    </button>
-  `).join("");
+      <div class="es-template-list-group">
+        ${publishedMarkup}
+      </div>
+    </section>
 
-  document.querySelectorAll("[data-template-id]").forEach(button => {
-    button.addEventListener("click", () => {
-      const template = templates.find(item => item.id === button.dataset.templateId);
+    <details class="es-template-archive-section">
+      <summary>
+        <span>Archived</span>
+        <span class="es-template-list-count">
+          ${archivedTemplates.length}
+        </span>
+      </summary>
 
-      if (!template) return;
+      <div class="es-template-list-group">
+        ${archivedMarkup}
+      </div>
+    </details>
+  `;
 
-      activeTemplate = structuredClone(template);
-      renderTemplateList();
-      renderEditor();
-    });
-  });
+  document
+    .querySelectorAll(
+      "[data-template-id]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            const template =
+              templates.find(
+                item =>
+                  item.id ===
+                  button.dataset.templateId
+              );
+
+            if (!template) {
+              return;
+            }
+
+            activeTemplate =
+              structuredClone(
+                template
+              );
+
+            renderTemplateList();
+            renderEditor();
+          }
+        );
+      }
+    );
 }
 
 function createBlankTemplate() {
