@@ -3851,3 +3851,41 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
     display: none;
   }
 }
+
+
+/* Sidebar navigation icons */
+.es-sidebar-nav a,
+.es-sidebar-signout {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.es-sidebar-nav-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.es-sidebar-nav-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.es-sidebar-signout {
+  min-height: 38px;
+  color: #ffffff !important;
+}
+
+.es-sidebar-signout:hover {
+  color: #ffffff !important;
+}
