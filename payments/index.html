@@ -110,7 +110,8 @@
     }
 
     .es-finance-actions .es-payment-action,
-    .es-finance-actions .es-secondary-button {
+    .es-finance-actions .es-secondary-button,
+    .es-finance-actions .es-button {
       min-height:36px;
       min-width:82px;
       display:inline-flex;
@@ -119,17 +120,42 @@
       box-sizing:border-box;
       text-decoration:none;
       white-space:nowrap;
+      margin:0;
     }
 
     .es-finance-outstanding-row {
       display:grid;
-      grid-template-columns:minmax(180px,1fr) 135px 120px 130px 220px;
+      grid-template-columns:minmax(180px,1fr) 135px 120px 130px 350px;
       gap:14px;
       align-items:center;
       padding:14px 15px;
       border:1px solid var(--es-border);
       border-radius:15px;
       background:var(--es-surface);
+    }
+
+    .es-finance-outstanding-row .es-finance-actions {
+      display:grid;
+      grid-template-columns:repeat(3, 108px);
+      gap:8px;
+      justify-content:end;
+      align-items:stretch;
+      width:100%;
+    }
+
+    .es-finance-outstanding-row .es-finance-actions .es-payment-action,
+    .es-finance-outstanding-row .es-finance-actions .es-secondary-button,
+    .es-finance-outstanding-row .es-finance-actions .es-button {
+      width:108px;
+      min-width:108px;
+      height:40px;
+      min-height:40px;
+      padding:0 10px;
+      margin:0;
+      border-radius:10px;
+      line-height:1;
+      text-align:center;
+      white-space:nowrap;
     }
 
     .es-payment-drawer-close {
@@ -168,6 +194,11 @@
       .es-finance-actions {
         justify-content:flex-start;
       }
+
+      .es-finance-outstanding-row .es-finance-actions {
+        grid-column:1 / -1;
+        justify-content:start;
+      }
     }
 
     @media(max-width:860px) {
@@ -186,6 +217,17 @@
       .es-finance-row,
       .es-finance-outstanding-row {
         grid-template-columns:1fr;
+      }
+
+      .es-finance-outstanding-row .es-finance-actions {
+        grid-template-columns:1fr;
+      }
+
+      .es-finance-outstanding-row .es-finance-actions .es-payment-action,
+      .es-finance-outstanding-row .es-finance-actions .es-secondary-button,
+      .es-finance-outstanding-row .es-finance-actions .es-button {
+        width:100%;
+        min-width:0;
       }
     }
   
