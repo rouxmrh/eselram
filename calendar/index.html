@@ -16,6 +16,12 @@
     href="/app/assets/css/eselram.css"
   >
 
+  <script>
+    if (new URLSearchParams(window.location.search).get("embedded") === "1") {
+      document.documentElement.classList.add("es-calendar-embedded");
+    }
+  </script>
+
   <style>
     .es-calendar-toolbar {
       display: flex;
@@ -567,7 +573,43 @@
         grid-column: auto;
       }
     }
-  </style>
+  
+    html.es-calendar-embedded,
+    html.es-calendar-embedded body {
+      background: transparent;
+    }
+
+    html.es-calendar-embedded .es-dashboard-layout {
+      display: block;
+      min-height: 0;
+    }
+
+    html.es-calendar-embedded .es-sidebar,
+    html.es-calendar-embedded .es-dashboard-header {
+      display: none !important;
+    }
+
+    html.es-calendar-embedded .es-dashboard-main {
+      width: 100%;
+      max-width: none;
+      padding: 18px;
+      margin: 0;
+    }
+
+    html.es-calendar-embedded .es-dashboard-panel {
+      margin: 0;
+      border: 0;
+      box-shadow: none;
+    }
+
+    html.es-calendar-embedded .es-calendar-drawer {
+      z-index: 120;
+    }
+
+    html.es-calendar-embedded .es-calendar-drawer-backdrop {
+      z-index: 110;
+    }
+</style>
 </head>
 
 <body class="es-dashboard-body">
@@ -728,7 +770,7 @@
         type="button"
         aria-label="Close"
       >
-        ×
+        Close
       </button>
 
     </div>
@@ -756,7 +798,10 @@
 
 <script type="module">
   import { renderSidebar } from "/components/sidebar.js";
-  renderSidebar("calendar");
+
+  if (new URLSearchParams(window.location.search).get("embedded") !== "1") {
+    renderSidebar("bookings");
+  }
 </script>
   
   <script src="/calendar/calendar.js"></script>
