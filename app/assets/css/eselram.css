@@ -185,7 +185,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--es-primary);
-  box-shadow: 0 0 0 3px rgba(54, 92, 80, 0.12);
+  box-shadow: 0 0 0 3px rgba(54, 81, 120, 0.12);
 }
 .es-button:disabled {
   opacity: 0.6;
@@ -313,7 +313,7 @@ textarea:focus {
 
   box-shadow:
     0 0 0 3px
-    rgba(54, 92, 80, 0.10);
+    rgba(54, 81, 120, 0.10);
 }
 
 .es-payment-card input {
@@ -417,18 +417,72 @@ textarea:focus {
 }
 
 .es-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   padding: 30px 22px;
-  border-right: 1px solid var(--es-border);
-  background: var(--es-surface);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  background: #365178;
+  color: #ffffff;
 }
 
 .es-sidebar-brand {
-  margin: 4px 10px 38px;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.22em;
+  display: none;
+}
+
+.es-sidebar-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  margin: 2px 8px 34px;
+  color: #ffffff;
+  overflow: visible;
+}
+
+.es-sidebar-brand-logo {
+  display: block;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 8px;
+}
+
+.es-sidebar-brand-copy {
+  display: grid;
+  gap: 0;
+  align-content: center;
+  min-width: 0;
+}
+
+.es-sidebar-powered-label {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 8px;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+}
+
+.es-sidebar-brand-name {
+  color: #ffffff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .es-sidebar-nav {
@@ -436,10 +490,18 @@ textarea:focus {
   gap: 5px;
 }
 
+.es-sidebar-nav a,
+.es-sidebar-signout {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
 .es-sidebar-nav a {
+  min-height: 42px;
   padding: 11px 12px;
   border-radius: var(--es-radius-sm);
-  color: var(--es-muted);
+  color: rgba(255, 255, 255, 0.86);
   font-size: 14px;
   font-weight: 650;
   text-decoration: none;
@@ -447,32 +509,140 @@ textarea:focus {
 
 .es-sidebar-nav a:hover,
 .es-sidebar-nav a.active {
-  background: #f1f3ef;
-  color: var(--es-text);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.es-sidebar-nav-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.es-sidebar-nav-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .es-sidebar-footer {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 54px;
   display: grid;
   gap: 14px;
-  margin-top: auto;
-  padding: 22px 10px 4px;
-  border-top: 1px solid var(--es-border);
+  margin: 0;
+  padding: 18px 10px 4px;
+  box-sizing: border-box;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
 
-.es-sidebar-footer div {
+.es-sidebar-account {
   display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.es-sidebar-footer span {
-  color: var(--es-muted);
-  font-size: 12px;
+.es-sidebar-account-logo,
+.es-sidebar-account-initial {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.es-sidebar-account-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+  margin: 0;
+  padding: 0;
+  border-radius: 6px;
+}
+
+.es-sidebar-account-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.es-sidebar-account-copy strong,
+.es-sidebar-account-copy span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.es-sidebar-account-copy strong {
+  color: #ffffff;
+  font-size: 11px;
+}
+
+.es-sidebar-account-copy span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+}
+
+.es-sidebar-signout,
+.es-sidebar-signout:link,
+.es-sidebar-signout:visited,
+.es-sidebar-signout:hover,
+.es-sidebar-signout:focus,
+.es-sidebar-signout:active,
+.es-sidebar-signout span {
+  min-height: 38px;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  font-weight: 800;
+  opacity: 1;
+  text-decoration: none;
+}
+
+.es-sidebar-signout .es-sidebar-nav-icon,
+.es-sidebar-signout .es-sidebar-nav-icon svg,
+.es-sidebar-signout .es-sidebar-nav-icon svg * {
+  color: #ffffff;
+  stroke: #ffffff;
+  opacity: 1;
+}
+
+.es-sidebar-signout .es-sidebar-nav-icon svg {
+  stroke-width: 2.2;
 }
 
 .es-logout-button {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--es-primary);
+  color: #ffffff;
   font-weight: 700;
   text-align: left;
   cursor: pointer;
@@ -589,6 +759,10 @@ textarea:focus {
 
   .es-sidebar {
     display: none;
+    position: static;
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .es-dashboard-main {
@@ -2710,7 +2884,6 @@ textarea:focus {
 }
 
 
-
 /* =======================================================
    Clinical Submissions / Records
    ======================================================= */
@@ -2761,7 +2934,6 @@ textarea:focus {
 @media(max-width:1050px){.es-clinical-record-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.es-clinical-record-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.es-clinical-record-toolbar{align-items:stretch;flex-direction:column}.es-clinical-record-filters{flex-direction:column}.es-clinical-record-filters input,.es-clinical-record-filters select,.es-clinical-record-filters input[type="search"]{min-width:0;width:100%}.es-clinical-record-row,.es-clinical-record-meta{grid-template-columns:1fr}}
 @media(max-width:480px){.es-clinical-record-kpis{grid-template-columns:1fr}}
-
 
 
 /* =======================================================
@@ -2935,7 +3107,6 @@ textarea:focus {
 }
 
 
-
 /* =======================================================
    Setup & installation health
    ======================================================= */
@@ -3060,7 +3231,6 @@ textarea:focus {
     gap: 4px;
   }
 }
-
 
 
 /* =======================================================
@@ -3195,7 +3365,6 @@ textarea:focus {
 }
 
 
-
 /* =======================================================
    Independent Stripe settings — 022
    ======================================================= */
@@ -3221,7 +3390,6 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
-
 
 
 /* =======================================================
@@ -3680,552 +3848,5 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 
   .es-treatment-record-controls {
     justify-content: start;
-  }
-}
-
-
-/* =======================================================
-   Eselram application theme — blue navigation / actions
-   ======================================================= */
-
-:root {
-  --es-primary: #365178;
-  --es-primary-hover: #2c4160;
-}
-
-.es-button {
-  background: #365178;
-}
-
-.es-button:hover {
-  background: #2c4160;
-}
-
-.es-sidebar {
-  background: #365178;
-  border-right-color: rgba(255,255,255,.12);
-  color: #ffffff;
-}
-
-.es-sidebar-brand {
-  color: #ffffff;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: .01em;
-  text-transform: lowercase;
-}
-
-.es-sidebar-nav a {
-  display: flex;
-  align-items: center;
-  min-height: 42px;
-  color: rgba(255,255,255,.86);
-}
-
-.es-sidebar-nav a:hover,
-.es-sidebar-nav a.active {
-  background: rgba(255,255,255,.12);
-  color: #ffffff;
-}
-
-.es-sidebar-footer {
-  border-top-color: rgba(255,255,255,.14);
-}
-
-.es-sidebar-account {
-  display: grid !important;
-  grid-template-columns: 38px minmax(0,1fr);
-  gap: 10px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 12px;
-  background: rgba(255,255,255,.08);
-}
-
-.es-sidebar-account-logo,
-.es-sidebar-account-initial {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: rgba(255,255,255,.14);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.es-sidebar-account-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.es-sidebar-account-copy {
-  display: grid !important;
-  gap: 1px;
-  min-width: 0;
-}
-
-.es-sidebar-account-copy strong,
-.es-sidebar-account-copy span {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.es-sidebar-account-copy strong {
-  color: #ffffff;
-  font-size: 11px;
-}
-
-.es-sidebar-account-copy span {
-  color: rgba(255,255,255,.72) !important;
-  font-size: 10px;
-}
-
-.es-sidebar-signout {
-  color: #ffffff !important;
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.es-logout-button {
-  color: #ffffff;
-}
-
-/* Consistent paired action-button alignment across Eselram. */
-.es-dashboard-header-actions {
-  align-items: stretch;
-}
-
-.es-dashboard-header-actions .es-button,
-.es-dashboard-header-actions .es-secondary-button {
-  min-height: 44px;
-  margin-top: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-/* Clinical Templates action sizing. */
-.es-clinical-template-header-actions .es-button,
-.es-clinical-template-header-actions .es-secondary-button {
-  width: 150px;
-  height: 44px;
-  min-height: 44px;
-  margin: 0;
-}
-
-.es-template-footer-actions {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.es-template-footer-actions > .es-button,
-.es-template-footer-actions > .es-secondary-button {
-  min-width: 140px;
-  height: 44px;
-  min-height: 44px;
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-@media (max-width: 900px) {
-  .es-sidebar {
-    display: none;
-  }
-}
-
-
-/* Sidebar navigation icons */
-.es-sidebar-nav a,
-.es-sidebar-signout {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.es-sidebar-nav-icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.es-sidebar-nav-icon svg {
-  width: 18px;
-  height: 18px;
-  display: block;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.es-sidebar-signout {
-  min-height: 38px;
-  color: #ffffff !important;
-}
-
-.es-sidebar-signout:hover {
-  color: #ffffff !important;
-}
-
-
-/* Logout — keep text and icon white in all states */
-.es-sidebar .es-sidebar-signout,
-.es-sidebar .es-sidebar-signout:link,
-.es-sidebar .es-sidebar-signout:visited,
-.es-sidebar .es-sidebar-signout:hover,
-.es-sidebar .es-sidebar-signout:focus,
-.es-sidebar .es-sidebar-signout:active {
-  color: #ffffff !important;
-  opacity: 1 !important;
-}
-
-.es-sidebar .es-sidebar-signout .es-sidebar-nav-icon,
-.es-sidebar .es-sidebar-signout .es-sidebar-nav-icon svg {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  opacity: 1 !important;
-}
-
-
-/* Logout — force icon AND wording bold white */
-.es-sidebar a.es-sidebar-signout,
-.es-sidebar a.es-sidebar-signout:link,
-.es-sidebar a.es-sidebar-signout:visited,
-.es-sidebar a.es-sidebar-signout:hover,
-.es-sidebar a.es-sidebar-signout:focus,
-.es-sidebar a.es-sidebar-signout:active,
-.es-sidebar a.es-sidebar-signout span {
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  opacity: 1 !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon,
-.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon svg,
-.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon svg * {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  opacity: 1 !important;
-}
-
-.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon svg {
-  stroke-width: 2.2 !important;
-}
-
-
-/* =======================================================
-   Permanent Eselram product signature
-   ======================================================= */
-
-.es-sidebar-powered-by {
-  display: flex !important;
-  align-items: center;
-  gap: 9px;
-  min-height: 42px;
-  padding: 7px 8px;
-  color: #ffffff;
-}
-
-.es-sidebar-powered-logo {
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
-  display: block;
-  object-fit: cover;
-  border-radius: 7px;
-}
-
-.es-sidebar-powered-copy {
-  color: #ffffff !important;
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.es-sidebar-powered-copy strong {
-  color: #ffffff !important;
-  font-weight: 800;
-}
-
-.es-sidebar-powered-by,
-.es-sidebar-powered-by * {
-  -webkit-text-fill-color: #ffffff;
-}
-
-
-/* =======================================================
-   Powered by Eselram — containment fix
-   ======================================================= */
-
-.es-sidebar .es-sidebar-powered-by {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 8px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-height: 36px !important;
-  padding: 6px 0 !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  background: transparent !important;
-}
-
-.es-sidebar .es-sidebar-powered-by img.es-sidebar-powered-logo {
-  display: block !important;
-  flex: 0 0 28px !important;
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
-  max-width: 28px !important;
-  max-height: 28px !important;
-  object-fit: cover !important;
-  object-position: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 6px !important;
-}
-
-.es-sidebar .es-sidebar-powered-copy,
-.es-sidebar .es-sidebar-powered-copy strong {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-.es-sidebar .es-sidebar-powered-copy {
-  display: inline !important;
-  min-width: 0 !important;
-  margin: 0 !important;
-  font-size: 10px !important;
-  line-height: 1.2 !important;
-  font-weight: 500 !important;
-  white-space: nowrap !important;
-}
-
-.es-sidebar .es-sidebar-powered-copy strong {
-  font-weight: 800 !important;
-}
-
-
-/* =======================================================
-   Eselram brand lockup — top of sidebar
-   ======================================================= */
-
-.es-sidebar .es-sidebar-brand-lockup {
-  display: flex !important;
-  align-items: center !important;
-  gap: 11px !important;
-  min-height: 48px !important;
-  margin: 2px 8px 34px !important;
-  padding: 0 !important;
-  color: #ffffff !important;
-  overflow: visible !important;
-}
-
-.es-sidebar .es-sidebar-brand-logo {
-  display: block !important;
-  flex: 0 0 38px !important;
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-  max-width: 38px !important;
-  max-height: 38px !important;
-  object-fit: cover !important;
-  object-position: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 8px !important;
-}
-
-.es-sidebar .es-sidebar-brand-copy {
-  display: grid !important;
-  gap: 0 !important;
-  align-content: center !important;
-  min-width: 0 !important;
-}
-
-.es-sidebar .es-sidebar-powered-label {
-  color: rgba(255,255,255,.82) !important;
-  -webkit-text-fill-color: rgba(255,255,255,.82) !important;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif !important;
-  font-size: 8px !important;
-  font-weight: 650 !important;
-  line-height: 1.05 !important;
-  letter-spacing: .015em !important;
-  white-space: nowrap !important;
-}
-
-.es-sidebar .es-sidebar-brand-name {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  font-family: Georgia, "Times New Roman", serif !important;
-  font-size: 24px !important;
-  font-weight: 500 !important;
-  line-height: 1.05 !important;
-  letter-spacing: .01em !important;
-  white-space: nowrap !important;
-}
-
-/* The old standalone brand is no longer rendered. */
-.es-sidebar .es-sidebar-brand {
-  display: none !important;
-}
-
-
-/* =======================================================
-   Eselram sidebar logo — show complete symbol
-   ======================================================= */
-
-.es-sidebar .es-sidebar-brand-logo {
-  flex: 0 0 44px !important;
-  width: 44px !important;
-  height: 44px !important;
-  min-width: 44px !important;
-  min-height: 44px !important;
-  max-width: 44px !important;
-  max-height: 44px !important;
-  object-fit: contain !important;
-  object-position: center !important;
-  border-radius: 8px !important;
-  overflow: visible !important;
-}
-
-.es-sidebar .es-sidebar-brand-lockup {
-  gap: 12px !important;
-  overflow: visible !important;
-}
-
-
-/* =======================================================
-   Business branding logo — keep complete logo visible
-   ======================================================= */
-
-.es-sidebar .es-sidebar-account-logo {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 44px !important;
-  height: 44px !important;
-  min-width: 44px !important;
-  min-height: 44px !important;
-  flex: 0 0 44px !important;
-  padding: 4px !important;
-  overflow: hidden !important;
-  border-radius: 10px !important;
-  background: rgba(255,255,255,.08) !important;
-}
-
-.es-sidebar .es-sidebar-account-logo img {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  object-fit: contain !important;
-  object-position: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 6px !important;
-}
-
-
-/* =======================================================
-   Sidebar — stay visible while page content scrolls
-   ======================================================= */
-
-.es-dashboard-layout {
-  align-items: start;
-}
-
-.es-sidebar {
-  position: sticky !important;
-  top: 0 !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
-  align-self: start !important;
-}
-
-.es-sidebar-footer {
-  margin-top: auto !important;
-}
-
-@media (max-width: 900px) {
-  .es-sidebar {
-    position: static !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-}
-
-
-/* =======================================================
-   Sidebar account / logout — keep comfortably above bottom
-   ======================================================= */
-
-.es-sidebar {
-  position: sticky !important;
-  top: 0 !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
-}
-
-.es-sidebar-footer {
-  position: absolute !important;
-  left: 22px !important;
-  right: 22px !important;
-  bottom: 54px !important;
-  margin: 0 !important;
-  padding: 18px 10px 4px !important;
-  box-sizing: border-box !important;
-}
-
-@media (max-width: 900px) {
-  .es-sidebar {
-    position: static !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  .es-sidebar-footer {
-    position: static !important;
-    margin-top: auto !important;
   }
 }
