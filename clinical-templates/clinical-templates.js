@@ -181,6 +181,23 @@ function createBlankTemplate() {
 
   renderTemplateList();
   renderEditor();
+
+  templateStatus.hidden = false;
+  templateStatus.className =
+    "es-status success";
+  templateStatus.textContent =
+    "Blank template ready. Add your sections and fields, then save.";
+
+  requestAnimationFrame(() => {
+    templateEditor.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+    document
+      .getElementById("templateName")
+      ?.focus();
+  });
 }
 
 function renderEditor() {
