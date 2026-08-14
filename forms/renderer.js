@@ -208,17 +208,17 @@ function renderField(field) {
     `;
   } else if (field.field_type === "checkbox") {
     control = `
-      <label class="es-form-render-choice">
-        <span>
-          <input
-            type="checkbox"
-            name="${key}"
-            value="Yes"
-            data-field-key="${key}"
-            ${field.is_required === 1 ? "required" : ""}
-          >
-          Confirm
-        </span>
+      <label class="es-form-render-check-tile">
+        <input
+          type="checkbox"
+          name="${key}"
+          value="Yes"
+          data-field-key="${key}"
+          ${field.is_required === 1 ? "required" : ""}
+        >
+        <span class="es-form-render-check-mark" aria-hidden="true"></span>
+        <span>${escapeHtml(field.label)}</span>
+        ${requiredMarker}
       </label>
     `;
   } else if (field.field_type === "dropdown") {
@@ -293,13 +293,15 @@ function renderField(field) {
 
   return `
     <div
-      class="es-form-render-field"
+      class="es-form-render-field es-form-render-field-${escapeHtml(field.field_type)}"
       data-field-wrapper="${key}"
       data-condition='${conditionAttr}'
     >
-      <label>
-        ${escapeHtml(field.label)} ${requiredMarker}
-      </label>
+      ${
+        field.field_type === "checkbox"
+          ? ""
+          : `<label>${escapeHtml(field.label)} ${requiredMarker}</label>`
+      }
 
       ${control}
 
