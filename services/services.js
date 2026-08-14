@@ -69,6 +69,14 @@ const clientFormOptions =
     "clientFormOptions"
   );
 
+const servicesActiveCount = document.getElementById("servicesActiveCount");
+const servicesConsultationCount = document.getElementById("servicesConsultationCount");
+const servicesPatchCount = document.getElementById("servicesPatchCount");
+const servicesFormsCount = document.getElementById("servicesFormsCount");
+const serviceSearch = document.getElementById("serviceSearch");
+const serviceStatusFilter = document.getElementById("serviceStatusFilter");
+const closeServiceEditorButton = document.getElementById("closeServiceEditorButton");
+
 
 let services = [];
 let providers = [];
@@ -93,6 +101,10 @@ document
     "click",
     closeForm
   );
+
+closeServiceEditorButton?.addEventListener("click", closeForm);
+serviceSearch?.addEventListener("input", renderServices);
+serviceStatusFilter?.addEventListener("change", renderServices);
 
 
 paymentTiming.addEventListener(
@@ -164,6 +176,7 @@ async function loadServices() {
       data.client_templates || [];
 
 
+    renderServiceSummary();
     renderServices();
 
     renderProviders();
@@ -264,87 +277,76 @@ function renderClientForms(selectedRules = []) {
   });
 }
 
+function renderServiceSummary() {
+  servicesActiveCount.textContent = services.filter(service => Number(service.is_active) === 1).length;
+  servicesConsultationCount.textContent = services.filter(service => Number(service.requires_consultation) === 1).length;
+  servicesPatchCount.textContent = services.filter(service => Number(service.requires_patch_test) === 1).length;
+  servicesFormsCount.textContent = services.reduce((total, service) => total + (service.form_rules || []).filter(rule => Number(rule.is_active ?? 1) === 1).length, 0);
+}
+
+function servicePaymentLabel(service) {
+  const labels = {
+    pay_at_appointment: "Pay at appointment",
+    online_full: "Full payment online",
+    online_deposit: `Deposit ${formatMoney(service.deposit_minor || 0)}`,
+    free: "No payment"
+  };
+  return labels[service.payment_timing] || service.payment_timing || "—";
+}
+
+function serviceConsultationLabel(service) {
+  if (Number(service.requires_consultation) !== 1) return "No consultation";
+  return `${Number(service.consultation_duration_minutes || 30)} min · ${formatMoney(service.consultation_price_minor || 0)}`;
+}
+
 function renderServices() {
+  const query = String(serviceSearch?.value || "").trim().toLowerCase();
+  const filter = serviceStatusFilter?.value || "all";
+  const filtered = services.filter(service => {
+    if (filter === "active" && Number(service.is_active) !== 1) return false;
+    if (filter === "inactive" && Number(service.is_active) === 1) return false;
+    if (filter === "consultation" && Number(service.requires_consultation) !== 1) return false;
+    if (filter === "patch" && Number(service.requires_patch_test) !== 1) return false;
+    if (!query) return true;
+    return [service.name, service.description, servicePaymentLabel(service)].filter(Boolean).join(" ").toLowerCase().includes(query);
+  });
 
-  if (services.length === 0) {
-
-    servicesList.className =
-      "es-empty-state";
-
-    servicesList.innerHTML = `
-      <strong>
-        No services yet.
-      </strong>
-
-      <span>
-        Create your first service
-        to start taking bookings.
-      </span>
-    `;
-
+  if (filtered.length === 0) {
+    servicesList.className = "es-empty-state";
+    servicesList.innerHTML = `<strong>No matching services.</strong><span>Try changing the search or filter.</span>`;
     return;
   }
 
+  servicesList.className = "es-services-grid";
+  servicesList.innerHTML = filtered.map(service => {
+    const active = Number(service.is_active) === 1;
+    const consultation = Number(service.requires_consultation) === 1;
+    const patch = Number(service.requires_patch_test) === 1;
+    const formCount = (service.form_rules || []).filter(rule => Number(rule.is_active ?? 1) === 1).length;
+    const providerCount = (service.providers || []).length;
+    return `
+      <article class="es-service-card ${active ? "" : "is-inactive"}">
+        <div class="es-service-card-header">
+          <div class="es-service-card-title"><h3>${escapeHtml(service.name)}</h3><p>${escapeHtml(service.description || "No description added.")}</p></div>
+          <span class="es-service-status ${active ? "" : "inactive"}">${active ? "Active" : "Inactive"}</span>
+        </div>
+        <div class="es-service-card-metrics">
+          <div class="es-service-metric"><span>Duration</span><strong>${Number(service.duration_minutes)} min</strong></div>
+          <div class="es-service-metric"><span>Price</span><strong>${formatMoney(service.price_minor)}</strong></div>
+          <div class="es-service-metric"><span>Payment</span><strong>${escapeHtml(servicePaymentLabel(service))}</strong></div>
+        </div>
+        <div class="es-service-card-rules">
+          <span class="es-service-rule-pill ${consultation ? "on" : ""}">Consultation ${consultation ? "required" : "not required"}</span>
+          <span class="es-service-rule-pill ${patch ? "on" : ""}">Patch test ${patch ? "required" : "not required"}</span>
+          <span class="es-service-rule-pill ${formCount > 0 ? "on" : ""}">${formCount} client ${formCount === 1 ? "form" : "forms"}</span>
+        </div>
+        <div class="es-service-card-footer">
+          <small>${consultation ? `Consultation: ${escapeHtml(serviceConsultationLabel(service))}` : (providerCount > 0 ? `${providerCount} online payment ${providerCount === 1 ? "provider" : "providers"}` : "No consultation workflow")}</small>
+          <button class="es-secondary-button es-service-edit" type="button" data-edit="${escapeHtml(service.id)}">Edit service</button>
+        </div>
+      </article>`;
+  }).join("");
 
-  servicesList.className =
-    "es-services-list";
-
-
-  servicesList.innerHTML =
-    services
-      .map(
-        (service) => `
-          <article class="es-service-row">
-
-            <div class="es-service-main">
-
-              <div>
-                <strong>
-                  ${escapeHtml(
-                    service.name
-                  )}
-                </strong>
-
-                ${
-                  service.is_active
-                    ? ""
-                    : `
-                      <span
-                        class="es-service-badge"
-                      >
-                        Inactive
-                      </span>
-                    `
-                }
-              </div>
-
-              <span>
-                ${
-                  service.duration_minutes
-                } minutes
-                ·
-                ${formatMoney(
-                  service.price_minor
-                )}
-              </span>
-
-            </div>
-
-
-            <button
-              class="es-secondary-button"
-              type="button"
-              data-edit="${
-                service.id
-              }"
-            >
-              Edit
-            </button>
-
-          </article>
-        `
-      )
-      .join("");
 
 
   document
