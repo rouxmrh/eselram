@@ -145,7 +145,61 @@
         grid-template-columns:1fr;
       }
     }
-  </style>
+  
+    .es-package-header-actions {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .es-package-header-actions .es-button,
+    .es-package-header-actions .es-secondary-button {
+      width:132px;
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      text-decoration:none;
+    }
+
+    .es-package-back-row {
+      margin-bottom:14px;
+    }
+
+    .es-package-back-row .es-secondary-button {
+      min-height:38px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+    }
+
+    .es-package-actions .es-button,
+    .es-package-actions .es-secondary-button {
+      width:160px;
+      min-height:44px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      text-decoration:none;
+    }
+
+    @media(max-width:560px) {
+      .es-package-header-actions {
+        width:100%;
+      }
+
+      .es-package-header-actions .es-button,
+      .es-package-header-actions .es-secondary-button,
+      .es-package-actions .es-button,
+      .es-package-actions .es-secondary-button {
+        width:100%;
+      }
+    }
+</style>
 </head>
 
 <body class="es-dashboard-body">
@@ -153,6 +207,12 @@
   <aside id="appSidebar" class="es-sidebar"></aside>
 
   <main class="es-dashboard-main">
+    <div class="es-package-back-row">
+      <a class="es-secondary-button" href="/bookings/">
+        Back to calendar
+      </a>
+    </div>
+
     <header class="es-dashboard-header">
       <div>
         <p class="es-eyebrow">Sales & sessions</p>
@@ -162,7 +222,7 @@
         </p>
       </div>
 
-      <div style="display:flex;gap:8px;">
+      <div class="es-package-header-actions">
         <button id="newTemplateButton" class="es-secondary-button" type="button">
           New package
         </button>
