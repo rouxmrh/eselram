@@ -1,6 +1,11 @@
-const form =
+const app =
   document.getElementById(
-    "fitzForm"
+    "fitzApp"
+  );
+
+const calculateButton =
+  document.getElementById(
+    "fitzCalculateButton"
   );
 
 const resultBox =
@@ -23,6 +28,11 @@ const resultDescription =
     "fitzResultDescription"
   );
 
+const message =
+  document.getElementById(
+    "fitzMessage"
+  );
+
 const resetButton =
   document.getElementById(
     "fitzResetButton"
@@ -42,6 +52,20 @@ const businessName =
   document.getElementById(
     "fitzBusinessName"
   );
+
+
+const questions = [
+  "q1",
+  "q2",
+  "q3",
+  "q4",
+  "q5",
+  "q6",
+  "q7",
+  "q8",
+  "q9",
+  "q10"
+];
 
 
 const fitzLabelMap = {
@@ -87,124 +111,138 @@ function calculateFitzType(
 }
 
 
-function scrollToFirstMissing() {
-  const firstMissing =
-    [
-      "q1",
-      "q2",
-      "q3",
-      "q4",
-      "q5",
-      "q6",
-      "q7",
-      "q8",
-      "q9",
-      "q10"
-    ]
-      .map(
-        name =>
-          form.querySelector(
-            `input[name="${name}"]`
-          )
-      )
-      .find(
-        input =>
-          !form.querySelector(
-            `input[name="${input.name}"]:checked`
-          )
-      );
-
-  firstMissing
-    ?.closest(
-      ".es-fitz-question"
-    )
-    ?.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
+function selectedAnswer(
+  question
+) {
+  return app.querySelector(
+    `input[name="${question}"]:checked`
+  );
 }
 
 
-form.addEventListener(
-  "submit",
-  event => {
-    event.preventDefault();
+function showMessage(
+  text,
+  type = "error"
+) {
+  message.hidden = false;
+  message.className =
+    `es-status ${type}`;
+  message.textContent = text;
+}
 
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      scrollToFirstMissing();
-      return;
-    }
 
-    let score = 0;
+function hideMessage() {
+  message.hidden = true;
+  message.textContent = "";
+}
 
-    [
-      "q1",
-      "q2",
-      "q3",
-      "q4",
-      "q5",
-      "q6",
-      "q7",
-      "q8",
-      "q9",
-      "q10"
-    ].forEach(
-      question => {
-        const selected =
-          form.querySelector(
-            `input[name="${question}"]:checked`
-          );
 
-        score +=
-          Number(
-            selected?.value ||
-            0
-          );
+function calculateResult() {
+  hideMessage();
+
+  const missing =
+    questions.filter(
+      question =>
+        !selectedAnswer(
+          question
+        )
+    );
+
+  if (missing.length) {
+    showMessage(
+      `Please answer all 10 questions before calculating the skin type. ${missing.length} question${missing.length === 1 ? "" : "s"} still unanswered.`
+    );
+
+    const firstMissing =
+      app.querySelector(
+        `input[name="${missing[0]}"]`
+      );
+
+    firstMissing
+      ?.closest(
+        ".es-fitz-question"
+      )
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+    return;
+  }
+
+  const score =
+    questions.reduce(
+      (total, question) =>
+        total +
+        Number(
+          selectedAnswer(
+            question
+          ).value
+        ),
+      0
+    );
+
+  const type =
+    calculateFitzType(
+      score
+    );
+
+  resultPill.textContent =
+    `Type ${type}`;
+
+  resultTitle.textContent =
+    `Fitzpatrick Type ${type} · Score ${score}/40`;
+
+  resultDescription.textContent =
+    fitzLabelMap[type] ||
+    `Type ${type}`;
+
+  resultBox.hidden = false;
+
+  resultBox.scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+}
+
+
+function resetTest() {
+  app
+    .querySelectorAll(
+      'input[type="radio"]'
+    )
+    .forEach(
+      input => {
+        input.checked = false;
       }
     );
 
-    const type =
-      calculateFitzType(score);
+  hideMessage();
 
-    resultPill.textContent =
-      `Type ${type}`;
+  resultBox.hidden = true;
+  resultPill.textContent =
+    "Type";
+  resultTitle.textContent =
+    "";
+  resultDescription.textContent =
+    "";
 
-    resultTitle.textContent =
-      `Fitzpatrick Type ${type} · Score ${score}/40`;
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
 
-    resultDescription.textContent =
-      fitzLabelMap[type] ||
-      `Type ${type}`;
 
-    resultBox.hidden = false;
-
-    resultBox.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
-  }
+calculateButton.addEventListener(
+  "click",
+  calculateResult
 );
 
 
 resetButton.addEventListener(
   "click",
-  () => {
-    form.reset();
-
-    resultBox.hidden = true;
-    resultPill.textContent =
-      "Type";
-    resultTitle.textContent =
-      "";
-    resultDescription.textContent =
-      "";
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  }
+  resetTest
 );
 
 
