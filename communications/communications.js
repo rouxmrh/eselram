@@ -1,40 +1,57 @@
 const list =
-  document.getElementById(
-    "communicationsList"
-  );
+  document.getElementById("communicationsList");
 
 const statusBox =
-  document.getElementById(
-    "communicationsStatus"
-  );
+  document.getElementById("communicationsStatus");
 
 const refreshButton =
-  document.getElementById(
-    "refreshCommunicationsButton"
-  );
+  document.getElementById("refreshCommunicationsButton");
 
 const runButton =
-  document.getElementById(
-    "runRemindersButton"
-  );
+  document.getElementById("runRemindersButton");
 
 const automationSummary =
-  document.getElementById(
-    "communicationsAutomationSummary"
-  );
-
-const typeFilter =
-  document.getElementById(
-    "communicationsTypeFilter"
-  );
+  document.getElementById("communicationsAutomationSummary");
 
 const statusFilter =
-  document.getElementById(
-    "communicationsStatusFilter"
-  );
+  document.getElementById("communicationsStatusFilter");
+
+const searchInput =
+  document.getElementById("communicationsSearch");
+
+const sortSelect =
+  document.getElementById("communicationsSort");
+
+const totalCount =
+  document.getElementById("communicationsTotalCount");
+
+const sentCount =
+  document.getElementById("communicationsSentCount");
+
+const pendingCount =
+  document.getElementById("communicationsPendingCount");
+
+const failedCount =
+  document.getElementById("communicationsFailedCount");
+
+const drawer =
+  document.getElementById("communicationsDrawer");
+
+const drawerBackdrop =
+  document.getElementById("communicationsDrawerBackdrop");
+
+const drawerTitle =
+  document.getElementById("communicationsDrawerTitle");
+
+const drawerContent =
+  document.getElementById("communicationsDrawerContent");
+
+const closeDrawerButton =
+  document.getElementById("closeCommunicationsDrawer");
 
 let rows = [];
 let settings = {};
+let selectedCategory = "";
 
 
 function escapeHtml(value) {
@@ -73,33 +90,21 @@ function formatDate(value) {
 }
 
 
-function money(
-  minor,
-  currency = "GBP"
-) {
+function money(minor, currency = "GBP") {
   try {
     return new Intl.NumberFormat(
       "en-GB",
       {
         style: "currency",
         currency:
-          String(
-            currency ||
-            "GBP"
-          ).toUpperCase()
+          String(currency || "GBP")
+            .toUpperCase()
       }
     ).format(
-      Number(
-        minor ||
-        0
-      ) /
-      100
+      Number(minor || 0) / 100
     );
   } catch {
-    return `${currency} ${(
-      Number(minor || 0) /
-      100
-    ).toFixed(2)}`;
+    return `${currency} ${(Number(minor || 0) / 100).toFixed(2)}`;
   }
 }
 
@@ -111,7 +116,7 @@ function label(type) {
     appointment_reminder:
       "Appointment reminder",
     cancellation_confirmation:
-      "Cancellation",
+      "Cancellation confirmation",
     reschedule_confirmation:
       "Appointment updated",
     client_form_request:
@@ -152,6 +157,13 @@ function group(type) {
     return "payments";
   }
 
+  if (
+    type ===
+    "appointment_reminder"
+  ) {
+    return "reminders";
+  }
+
   return "appointment";
 }
 
@@ -176,10 +188,8 @@ function contextText(row) {
 function detailText(row) {
   if (
     row.payment_id &&
-    row.payment_amount_minor !==
-      null &&
-    row.payment_amount_minor !==
-      undefined
+    row.payment_amount_minor !== null &&
+    row.payment_amount_minor !== undefined
   ) {
     return money(
       row.payment_amount_minor,
@@ -188,12 +198,69 @@ function detailText(row) {
   }
 
   if (row.start_at) {
-    return formatDate(
-      row.start_at
-    );
+    return formatDate(row.start_at);
   }
 
   return "—";
+}
+
+
+function customerName(row) {
+  return [
+    row.first_name,
+    row.last_name
+  ]
+    .filter(Boolean)
+    .join(" ") ||
+    row.recipient ||
+    "Customer";
+}
+
+
+function communicationDateValue(row) {
+  const value =
+    row.sent_at ||
+    row.created_at ||
+    "";
+
+  const parsed =
+    new Date(
+      String(value)
+        .replace(" ", "T") +
+      "Z"
+    ).getTime();
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : 0;
+}
+
+
+function renderSummary() {
+  if (totalCount) {
+    totalCount.textContent = rows.length;
+  }
+
+  if (sentCount) {
+    sentCount.textContent =
+      rows.filter(
+        row => row.status === "sent"
+      ).length;
+  }
+
+  if (pendingCount) {
+    pendingCount.textContent =
+      rows.filter(
+        row => row.status === "pending"
+      ).length;
+  }
+
+  if (failedCount) {
+    failedCount.textContent =
+      rows.filter(
+        row => row.status === "failed"
+      ).length;
+  }
 }
 
 
@@ -205,49 +272,37 @@ function renderAutomationSummary() {
   const items = [
     [
       "Booking confirmations",
-      settings.booking_confirmation_enabled !==
-        false
+      settings.booking_confirmation_enabled !== false
         ? "On"
         : "Off"
     ],
     [
       "Appointment reminders",
-      settings.reminder_enabled !==
-        false
-        ? `${
-            settings.reminder_hours_before ||
-            24
-          }h before`
+      settings.reminder_enabled !== false
+        ? `${settings.reminder_hours_before || 24}h before`
         : "Off"
     ],
     [
       "Outstanding form reminder",
-      settings.form_reminder_enabled !==
-        false
-        ? `Once after ${
-            settings.form_reminder_hours_after ||
-            48
-          }h`
+      settings.form_reminder_enabled !== false
+        ? `After ${settings.form_reminder_hours_after || 48}h`
         : "Off"
     ],
     [
       "Payment confirmations",
-      settings.payment_receipt_enabled !==
-        false
+      settings.payment_receipt_enabled !== false
         ? "On"
         : "Off"
     ],
     [
       "Cancellations",
-      settings.cancellation_enabled !==
-        false
+      settings.cancellation_enabled !== false
         ? "On"
         : "Off"
     ],
     [
       "Reschedules",
-      settings.reschedule_enabled !==
-        false
+      settings.reschedule_enabled !== false
         ? "On"
         : "Off"
     ]
@@ -257,11 +312,9 @@ function renderAutomationSummary() {
     items
       .map(
         ([name, value]) => `
-          <div class="es-service-row">
-            <div>
-              <strong>${escapeHtml(name)}</strong>
-            </div>
-            <span class="es-customer-status">
+          <div class="es-comms-automation-item">
+            <strong>${escapeHtml(name)}</strong>
+            <span class="es-comms-automation-value">
               ${escapeHtml(value)}
             </span>
           </div>
@@ -272,137 +325,269 @@ function renderAutomationSummary() {
 
 
 function render() {
-  list.innerHTML = "";
-
-  const selectedType =
-    typeFilter?.value ||
-    "";
+  const query =
+    String(searchInput?.value || "")
+      .trim()
+      .toLowerCase();
 
   const selectedStatus =
     statusFilter?.value ||
     "";
 
   const filtered =
-    rows.filter(
-      (row) =>
-        (
-          !selectedType ||
-          group(
-            row.communication_type
-          ) ===
-            selectedType
-        ) &&
-        (
-          !selectedStatus ||
-          row.status ===
-            selectedStatus
-        )
-    );
+    rows
+      .filter(
+        row => {
+
+          if (
+            selectedCategory &&
+            group(row.communication_type) !==
+              selectedCategory
+          ) {
+            return false;
+          }
+
+          if (
+            selectedStatus &&
+            row.status !==
+              selectedStatus
+          ) {
+            return false;
+          }
+
+          if (!query) {
+            return true;
+          }
+
+          const searchable = [
+            customerName(row),
+            row.recipient,
+            row.subject,
+            row.service_name,
+            row.package_name,
+            row.form_name,
+            label(row.communication_type),
+            row.status,
+            row.provider_reference
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return searchable.includes(query);
+        }
+      )
+      .sort(
+        (a, b) =>
+          sortSelect?.value === "oldest"
+            ? communicationDateValue(a) -
+              communicationDateValue(b)
+            : communicationDateValue(b) -
+              communicationDateValue(a)
+      );
 
   if (!filtered.length) {
     list.innerHTML = `
       <div class="es-empty-state">
         <strong>No matching communications</strong>
-        <span>Automatic customer emails will appear here after they are processed.</span>
+        <span>Try changing your search or filters.</span>
       </div>
     `;
     return;
   }
 
-  filtered.forEach(
-    (row) => {
-      const item =
-        document.createElement(
-          "div"
+  list.innerHTML =
+    filtered
+      .map(
+        row => `
+          <article
+            class="es-comms-row ${
+              row.status === "failed"
+                ? "is-failed"
+                : ""
+            }"
+          >
+            <div class="es-comms-cell">
+              <strong>${escapeHtml(label(row.communication_type))}</strong>
+              <span>${escapeHtml(formatDate(row.sent_at || row.created_at))}</span>
+            </div>
+
+            <div class="es-comms-cell">
+              <strong>${escapeHtml(customerName(row))}</strong>
+              <span>${escapeHtml(row.recipient || "—")}</span>
+            </div>
+
+            <div class="es-comms-cell">
+              <strong>${escapeHtml(contextText(row))}</strong>
+              <span>${escapeHtml(row.subject || detailText(row))}</span>
+            </div>
+
+            <div class="es-comms-cell">
+              <span class="es-comms-status es-comms-status-${escapeHtml(row.status || "pending")}">
+                ${escapeHtml(row.status || "pending")}
+              </span>
+              <small>${escapeHtml(row.provider || "resend")}</small>
+            </div>
+
+            <div class="es-comms-cell">
+              <button
+                class="es-secondary-button es-comms-view-button"
+                type="button"
+                data-view-communication="${escapeHtml(row.id)}"
+              >
+                View
+              </button>
+            </div>
+          </article>
+        `
+      )
+      .join("");
+
+  document
+    .querySelectorAll("[data-view-communication]")
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            const row =
+              rows.find(
+                item =>
+                  item.id ===
+                  button.dataset.viewCommunication
+              );
+
+            if (row) {
+              openDrawer(row);
+            }
+          }
         );
+      }
+    );
+}
 
-      item.className =
-        "es-payment-row-v2";
 
-      const customer =
-        [
-          row.first_name,
-          row.last_name
-        ]
-          .filter(Boolean)
-          .join(" ") ||
-        row.recipient;
+function openDrawer(row) {
+  drawerTitle.textContent =
+    label(row.communication_type);
 
-      item.innerHTML = `
-        <div class="es-payment-cell">
-          <strong>${escapeHtml(
-            label(
-              row.communication_type
-            )
-          )}</strong>
-          <span>${escapeHtml(
-            formatDate(
-              row.sent_at ||
-              row.created_at
-            )
-          )}</span>
+  const customerLink =
+    row.customer_id
+      ? `
+        <a
+          class="es-secondary-button"
+          href="/customers/?customer=${encodeURIComponent(row.customer_id)}"
+          style="text-decoration:none;"
+        >
+          Open customer
+        </a>
+      `
+      : "";
+
+  const errorBlock =
+    row.error_details
+      ? `
+        <div class="es-comms-detail-section">
+          <h3>Delivery error</h3>
+          <div class="es-comms-error">
+            ${escapeHtml(row.error_details)}
+          </div>
         </div>
+      `
+      : "";
 
-        <div class="es-payment-cell">
-          <strong>${escapeHtml(
-            customer
-          )}</strong>
-          <span>${escapeHtml(
-            row.recipient
-          )}</span>
-        </div>
+  drawerContent.innerHTML = `
+    <div class="es-comms-detail-grid">
+      <div class="es-comms-detail">
+        <span>Customer</span>
+        <strong>${escapeHtml(customerName(row))}</strong>
+      </div>
 
-        <div class="es-payment-cell">
-          <strong>${escapeHtml(
-            contextText(
-              row
-            )
-          )}</strong>
-          <span>${escapeHtml(
-            detailText(
-              row
-            )
-          )}</span>
-        </div>
-
-        <div class="es-payment-cell">
-          <span class="es-payment-status es-payment-status-${escapeHtml(
-            row.status
-          )}">
-            ${escapeHtml(
-              row.status
-            )}
+      <div class="es-comms-detail">
+        <span>Status</span>
+        <strong>
+          <span class="es-comms-status es-comms-status-${escapeHtml(row.status || "pending")}">
+            ${escapeHtml(row.status || "pending")}
           </span>
-          <small>${escapeHtml(
-            row.provider ||
-            "resend"
-          )}</small>
-        </div>
+        </strong>
+      </div>
 
-        <div class="es-payment-cell">
-          <strong>${escapeHtml(
-            row.subject ||
-            "—"
-          )}</strong>
-          <small>${escapeHtml(
-            row.error_details ||
-            row.provider_reference ||
-            ""
-          )}</small>
-        </div>
-      `;
+      <div class="es-comms-detail es-comms-detail-full">
+        <span>Recipient</span>
+        <strong>${escapeHtml(row.recipient || "—")}</strong>
+      </div>
 
-      list.appendChild(
-        item
-      );
-    }
-  );
+      <div class="es-comms-detail es-comms-detail-full">
+        <span>Subject</span>
+        <strong>${escapeHtml(row.subject || "—")}</strong>
+      </div>
+
+      <div class="es-comms-detail">
+        <span>Type</span>
+        <strong>${escapeHtml(label(row.communication_type))}</strong>
+      </div>
+
+      <div class="es-comms-detail">
+        <span>Context</span>
+        <strong>${escapeHtml(contextText(row))}</strong>
+      </div>
+
+      <div class="es-comms-detail">
+        <span>Sent / created</span>
+        <strong>${escapeHtml(formatDate(row.sent_at || row.created_at))}</strong>
+      </div>
+
+      <div class="es-comms-detail">
+        <span>Appointment / amount</span>
+        <strong>${escapeHtml(detailText(row))}</strong>
+      </div>
+
+      <div class="es-comms-detail">
+        <span>Provider</span>
+        <strong>${escapeHtml(row.provider || "resend")}</strong>
+      </div>
+
+      <div class="es-comms-detail">
+        <span>Provider reference</span>
+        <strong>${escapeHtml(row.provider_reference || "—")}</strong>
+      </div>
+    </div>
+
+    ${errorBlock}
+
+    <div class="es-comms-drawer-actions">
+      ${customerLink}
+      ${
+        row.appointment_id
+          ? `
+            <a
+              class="es-secondary-button"
+              href="/bookings/?view=bookings&booking=${encodeURIComponent(row.appointment_id)}"
+              style="text-decoration:none;"
+            >
+              Open booking
+            </a>
+          `
+          : ""
+      }
+    </div>
+  `;
+
+  drawer.classList.add("is-open");
+  drawerBackdrop.classList.add("is-open");
+  drawer.setAttribute("aria-hidden", "false");
+}
+
+
+function closeDrawer() {
+  drawer.classList.remove("is-open");
+  drawerBackdrop.classList.remove("is-open");
+  drawer.setAttribute("aria-hidden", "true");
 }
 
 
 async function loadCommunications() {
-  statusBox.hidden =
-    true;
+  statusBox.hidden = true;
 
   try {
     const response =
@@ -410,18 +595,13 @@ async function loadCommunications() {
         "/api/communications",
         {
           headers: {
-            Accept:
-              "application/json"
+            Accept: "application/json"
           },
-          cache:
-            "no-store"
+          cache: "no-store"
         }
       );
 
-    if (
-      response.status ===
-      401
-    ) {
+    if (response.status === 401) {
       window.location.href =
         "/auth/login.html";
       return;
@@ -448,15 +628,14 @@ async function loadCommunications() {
       data.settings ||
       {};
 
+    renderSummary();
     renderAutomationSummary();
     render();
-  } catch (error) {
-    statusBox.hidden =
-      false;
 
+  } catch (error) {
+    statusBox.hidden = false;
     statusBox.className =
       "es-status error";
-
     statusBox.textContent =
       error.message ||
       "Unable to load communications.";
@@ -464,14 +643,50 @@ async function loadCommunications() {
 }
 
 
-typeFilter
+document
+  .querySelectorAll("[data-comms-category]")
+  .forEach(
+    button => {
+      button.addEventListener(
+        "click",
+        () => {
+          selectedCategory =
+            button.dataset.commsCategory ||
+            "";
+
+          document
+            .querySelectorAll("[data-comms-category]")
+            .forEach(
+              item => {
+                item.classList.toggle(
+                  "active",
+                  item === button
+                );
+              }
+            );
+
+          render();
+        }
+      );
+    }
+  );
+
+
+searchInput
+  ?.addEventListener(
+    "input",
+    render
+  );
+
+
+statusFilter
   ?.addEventListener(
     "change",
     render
   );
 
 
-statusFilter
+sortSelect
   ?.addEventListener(
     "change",
     render
@@ -485,19 +700,42 @@ refreshButton
   );
 
 
+closeDrawerButton
+  ?.addEventListener(
+    "click",
+    closeDrawer
+  );
+
+
+drawerBackdrop
+  ?.addEventListener(
+    "click",
+    closeDrawer
+  );
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+    if (
+      event.key === "Escape" &&
+      drawer.classList.contains("is-open")
+    ) {
+      closeDrawer();
+    }
+  }
+);
+
+
 runButton
   ?.addEventListener(
     "click",
     async () => {
-      runButton.disabled =
-        true;
+      runButton.disabled = true;
 
-      statusBox.hidden =
-        false;
-
+      statusBox.hidden = false;
       statusBox.className =
         "es-status";
-
       statusBox.textContent =
         "Checking appointment and form reminders…";
 
@@ -506,8 +744,7 @@ runButton
           await fetch(
             "/api/communications",
             {
-              method:
-                "POST",
+              method: "POST",
               headers: {
                 "Content-Type":
                   "application/json",
@@ -540,27 +777,23 @@ runButton
 
         statusBox.textContent =
           `Automation check complete. Appointment reminders sent ${
-            data.appointment_reminders?.sent ||
-            0
+            data.appointment_reminders?.sent || 0
           }; form reminders sent ${
-            data.form_reminders?.sent ||
-            0
+            data.form_reminders?.sent || 0
           }; failed ${
-            data.failed ||
-            0
+            data.failed || 0
           }.`;
 
         await loadCommunications();
+
       } catch (error) {
         statusBox.className =
           "es-status error";
-
         statusBox.textContent =
           error.message ||
           "Unable to run reminders.";
       } finally {
-        runButton.disabled =
-          false;
+        runButton.disabled = false;
       }
     }
   );
