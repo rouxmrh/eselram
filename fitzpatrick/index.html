@@ -253,16 +253,16 @@
           This questionnaire is a screening aid only. Final suitability, laser parameters and patch testing decisions should be confirmed during professional consultation and clinical assessment.
         </div>
 
-        <form
-          id="fitzForm"
-          autocomplete="off"
+        <div
+          id="fitzApp"
+          class="es-fitz-app"
         >
 
           <div class="es-fitz-question">
             <h3>1) What is your natural hair colour? (Before any colouring or dyeing)</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q1" value="0" required><span class="es-fitz-mark"></span><span>Red or strawberry blonde</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q1" value="0"><span class="es-fitz-mark"></span><span>Red or strawberry blonde</span></label>
               <label class="es-fitz-option"><input type="radio" name="q1" value="1"><span class="es-fitz-mark"></span><span>Blond</span></label>
               <label class="es-fitz-option"><input type="radio" name="q1" value="2"><span class="es-fitz-mark"></span><span>Dark blonde or light brown</span></label>
               <label class="es-fitz-option"><input type="radio" name="q1" value="3"><span class="es-fitz-mark"></span><span>Dark brown to black</span></label>
@@ -274,7 +274,7 @@
             <h3>2) What is your natural eye colour?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q2" value="0" required><span class="es-fitz-mark"></span><span>Very light blue, light grey or light green</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q2" value="0"><span class="es-fitz-mark"></span><span>Very light blue, light grey or light green</span></label>
               <label class="es-fitz-option"><input type="radio" name="q2" value="1"><span class="es-fitz-mark"></span><span>Blue / grey / green</span></label>
               <label class="es-fitz-option"><input type="radio" name="q2" value="2"><span class="es-fitz-mark"></span><span>Hazel or light brown</span></label>
               <label class="es-fitz-option"><input type="radio" name="q2" value="3"><span class="es-fitz-mark"></span><span>Dark brown</span></label>
@@ -286,7 +286,7 @@
             <h3>3) What is your natural skin colour on an area that is not usually exposed to the sun?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q3" value="0" required><span class="es-fitz-mark"></span><span>Reddish or very fair</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q3" value="0"><span class="es-fitz-mark"></span><span>Reddish or very fair</span></label>
               <label class="es-fitz-option"><input type="radio" name="q3" value="1"><span class="es-fitz-mark"></span><span>Fair</span></label>
               <label class="es-fitz-option"><input type="radio" name="q3" value="2"><span class="es-fitz-mark"></span><span>Beige or light olive</span></label>
               <label class="es-fitz-option"><input type="radio" name="q3" value="3"><span class="es-fitz-mark"></span><span>Light brown or olive</span></label>
@@ -298,7 +298,7 @@
             <h3>4) Freckles on parts of the skin not exposed to the sun</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q4" value="0" required><span class="es-fitz-mark"></span><span>Many</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q4" value="0"><span class="es-fitz-mark"></span><span>Many</span></label>
               <label class="es-fitz-option"><input type="radio" name="q4" value="1"><span class="es-fitz-mark"></span><span>Several</span></label>
               <label class="es-fitz-option"><input type="radio" name="q4" value="2"><span class="es-fitz-mark"></span><span>Few</span></label>
               <label class="es-fitz-option"><input type="radio" name="q4" value="3"><span class="es-fitz-mark"></span><span>Incidental</span></label>
@@ -310,7 +310,7 @@
             <h3>5) If you spend a whole day in strong summer sun without sunscreen, what usually happens?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q5" value="0" required><span class="es-fitz-mark"></span><span>I always burn badly and my skin peels</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q5" value="0"><span class="es-fitz-mark"></span><span>I always burn badly and my skin peels</span></label>
               <label class="es-fitz-option"><input type="radio" name="q5" value="1"><span class="es-fitz-mark"></span><span>I burn and sometimes peel</span></label>
               <label class="es-fitz-option"><input type="radio" name="q5" value="2"><span class="es-fitz-mark"></span><span>I usually get a mild sunburn</span></label>
               <label class="es-fitz-option"><input type="radio" name="q5" value="3"><span class="es-fitz-mark"></span><span>I rarely burn</span></label>
@@ -322,7 +322,7 @@
             <h3>6) After spending several days in the sun, how much colour (tan) does your skin develop?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q6" value="0" required><span class="es-fitz-mark"></span><span>I don’t tan at all</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q6" value="0"><span class="es-fitz-mark"></span><span>I don’t tan at all</span></label>
               <label class="es-fitz-option"><input type="radio" name="q6" value="1"><span class="es-fitz-mark"></span><span>I develop a very light tan</span></label>
               <label class="es-fitz-option"><input type="radio" name="q6" value="2"><span class="es-fitz-mark"></span><span>I develop a moderate tan</span></label>
               <label class="es-fitz-option"><input type="radio" name="q6" value="3"><span class="es-fitz-mark"></span><span>I tan easily</span></label>
@@ -334,7 +334,7 @@
             <h3>7) Can your skin develop a noticeable tan after just one sunny day?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q7" value="0" required><span class="es-fitz-mark"></span><span>Never</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q7" value="0"><span class="es-fitz-mark"></span><span>Never</span></label>
               <label class="es-fitz-option"><input type="radio" name="q7" value="1"><span class="es-fitz-mark"></span><span>Rarely</span></label>
               <label class="es-fitz-option"><input type="radio" name="q7" value="2"><span class="es-fitz-mark"></span><span>Sometimes</span></label>
               <label class="es-fitz-option"><input type="radio" name="q7" value="3"><span class="es-fitz-mark"></span><span>Often</span></label>
@@ -346,7 +346,7 @@
             <h3>8) How does your face usually react to sunlight?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q8" value="0" required><span class="es-fitz-mark"></span><span>It becomes very red or irritated</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q8" value="0"><span class="es-fitz-mark"></span><span>It becomes very red or irritated</span></label>
               <label class="es-fitz-option"><input type="radio" name="q8" value="1"><span class="es-fitz-mark"></span><span>It is quite sensitive and often becomes red</span></label>
               <label class="es-fitz-option"><input type="radio" name="q8" value="2"><span class="es-fitz-mark"></span><span>It is sometimes sensitive</span></label>
               <label class="es-fitz-option"><input type="radio" name="q8" value="3"><span class="es-fitz-mark"></span><span>It rarely reacts</span></label>
@@ -358,7 +358,7 @@
             <h3>9) When was the last time you had significant sun exposure or used a sunbed?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q9" value="0" required><span class="es-fitz-mark"></span><span>More than 3 months ago</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q9" value="0"><span class="es-fitz-mark"></span><span>More than 3 months ago</span></label>
               <label class="es-fitz-option"><input type="radio" name="q9" value="1"><span class="es-fitz-mark"></span><span>2–3 months ago</span></label>
               <label class="es-fitz-option"><input type="radio" name="q9" value="2"><span class="es-fitz-mark"></span><span>1–2 months ago</span></label>
               <label class="es-fitz-option"><input type="radio" name="q9" value="3"><span class="es-fitz-mark"></span><span>Within the last month</span></label>
@@ -370,7 +370,7 @@
             <h3>10) How often is the treatment area exposed to sunlight?</h3>
 
             <div class="es-fitz-options">
-              <label class="es-fitz-option"><input type="radio" name="q10" value="0" required><span class="es-fitz-mark"></span><span>Never</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q10" value="0"><span class="es-fitz-mark"></span><span>Never</span></label>
               <label class="es-fitz-option"><input type="radio" name="q10" value="1"><span class="es-fitz-mark"></span><span>Rarely</span></label>
               <label class="es-fitz-option"><input type="radio" name="q10" value="2"><span class="es-fitz-mark"></span><span>Sometimes</span></label>
               <label class="es-fitz-option"><input type="radio" name="q10" value="3"><span class="es-fitz-mark"></span><span>Often</span></label>
@@ -380,8 +380,9 @@
 
           <div class="es-fitz-actions">
             <button
+              id="fitzCalculateButton"
               class="es-button"
-              type="submit"
+              type="button"
             >
               Calculate skin type
             </button>
@@ -413,7 +414,13 @@
             <p id="fitzResultDescription"></p>
           </div>
 
-        </form>
+          <div
+            id="fitzMessage"
+            class="es-status"
+            hidden
+          ></div>
+
+        </div>
 
       </section>
 
