@@ -79,6 +79,7 @@ export async function onRequestGet({
           SELECT
             cc.id,
             cc.appointment_id,
+            cc.customer_id,
             cc.communication_type,
             cc.recipient,
             cc.subject,
