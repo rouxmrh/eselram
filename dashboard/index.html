@@ -482,7 +482,7 @@
     .es-overview-action-button {
       display:flex;
       flex-direction:column;
-      justify-content:center;
+      justify-content:flex-start;
       gap:4px;
       min-height:74px;
       padding:12px 13px;
@@ -502,10 +502,17 @@
     }
 
     .es-overview-action-button strong {
+      display:flex;
+      align-items:center;
+      min-height:16px;
+      margin:0;
       font-size:12px;
+      line-height:16px;
     }
 
     .es-overview-action-button span {
+      display:block;
+      margin:0;
       color:var(--es-muted);
       font-size:10px;
       line-height:1.35;
