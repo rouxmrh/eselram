@@ -3908,3 +3908,30 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
   stroke: #ffffff !important;
   opacity: 1 !important;
 }
+
+
+/* Logout — force icon AND wording bold white */
+.es-sidebar a.es-sidebar-signout,
+.es-sidebar a.es-sidebar-signout:link,
+.es-sidebar a.es-sidebar-signout:visited,
+.es-sidebar a.es-sidebar-signout:hover,
+.es-sidebar a.es-sidebar-signout:focus,
+.es-sidebar a.es-sidebar-signout:active,
+.es-sidebar a.es-sidebar-signout span {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon,
+.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon svg,
+.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon svg * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon svg {
+  stroke-width: 2.2 !important;
+}
