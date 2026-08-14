@@ -127,6 +127,12 @@ const bookingsWeekCount =
   );
 
 
+const openManageBookingsButton =
+  document.getElementById(
+    "openManageBookingsButton"
+  );
+
+
 let services = [];
 let bookings = [];
 let bookingPackages = [];
@@ -185,6 +191,23 @@ document
       openBookingForm();
     }
   );
+
+
+if (openManageBookingsButton) {
+  openManageBookingsButton.addEventListener(
+    "click",
+    () => {
+      if (
+        typeof window.setBookingsWorkspaceView ===
+        "function"
+      ) {
+        window.setBookingsWorkspaceView(
+          "bookings"
+        );
+      }
+    }
+  );
+}
 
 
 document
@@ -1735,10 +1758,28 @@ function renderUpcomingWeek() {
   const now =
     new Date();
 
-  const end =
+  const today =
     new Date(
-      now.getTime() +
-      (7 * 24 * 60 * 60 * 1000)
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+  const mondayOffset =
+    (today.getDay() + 6) % 7;
+
+  const weekStart =
+    new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - mondayOffset
+    );
+
+  const weekEnd =
+    new Date(
+      weekStart.getFullYear(),
+      weekStart.getMonth(),
+      weekStart.getDate() + 7
     );
 
 
@@ -1766,7 +1807,8 @@ function renderUpcomingWeek() {
               start.getTime()
             ) &&
             start >= now &&
-            start < end
+            start >= weekStart &&
+            start < weekEnd
           );
         }
       )
@@ -1788,7 +1830,7 @@ function renderUpcomingWeek() {
     bookingsWeekList.innerHTML = `
       <div class="es-empty-state">
         <strong>No upcoming appointments.</strong>
-        <span>Your next 7 days are clear.</span>
+        <span>No more active appointments this week.</span>
       </div>
     `;
 
