@@ -100,6 +100,67 @@ const paymentDrawerActions =
   );
 
 
+const takePaymentDialog =
+  document.getElementById(
+    "takePaymentDialog"
+  );
+
+const closeTakePaymentDialog =
+  document.getElementById(
+    "closeTakePaymentDialog"
+  );
+
+const takePaymentContext =
+  document.getElementById(
+    "takePaymentContext"
+  );
+
+const takePaymentAmountSummary =
+  document.getElementById(
+    "takePaymentAmountSummary"
+  );
+
+const takePaymentStatus =
+  document.getElementById(
+    "takePaymentStatus"
+  );
+
+const takePaymentResult =
+  document.getElementById(
+    "takePaymentResult"
+  );
+
+const takePaymentQrCode =
+  document.getElementById(
+    "takePaymentQrCode"
+  );
+
+const takePaymentLink =
+  document.getElementById(
+    "takePaymentLink"
+  );
+
+const openTakePaymentLink =
+  document.getElementById(
+    "openTakePaymentLink"
+  );
+
+const copyTakePaymentLink =
+  document.getElementById(
+    "copyTakePaymentLink"
+  );
+
+const emailTakePaymentLink =
+  document.getElementById(
+    "emailTakePaymentLink"
+  );
+
+const recordTakePaymentManually =
+  document.getElementById(
+    "recordTakePaymentManually"
+  );
+
+
 let payments = [];
 let outstanding = [];
 let customers = [];
@@ -107,6 +168,8 @@ let appointments = [];
 let providers = [];
 let activeView = "payments";
 let activePayment = null;
+let activeTakePaymentAppointment = null;
+let activeTakePaymentPaymentId = null;
 
 
 document
@@ -143,6 +206,147 @@ paymentDrawerBackdrop
   .addEventListener(
     "click",
     closePaymentDrawer
+  );
+
+
+closeTakePaymentDialog
+  ?.addEventListener(
+    "click",
+    () => takePaymentDialog.close()
+  );
+
+
+copyTakePaymentLink
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      if (!takePaymentLink.value) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          takePaymentLink.value
+        );
+      } catch {
+        takePaymentLink.select();
+        document.execCommand("copy");
+      }
+
+      takePaymentStatus.hidden = false;
+      takePaymentStatus.className =
+        "es-status success";
+      takePaymentStatus.textContent =
+        "Payment link copied.";
+    }
+  );
+
+
+emailTakePaymentLink
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !activeTakePaymentAppointment ||
+        !activeTakePaymentPaymentId ||
+        !takePaymentLink.value
+      ) {
+        return;
+      }
+
+      emailTakePaymentLink.disabled = true;
+
+      takePaymentStatus.hidden = false;
+      takePaymentStatus.className =
+        "es-status";
+      takePaymentStatus.textContent =
+        "Sending payment link…";
+
+      try {
+        const response =
+          await fetch(
+            "/api/payments/email-link",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                Accept:
+                  "application/json"
+              },
+              body:
+                JSON.stringify({
+                  appointment_id:
+                    activeTakePaymentAppointment.id,
+                  payment_id:
+                    activeTakePaymentPaymentId,
+                  checkout_url:
+                    takePaymentLink.value
+                })
+            }
+          );
+
+        handleAuthentication(response);
+
+        const data =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+          throw new Error(
+            data.error ||
+            "Unable to email the payment link."
+          );
+        }
+
+        takePaymentStatus.className =
+          "es-status success";
+        takePaymentStatus.textContent =
+          `Payment link sent to ${data.recipient}.`;
+
+      } catch (error) {
+        takePaymentStatus.className =
+          "es-status error";
+        takePaymentStatus.textContent =
+          error.message ||
+          "Unable to email the payment link.";
+      } finally {
+        emailTakePaymentLink.disabled = false;
+      }
+    }
+  );
+
+
+recordTakePaymentManually
+  ?.addEventListener(
+    "click",
+    () => {
+
+      const appointment =
+        activeTakePaymentAppointment;
+
+      takePaymentDialog.close();
+
+      if (!appointment) {
+        return;
+      }
+
+      openPaymentForm();
+
+      paymentCustomer.value =
+        appointment.customer_id;
+
+      renderAppointmentOptions();
+
+      paymentAppointment.value =
+        appointment.id;
+
+      prefillOutstandingAmount();
+    }
   );
 
 
@@ -1174,6 +1378,14 @@ function renderOutstanding() {
               }
 
               <button
+                class="es-button"
+                type="button"
+                data-take-payment="${escapeHtml(item.id)}"
+              >
+                Take payment
+              </button>
+
+              <button
                 class="es-payment-action"
                 type="button"
                 data-record-balance="${escapeHtml(item.id)}"
@@ -1186,6 +1398,35 @@ function renderOutstanding() {
         `
       )
       .join("");
+
+
+  document
+    .querySelectorAll(
+      "[data-take-payment]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const appointment =
+              appointments.find(
+                (item) =>
+                  item.id ===
+                  button.dataset.takePayment
+              );
+
+            if (appointment) {
+              createTakePaymentCheckout(
+                appointment
+              );
+            }
+          }
+        );
+      }
+    );
 
 
   document
@@ -1227,6 +1468,148 @@ function renderOutstanding() {
         );
       }
     );
+}
+
+
+
+async function createTakePaymentCheckout(
+  appointment
+) {
+
+  activeTakePaymentAppointment =
+    appointment;
+
+  activeTakePaymentPaymentId =
+    null;
+
+  takePaymentResult.hidden =
+    true;
+
+  takePaymentStatus.hidden =
+    false;
+
+  takePaymentStatus.className =
+    "es-status";
+
+  takePaymentStatus.textContent =
+    "Creating secure Stripe Checkout…";
+
+  takePaymentContext.textContent =
+    `${appointment.first_name} ${appointment.last_name} · ${appointment.service_name}`;
+
+  takePaymentAmountSummary.innerHTML = `
+    <strong>${formatMoney(
+      appointment.balance_minor
+    )} outstanding</strong>
+    <span>
+      Appointment value ${formatMoney(
+        appointment.price_minor
+      )}
+      · Paid ${formatMoney(
+        appointment.paid_minor || 0
+      )}
+      ${
+        Number(
+          appointment.consultation_credit_minor ||
+          0
+        ) > 0
+          ? ` · Consultation credit ${formatMoney(
+              appointment.consultation_credit_minor
+            )}`
+          : ""
+      }
+    </span>
+  `;
+
+  if (
+    typeof takePaymentDialog.showModal ===
+    "function"
+  ) {
+    takePaymentDialog.showModal();
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/payments/stripe/checkout",
+        {
+          method:
+            "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              appointment_id:
+                appointment.id
+            })
+        }
+      );
+
+    handleAuthentication(response);
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to create payment link."
+      );
+    }
+
+    takePaymentLink.value =
+      data.checkout.url;
+
+    openTakePaymentLink.href =
+      data.checkout.url;
+
+    activeTakePaymentPaymentId =
+      data.checkout.payment_id;
+
+    if (
+      !window.EselramQr ||
+      typeof window.EselramQr.toDataUrl !==
+        "function"
+    ) {
+      throw new Error(
+        "Eselram QR generator is unavailable."
+      );
+    }
+
+    takePaymentQrCode.src =
+      window.EselramQr.toDataUrl(
+        data.checkout.url,
+        {
+          quiet: 4
+        }
+      );
+
+    takePaymentResult.hidden =
+      false;
+
+    takePaymentStatus.className =
+      "es-status success";
+
+    takePaymentStatus.textContent =
+      `${formatMoney(
+        data.checkout.amount_minor
+      )} ready to collect.`;
+
+  } catch (error) {
+    takePaymentStatus.className =
+      "es-status error";
+
+    takePaymentStatus.textContent =
+      error.message ||
+      "Unable to create payment link.";
+  }
 }
 
 
