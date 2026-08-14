@@ -8,7 +8,6 @@ export function renderSidebar(activePage) {
 const items = [
   { key: "dashboard", label: "Overview", href: "/dashboard/" },
   { key: "bookings", label: "Bookings", href: "/bookings/" },
-  { key: "calendar", label: "Calendar", href: "/calendar/" },
   { key: "customers", label: "Customers", href: "/customers/" },
   { key: "services", label: "Services", href: "/services/" },
   { key: "packages", label: "Packages & Courses", href: "/packages/" },
