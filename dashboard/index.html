@@ -1,447 +1,599 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overview | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
+  <style>
+    .es-overview-welcome {
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:24px;
+      margin-bottom:22px;
+    }
 
-  <title>Dashboard | Eselram</title>
+    .es-overview-welcome h1 {
+      margin:4px 0 5px;
+      font-size:34px;
+      line-height:1.05;
+      letter-spacing:-.025em;
+    }
 
-  <link
-    rel="stylesheet"
-    href="/app/assets/css/eselram.css"
-  >
+    .es-overview-date {
+      margin:0;
+      color:var(--es-muted);
+      font-size:12px;
+    }
+
+    .es-overview-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .es-overview-actions .es-button,
+    .es-overview-actions .es-secondary-button {
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+    }
+
+    .es-overview-kpis {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .es-overview-kpi {
+      position:relative;
+      display:grid;
+      gap:6px;
+      min-height:112px;
+      padding:18px;
+      overflow:hidden;
+      border:1px solid var(--es-border);
+      border-radius:19px;
+      background:var(--es-surface);
+      box-shadow:0 8px 24px rgba(28,34,30,.035);
+    }
+
+    .es-overview-kpi::after {
+      content:"";
+      position:absolute;
+      right:-28px;
+      bottom:-40px;
+      width:104px;
+      height:104px;
+      border-radius:999px;
+      background:rgba(54,92,80,.035);
+    }
+
+    .es-overview-kpi span,
+    .es-overview-kpi small {
+      position:relative;
+      z-index:1;
+      color:var(--es-muted);
+      font-size:10px;
+    }
+
+    .es-overview-kpi span {
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.045em;
+    }
+
+    .es-overview-kpi strong {
+      position:relative;
+      z-index:1;
+      font-size:28px;
+      line-height:1;
+      letter-spacing:-.025em;
+    }
+
+    .es-overview-layout {
+      display:grid;
+      grid-template-columns:minmax(0,1.55fr) minmax(300px,.75fr);
+      gap:16px;
+      align-items:start;
+    }
+
+    .es-overview-main,
+    .es-overview-side {
+      display:grid;
+      gap:16px;
+    }
+
+    .es-overview-panel {
+      border-radius:20px;
+      box-shadow:0 10px 30px rgba(28,34,30,.04);
+    }
+
+    .es-overview-panel .es-panel-header {
+      margin-bottom:14px;
+    }
+
+    .es-overview-panel h2 {
+      margin:3px 0 0;
+      font-size:19px;
+      line-height:1.15;
+    }
+
+    .es-overview-panel-link {
+      color:var(--es-primary);
+      font-size:11px;
+      font-weight:800;
+      text-decoration:none;
+      white-space:nowrap;
+    }
+
+    .es-overview-schedule {
+      display:grid;
+      gap:8px;
+    }
+
+    .es-overview-appointment {
+      display:grid;
+      grid-template-columns:72px minmax(0,1fr) auto;
+      gap:13px;
+      align-items:center;
+      min-width:0;
+      padding:12px 13px;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:#fafbf8;
+      text-decoration:none;
+      color:inherit;
+      transition:border-color .14s ease,box-shadow .14s ease,transform .14s ease;
+    }
+
+    .es-overview-appointment:hover {
+      border-color:#bdc8be;
+      box-shadow:0 7px 20px rgba(28,34,30,.055);
+      transform:translateY(-1px);
+    }
+
+    .es-overview-time {
+      display:grid;
+      gap:2px;
+    }
+
+    .es-overview-time strong {
+      font-size:12px;
+      color:var(--es-primary);
+    }
+
+    .es-overview-time span {
+      color:var(--es-muted);
+      font-size:9px;
+    }
+
+    .es-overview-appointment-main {
+      display:grid;
+      gap:3px;
+      min-width:0;
+    }
+
+    .es-overview-appointment-main strong,
+    .es-overview-appointment-main span {
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .es-overview-appointment-main strong {
+      font-size:12px;
+    }
+
+    .es-overview-appointment-main span {
+      color:var(--es-muted);
+      font-size:10px;
+    }
+
+    .es-overview-status {
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      min-height:25px;
+      padding:0 8px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:#f5f6f3;
+      color:var(--es-muted);
+      font-size:9px;
+      font-weight:800;
+      text-transform:capitalize;
+      white-space:nowrap;
+    }
+
+    .es-overview-status::before {
+      content:"";
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background:#9aa09b;
+    }
+
+    .es-overview-status.confirmed {
+      border-color:#cce6d4;
+      background:#edf8f0;
+      color:#286b43;
+    }
+
+    .es-overview-status.confirmed::before {
+      background:#38935c;
+    }
+
+    .es-overview-status.pending {
+      border-color:#eadcae;
+      background:#fff9e8;
+      color:#80651f;
+    }
+
+    .es-overview-status.pending::before {
+      background:#b79028;
+    }
+
+    .es-overview-empty {
+      display:grid;
+      gap:5px;
+      padding:22px 4px;
+      color:var(--es-muted);
+    }
+
+    .es-overview-empty strong {
+      color:var(--es-text);
+      font-size:13px;
+    }
+
+    .es-overview-empty span {
+      font-size:11px;
+    }
+
+    .es-overview-week {
+      display:grid;
+      gap:8px;
+    }
+
+    .es-overview-week-row {
+      display:grid;
+      grid-template-columns:78px minmax(0,1fr) auto;
+      gap:11px;
+      align-items:center;
+      padding:10px 0;
+      border-bottom:1px solid var(--es-border);
+    }
+
+    .es-overview-week-row:last-child {
+      border-bottom:0;
+      padding-bottom:0;
+    }
+
+    .es-overview-week-date {
+      display:grid;
+      gap:2px;
+      color:var(--es-muted);
+      font-size:9px;
+    }
+
+    .es-overview-week-date strong {
+      color:var(--es-primary);
+      font-size:11px;
+    }
+
+    .es-overview-week-main {
+      display:grid;
+      gap:2px;
+      min-width:0;
+    }
+
+    .es-overview-week-main strong,
+    .es-overview-week-main span {
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .es-overview-week-main strong {
+      font-size:11px;
+    }
+
+    .es-overview-week-main span {
+      color:var(--es-muted);
+      font-size:9px;
+    }
+
+    .es-overview-quick-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .es-overview-quick {
+      display:grid;
+      gap:4px;
+      min-height:78px;
+      padding:13px;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:#fafbf8;
+      color:var(--es-text);
+      text-decoration:none;
+      transition:border-color .14s ease,background .14s ease;
+    }
+
+    .es-overview-quick:hover {
+      border-color:#bdc8be;
+      background:#fff;
+    }
+
+    .es-overview-quick strong {
+      font-size:11px;
+    }
+
+    .es-overview-quick span {
+      color:var(--es-muted);
+      font-size:9px;
+      line-height:1.35;
+    }
+
+    .es-overview-activity {
+      display:grid;
+      gap:0;
+    }
+
+    .es-overview-activity-row {
+      display:grid;
+      grid-template-columns:8px minmax(0,1fr) auto;
+      gap:10px;
+      align-items:center;
+      padding:10px 0;
+      border-bottom:1px solid var(--es-border);
+    }
+
+    .es-overview-activity-row:last-child {
+      border-bottom:0;
+      padding-bottom:0;
+    }
+
+    .es-overview-activity-dot {
+      width:7px;
+      height:7px;
+      border-radius:999px;
+      background:var(--es-primary);
+      opacity:.65;
+    }
+
+    .es-overview-activity-main {
+      display:grid;
+      gap:2px;
+      min-width:0;
+    }
+
+    .es-overview-activity-main strong,
+    .es-overview-activity-main span {
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .es-overview-activity-main strong {
+      font-size:10px;
+    }
+
+    .es-overview-activity-main span,
+    .es-overview-activity-time {
+      color:var(--es-muted);
+      font-size:9px;
+    }
+
+    @media(max-width:1050px) {
+      .es-overview-layout {
+        grid-template-columns:1fr;
+      }
+
+      .es-overview-side {
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media(max-width:820px) {
+      .es-overview-kpis {
+        grid-template-columns:1fr 1fr;
+      }
+
+      .es-overview-welcome {
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .es-overview-actions {
+        justify-content:flex-start;
+      }
+    }
+
+    @media(max-width:620px) {
+      .es-overview-kpis,
+      .es-overview-side,
+      .es-overview-quick-grid {
+        grid-template-columns:1fr;
+      }
+
+      .es-overview-appointment,
+      .es-overview-week-row {
+        grid-template-columns:66px minmax(0,1fr);
+      }
+
+      .es-overview-status {
+        grid-column:2;
+        width:fit-content;
+      }
+    }
+  </style>
 </head>
 
-
 <body class="es-dashboard-body">
-
   <div class="es-dashboard-layout">
-
-<aside
-  id="appSidebar"
-  class="es-sidebar"
-></aside>
-
+    <aside id="appSidebar" class="es-sidebar"></aside>
 
     <main class="es-dashboard-main">
-
-      <section class="es-dashboard-welcome">
-
+      <section class="es-overview-welcome">
         <div>
-
-          <p class="es-eyebrow">
-            Overview
-          </p>
-
-          <h1 id="welcomeTitle">
-            Good morning
-          </h1>
-
-          <p
-            id="dashboardDate"
-            class="es-dashboard-date"
-          >
-            Loading today…
-          </p>
-
+          <p class="es-eyebrow">Overview</p>
+          <h1 id="welcomeTitle">Good morning</h1>
+          <p id="dashboardDate" class="es-overview-date">Loading today…</p>
         </div>
 
-
-        <div class="es-dashboard-header-actions">
-
-          <a
-            class="es-secondary-button"
-            href="/customers/"
-          >
-            New customer
-          </a>
-
-          <a
-            class="es-button"
-            href="/bookings/"
-          >
-            New booking
-          </a>
-
+        <div class="es-overview-actions">
+          <a class="es-secondary-button" href="/customers/">Customers</a>
+          <a class="es-button" href="/bookings/">New booking</a>
         </div>
-
       </section>
 
+      <section id="dashboardStatus" class="es-status" hidden></section>
 
-      <section
-        id="dashboardStatus"
-        class="es-status"
-        hidden
-      ></section>
-
-
-      <section class="es-dashboard-kpis">
-
-        <article class="es-dashboard-kpi">
-          <span>
-            Today's bookings
-          </span>
-
-          <strong id="todayBookings">
-            0
-          </strong>
-
-          <small>
-            Non-cancelled today
-          </small>
+      <section class="es-overview-kpis">
+        <article class="es-overview-kpi">
+          <span>Today</span>
+          <strong id="todayBookings">0</strong>
+          <small>appointments scheduled</small>
         </article>
 
-
-        <article class="es-dashboard-kpi">
-          <span>
-            Next 7 days
-          </span>
-
-          <strong id="weekBookings">
-            0
-          </strong>
-
-          <small>
-            Confirmed & pending
-          </small>
+        <article class="es-overview-kpi">
+          <span>This week</span>
+          <strong id="weekBookings">0</strong>
+          <small>upcoming appointments</small>
         </article>
 
-
-        <article class="es-dashboard-kpi">
-          <span>
-            Customers
-          </span>
-
-          <strong id="customerCount">
-            0
-          </strong>
-
-          <small id="newCustomersNote">
-            0 new this month
-          </small>
+        <article class="es-overview-kpi">
+          <span>Revenue this month</span>
+          <strong id="monthRevenue">£0.00</strong>
+          <small>paid transactions</small>
         </article>
 
-
-        <article class="es-dashboard-kpi">
-          <span>
-            Revenue this month
-          </span>
-
-          <strong id="monthRevenue">
-            £0.00
-          </strong>
-
-          <small>
-            Paid payments
-          </small>
+        <article class="es-overview-kpi">
+          <span>Outstanding</span>
+          <strong id="outstandingAmount">£0.00</strong>
+          <small>appointment balances</small>
         </article>
-
-
-        <article class="es-dashboard-kpi">
-          <span>
-            Outstanding
-          </span>
-
-          <strong id="outstandingAmount">
-            £0.00
-          </strong>
-
-          <small>
-            Appointment balances
-          </small>
-        </article>
-
       </section>
 
-
-      <section class="es-dashboard-grid">
-
-        <div class="es-dashboard-stack">
-
-          <section class="es-dashboard-panel">
-
+      <section class="es-overview-layout">
+        <div class="es-overview-main">
+          <section class="es-dashboard-panel es-overview-panel">
             <div class="es-panel-header">
-
               <div>
-
-                <p class="es-eyebrow">
-                  Today
-                </p>
-
-                <h2>
-                  Today's schedule
-                </h2>
-
+                <p class="es-eyebrow">Today</p>
+                <h2>Your schedule</h2>
               </div>
 
-              <a
-                class="es-dashboard-panel-link"
-                href="/calendar/"
-              >
-                Open calendar
-              </a>
-
+              <a class="es-overview-panel-link" href="/bookings/">Open calendar</a>
             </div>
 
-
-            <div
-              id="todaySchedule"
-              class="es-dashboard-empty"
-            >
+            <div id="todaySchedule" class="es-overview-empty">
               Loading today's schedule…
             </div>
-
           </section>
 
-
-          <section class="es-dashboard-panel">
-
+          <section class="es-dashboard-panel es-overview-panel">
             <div class="es-panel-header">
-
               <div>
-
-                <p class="es-eyebrow">
-                  Coming up
-                </p>
-
-                <h2>
-                  Next appointments
-                </h2>
-
+                <p class="es-eyebrow">Coming up</p>
+                <h2>Next appointments</h2>
               </div>
 
-              <a
-                class="es-dashboard-panel-link"
-                href="/bookings/"
-              >
-                View all bookings
-              </a>
-
+              <a class="es-overview-panel-link" href="/bookings/?view=bookings">Manage bookings</a>
             </div>
 
-
-            <div
-              id="upcomingAppointments"
-              class="es-dashboard-empty"
-            >
+            <div id="upcomingAppointments" class="es-overview-empty">
               Loading appointments…
             </div>
-
           </section>
-
         </div>
 
-
-        <div class="es-dashboard-stack">
-
-          <section class="es-dashboard-panel">
-
+        <aside class="es-overview-side">
+          <section class="es-dashboard-panel es-overview-panel">
             <div class="es-panel-header">
-
               <div>
-
-                <p class="es-eyebrow">
-                  Shortcuts
-                </p>
-
-                <h2>
-                  Quick actions
-                </h2>
-
+                <p class="es-eyebrow">Shortcuts</p>
+                <h2>Quick actions</h2>
               </div>
-
             </div>
 
-
-            <div class="es-dashboard-quick-actions">
-
-  <a
-    class="es-dashboard-quick-action"
-    href="/bookings/"
-  >
-    <strong>
-      Book appointment
-    </strong>
-
-    <span>
-      Create a new booking
-    </span>
-  </a>
-
-
-  <a
-    class="es-dashboard-quick-action"
-    href="/customers/"
-  >
-    <strong>
-      Add customer
-    </strong>
-
-    <span>
-      Create a customer profile
-    </span>
-  </a>
-
-
-  <a
-    class="es-dashboard-quick-action"
-    href="/calendar/"
-  >
-    <strong>
-      View calendar
-    </strong>
-
-    <span>
-      Check upcoming appointments
-    </span>
-  </a>
-
-
-  <a
-    class="es-dashboard-quick-action"
-    href="/services/"
-  >
-    <strong>
-      Manage services
-    </strong>
-
-    <span>
-      Update treatments and pricing
-    </span>
-  </a>
-
-
-  <a
-    class="es-dashboard-quick-action"
-    href="/treatment-records/"
-  >
-    <strong>
-      Treatment records
-    </strong>
-
-    <span>
-      Record today's treatments
-    </span>
-  </a>
-
-  <a
-                class="es-dashboard-quick-action"
-                href="/clinical-submissions/"
-              >
-                <strong>
-                  Clinical records
-                </strong>
-
-                <span>
-                  Review submitted forms
-                </span>
+            <div class="es-overview-quick-grid">
+              <a class="es-overview-quick" href="/bookings/">
+                <strong>Calendar</strong>
+                <span>View and manage the schedule</span>
               </a>
-              
-  <a
-    class="es-dashboard-quick-action"
-    href="/payments/"
-  >
-    <strong>
-      Record payment
-    </strong>
 
-    <span>
-      View payments and balances
-    </span>
-  </a>
+              <a class="es-overview-quick" href="/customers/">
+                <strong>Customers</strong>
+                <span>Profiles, forms, photos and records</span>
+              </a>
 
+              <a class="es-overview-quick" href="/payments/">
+                <strong>Payments</strong>
+                <span>Balances and transactions</span>
+              </a>
 
-  <a
-    class="es-dashboard-quick-action"
-    href="/settings/"
-  >
-    <strong>
-      Business settings
-    </strong>
-
-    <span>
-      Configure your clinic
-    </span>
-  </a>
-
-</div>
+              <a class="es-overview-quick" href="/communications/">
+                <strong>Communications</strong>
+                <span>Email and delivery history</span>
+              </a>
+            </div>
           </section>
 
-
-          <section class="es-dashboard-panel">
-
+          <section class="es-dashboard-panel es-overview-panel">
             <div class="es-panel-header">
-
               <div>
-
-                <p class="es-eyebrow">
-                  Activity
-                </p>
-
-                <h2>
-                  Recent activity
-                </h2>
-
+                <p class="es-eyebrow">Activity</p>
+                <h2>Recent activity</h2>
               </div>
-
             </div>
 
-
-            <div
-              id="recentActivity"
-              class="es-dashboard-empty"
-            >
+            <div id="recentActivity" class="es-overview-empty">
               Loading activity…
             </div>
-
           </section>
 
-
-          <section class="es-dashboard-panel">
-
+          <section class="es-dashboard-panel es-overview-panel">
             <div class="es-panel-header">
-
               <div>
-
-                <p class="es-eyebrow">
-                  Business
-                </p>
-
-                <h2 id="businessName">
-                  Loading…
-                </h2>
-
+                <p class="es-eyebrow">Customers</p>
+                <h2>Business pulse</h2>
               </div>
 
+              <a class="es-overview-panel-link" href="/customers/">Open customers</a>
             </div>
 
+            <div class="es-overview-quick-grid">
+              <div class="es-overview-quick" style="pointer-events:none;">
+                <strong id="customerCount">0</strong>
+                <span>Total customers</span>
+              </div>
 
-            <div
-              id="businessSnapshot"
-              class="es-dashboard-business"
-            ></div>
-
+              <div class="es-overview-quick" style="pointer-events:none;">
+                <strong id="newCustomersMonth">0</strong>
+                <span>New this month</span>
+              </div>
+            </div>
           </section>
-
-        </div>
-
+        </aside>
       </section>
-
     </main>
-
   </div>
 
   <script type="module">
-  import { renderSidebar } from "/components/sidebar.js";
-  renderSidebar("dashboard");
-</script>
-
+    import { renderSidebar } from "/components/sidebar.js";
+    renderSidebar("dashboard");
+  </script>
   <script src="/dashboard/dashboard.js"></script>
-
 </body>
 </html>
