@@ -1737,6 +1737,40 @@ export async function onRequestPut({
         .run();
 
 
+      try {
+        const aftercare =
+          await sendAppointmentCommunication({
+            env,
+            businessId:
+              user.business_id,
+            appointmentId,
+            type:
+              "treatment_aftercare",
+            uniqueKey:
+              `treatment_aftercare:${appointmentId}`,
+            baseUrl:
+              env.ESELRAM_BASE_URL ||
+              null
+          });
+
+        if (
+          !aftercare.ok &&
+          !aftercare.skipped
+        ) {
+          console.error(
+            "Aftercare email failed:",
+            aftercare.error ||
+            "Unknown email error"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Aftercare email failed:",
+          error
+        );
+      }
+
+
       return Response.json({
         ok: true
       });
