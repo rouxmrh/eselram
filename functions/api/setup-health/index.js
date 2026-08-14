@@ -34,7 +34,8 @@ const EXPECTED_MIGRATIONS = [
   "027_automated_communications",
   "028_consultation_package_booking",
   "029_consultation_credit",
-  "030_clinic_balance_payment"
+  "030_clinic_balance_payment",
+  "031_treatment_aftercare_communications"
 ];
 
 
