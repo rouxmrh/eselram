@@ -88,11 +88,15 @@ export function renderSidebar(activeKey) {
       <div
         class="es-sidebar-powered-by"
         aria-label="Powered by Eselram"
+        style="display:flex;align-items:center;gap:8px;width:100%;max-width:100%;overflow:hidden;padding:6px 0;color:#fff;"
       >
         <img
           class="es-sidebar-powered-logo"
           src="/assets/eselram_logo.png"
           alt=""
+          width="28"
+          height="28"
+          style="width:28px;height:28px;max-width:28px;max-height:28px;min-width:28px;min-height:28px;object-fit:cover;display:block;"
         >
 
         <span class="es-sidebar-powered-copy">
