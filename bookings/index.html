@@ -278,7 +278,7 @@
     .es-bookings-calendar-frame {
       display: block;
       width: 100%;
-      height: 700px;
+      height: 790px;
       min-height: 0;
       border: 0;
       background: var(--es-surface);
@@ -467,7 +467,7 @@
       }
 
       .es-bookings-calendar-frame {
-        height: 650px;
+        height: 790px;
         min-height: 0;
       }
 
@@ -475,6 +475,15 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .es-bookings-toolbar-actions {
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
 </style>
 </head>
 
@@ -891,42 +900,52 @@
             </p>
 
             <h2>
-              Bookings
+              Manage bookings
             </h2>
 
           </div>
 
 
-          <div class="es-bookings-filter-group">
-
-            <input
-              id="bookingSearch"
-              type="search"
-              placeholder="Search customer or service"
-              aria-label="Search bookings"
+          <div class="es-bookings-toolbar-actions">
+            <button
+              id="backToCalendarButton"
+              class="es-secondary-button"
+              type="button"
             >
+              Back to calendar
+            </button>
 
-            <select
-              id="bookingStatusFilter"
-              aria-label="Filter by status"
-            >
-              <option value="all">
-                All statuses
-              </option>
+            <div class="es-bookings-filter-group">
 
-              <option value="confirmed">
-                Confirmed
-              </option>
+              <input
+                id="bookingSearch"
+                type="search"
+                placeholder="Search customer or service"
+                aria-label="Search bookings"
+              >
 
-              <option value="completed">
-                Completed
-              </option>
+              <select
+                id="bookingStatusFilter"
+                aria-label="Filter by status"
+              >
+                <option value="all">
+                  All statuses
+                </option>
 
-              <option value="cancelled">
-                Cancelled
-              </option>
-            </select>
+                <option value="confirmed">
+                  Confirmed
+                </option>
 
+                <option value="completed">
+                  Completed
+                </option>
+
+                <option value="cancelled">
+                  Cancelled
+                </option>
+              </select>
+
+            </div>
           </div>
 
         </div>
