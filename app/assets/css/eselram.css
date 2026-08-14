@@ -4128,3 +4128,36 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
   gap: 12px !important;
   overflow: visible !important;
 }
+
+
+/* =======================================================
+   Business branding logo — keep complete logo visible
+   ======================================================= */
+
+.es-sidebar .es-sidebar-account-logo {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  flex: 0 0 44px !important;
+  padding: 4px !important;
+  overflow: hidden !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.08) !important;
+}
+
+.es-sidebar .es-sidebar-account-logo img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
