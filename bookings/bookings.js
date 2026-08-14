@@ -116,6 +116,17 @@ const bookingDetailActions =
   );
 
 
+const bookingsWeekList =
+  document.getElementById(
+    "bookingsWeekList"
+  );
+
+const bookingsWeekCount =
+  document.getElementById(
+    "bookingsWeekCount"
+  );
+
+
 let services = [];
 let bookings = [];
 let bookingPackages = [];
@@ -161,8 +172,18 @@ document
   )
   .addEventListener(
     "click",
-    () =>
-      openBookingForm()
+    () => {
+      if (
+        typeof window.setBookingsWorkspaceView ===
+        "function"
+      ) {
+        window.setBookingsWorkspaceView(
+          "bookings"
+        );
+      }
+
+      openBookingForm();
+    }
   );
 
 
@@ -1417,6 +1438,7 @@ async function loadBookings() {
 
 
     renderBookings();
+    renderUpcomingWeek();
 
 
   } catch (error) {
@@ -1696,6 +1718,274 @@ function renderBookings() {
 
 
   bindBookingRowActions();
+}
+
+
+
+function renderUpcomingWeek() {
+
+  if (
+    !bookingsWeekList ||
+    !bookingsWeekCount
+  ) {
+    return;
+  }
+
+
+  const now =
+    new Date();
+
+  const end =
+    new Date(
+      now.getTime() +
+      (7 * 24 * 60 * 60 * 1000)
+    );
+
+
+  const upcoming =
+    bookings
+      .filter(
+        (booking) => {
+
+          if (
+            booking.status === "cancelled" ||
+            booking.status === "completed"
+          ) {
+            return false;
+          }
+
+
+          const start =
+            new Date(
+              booking.start_at
+            );
+
+
+          return (
+            Number.isFinite(
+              start.getTime()
+            ) &&
+            start >= now &&
+            start < end
+          );
+        }
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.start_at) -
+          new Date(b.start_at)
+      );
+
+
+  bookingsWeekCount.textContent =
+    upcoming.length;
+
+
+  if (
+    upcoming.length === 0
+  ) {
+
+    bookingsWeekList.innerHTML = `
+      <div class="es-empty-state">
+        <strong>No upcoming appointments.</strong>
+        <span>Your next 7 days are clear.</span>
+      </div>
+    `;
+
+    return;
+  }
+
+
+  let lastDay =
+    "";
+
+
+  bookingsWeekList.innerHTML =
+    upcoming
+      .map(
+        (booking) => {
+
+          const start =
+            new Date(
+              booking.start_at
+            );
+
+          const dayKey =
+            [
+              start.getFullYear(),
+              String(
+                start.getMonth() + 1
+              ).padStart(2, "0"),
+              String(
+                start.getDate()
+              ).padStart(2, "0")
+            ].join("-");
+
+          const dayHeading =
+            dayKey !== lastDay
+              ? `
+                <div class="es-bookings-week-day">
+                  ${escapeHtml(
+                    formatUpcomingDay(
+                      start
+                    )
+                  )}
+                </div>
+              `
+              : "";
+
+          lastDay =
+            dayKey;
+
+          const serviceLabel =
+            booking.booking_kind === "consultation"
+              ? `Consultation · ${booking.service_name}`
+              : booking.service_name;
+
+          return `
+            ${dayHeading}
+
+            <button
+              class="es-bookings-week-item"
+              type="button"
+              data-upcoming-booking="${escapeHtml(
+                booking.id
+              )}"
+            >
+              <span class="es-bookings-week-time">
+                ${escapeHtml(
+                  formatUpcomingTime(
+                    start
+                  )
+                )}
+              </span>
+
+              <span class="es-bookings-week-copy">
+                <strong>
+                  ${escapeHtml(
+                    `${booking.first_name || ""} ${booking.last_name || ""}`.trim()
+                  )}
+                </strong>
+
+                <span>
+                  ${escapeHtml(
+                    serviceLabel ||
+                    "Appointment"
+                  )}
+                </span>
+
+                <span class="es-bookings-week-status">
+                  ${escapeHtml(
+                    formatStatus(
+                      booking.status
+                    )
+                  )}
+                </span>
+              </span>
+            </button>
+          `;
+        }
+      )
+      .join("");
+
+
+  document
+    .querySelectorAll(
+      "[data-upcoming-booking]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const booking =
+              getBooking(
+                button.dataset.upcomingBooking
+              );
+
+
+            if (booking) {
+              showBookingDetails(
+                booking
+              );
+            }
+          }
+        );
+      }
+    );
+}
+
+
+function formatUpcomingDay(
+  date
+) {
+
+  const today =
+    new Date();
+
+  const tomorrow =
+    new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + 1
+    );
+
+  const dateOnly =
+    new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
+  const todayOnly =
+    new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+
+
+  if (
+    dateOnly.getTime() ===
+    todayOnly.getTime()
+  ) {
+    return "Today";
+  }
+
+
+  if (
+    dateOnly.getTime() ===
+    tomorrow.getTime()
+  ) {
+    return "Tomorrow";
+  }
+
+
+  return date.toLocaleDateString(
+    "en-GB",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "short"
+    }
+  );
+}
+
+
+function formatUpcomingTime(
+  date
+) {
+
+  return date.toLocaleTimeString(
+    "en-GB",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }
+  );
 }
 
 
