@@ -510,7 +510,7 @@ export async function onRequestPut({
         {
           ok: false,
           error:
-            "Too many blocked dates."
+            "Too many blocked-date ranges."
         },
         {
           status: 400
@@ -520,16 +520,31 @@ export async function onRequestPut({
 
 
     const cleanBlockedDates = [];
-    const seenBlockedDates =
+    const seenBlockedRanges =
       new Set();
 
 
     for (
       const item of blockedDates
     ) {
-      const date =
+      const legacyDate =
         String(
           item?.date ||
+          ""
+        ).trim();
+
+      const startDate =
+        String(
+          item?.start_date ||
+          legacyDate ||
+          ""
+        ).trim();
+
+      const endDate =
+        String(
+          item?.end_date ||
+          legacyDate ||
+          startDate ||
           ""
         ).trim();
 
@@ -543,14 +558,17 @@ export async function onRequestPut({
 
       if (
         !/^\d{4}-\d{2}-\d{2}$/.test(
-          date
+          startDate
+        ) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(
+          endDate
         )
       ) {
         return Response.json(
           {
             ok: false,
             error:
-              "Blocked dates must use a valid date."
+              "Blocked dates must use valid From and To dates."
           },
           {
             status: 400
@@ -558,18 +576,37 @@ export async function onRequestPut({
         );
       }
 
+      if (endDate < startDate) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "A blocked-date range cannot end before it starts."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      const rangeKey =
+        `${startDate}:${endDate}`;
+
       if (
-        seenBlockedDates.has(
-          date
+        seenBlockedRanges.has(
+          rangeKey
         )
       ) {
         continue;
       }
 
-      seenBlockedDates.add(date);
+      seenBlockedRanges.add(
+        rangeKey
+      );
 
       cleanBlockedDates.push({
-        date,
+        start_date: startDate,
+        end_date: endDate,
         reason
       });
     }
@@ -577,7 +614,12 @@ export async function onRequestPut({
 
     cleanBlockedDates.sort(
       (a, b) =>
-        a.date.localeCompare(b.date)
+        a.start_date.localeCompare(
+          b.start_date
+        ) ||
+        a.end_date.localeCompare(
+          b.end_date
+        )
     );
 
 
