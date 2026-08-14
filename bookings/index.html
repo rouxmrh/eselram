@@ -247,9 +247,9 @@
       overflow: hidden;
       padding: 0;
       border: 1px solid var(--es-border);
-      border-radius: var(--es-radius-lg);
+      border-radius: 22px;
       background: var(--es-surface);
-      box-shadow: 0 10px 32px rgba(28, 34, 30, .045);
+      box-shadow: 0 16px 44px rgba(28, 34, 30, .065);
     }
 
     .es-bookings-calendar-mode .es-dashboard-main > section:not(.es-bookings-calendar-shell) {
@@ -260,13 +260,178 @@
       display: block;
     }
 
+    .es-bookings-calendar-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      min-height: 720px;
+    }
+
+    .es-bookings-calendar-panel {
+      min-width: 0;
+      background: var(--es-surface);
+    }
+
     .es-bookings-calendar-frame {
       display: block;
       width: 100%;
       height: min(920px, calc(100vh - 225px));
-      min-height: 700px;
+      min-height: 720px;
       border: 0;
       background: var(--es-surface);
+    }
+
+    .es-bookings-week-panel {
+      min-width: 0;
+      padding: 22px 18px;
+      border-left: 1px solid var(--es-border);
+      background:
+        linear-gradient(180deg, #f8faf7 0%, #f3f6f2 100%);
+    }
+
+    .es-bookings-week-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .es-bookings-week-header h2 {
+      margin: 3px 0 3px;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+
+    .es-bookings-week-header p:not(.es-eyebrow) {
+      margin: 0;
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-bookings-week-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      min-height: 34px;
+      padding: 0 9px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: var(--es-surface);
+      color: var(--es-primary);
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 5px 14px rgba(28, 34, 30, .05);
+    }
+
+    .es-bookings-week-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .es-bookings-week-day {
+      margin: 8px 2px 2px;
+      color: var(--es-muted);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .es-bookings-week-item {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 11px;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--es-border);
+      border-radius: 14px;
+      background: rgba(255,255,255,.92);
+      color: var(--es-text);
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(28, 34, 30, .035);
+      transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+    }
+
+    .es-bookings-week-item:hover {
+      transform: translateY(-1px);
+      border-color: #bcc7bd;
+      box-shadow: 0 9px 22px rgba(28, 34, 30, .065);
+    }
+
+    .es-bookings-week-time {
+      color: var(--es-primary);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .es-bookings-week-copy {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .es-bookings-week-copy strong,
+    .es-bookings-week-copy span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .es-bookings-week-copy strong {
+      font-size: 12px;
+    }
+
+    .es-bookings-week-copy span {
+      color: var(--es-muted);
+      font-size: 10px;
+    }
+
+    .es-bookings-week-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      width: fit-content;
+      margin-top: 2px;
+      color: var(--es-muted);
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .035em;
+    }
+
+    .es-bookings-week-status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--es-success);
+    }
+
+    @media (max-width: 1120px) {
+      .es-bookings-calendar-layout {
+        grid-template-columns: minmax(0, 1fr) 270px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .es-bookings-calendar-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .es-bookings-week-panel {
+        border-top: 1px solid var(--es-border);
+        border-left: 0;
+      }
+
+      .es-bookings-week-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .es-bookings-week-day {
+        grid-column: 1 / -1;
+      }
     }
 
     @media (max-width: 760px) {
@@ -281,6 +446,10 @@
       .es-bookings-calendar-frame {
         height: 780px;
         min-height: 780px;
+      }
+
+      .es-bookings-week-list {
+        grid-template-columns: 1fr;
       }
     }
 </style>
@@ -332,23 +501,23 @@
         aria-label="Bookings views"
       >
         <button
-          id="bookingsListViewButton"
+          id="bookingsCalendarViewButton"
           class="es-bookings-view-button active"
           type="button"
           role="tab"
           aria-selected="true"
         >
-          Bookings
+          Calendar
         </button>
 
         <button
-          id="bookingsCalendarViewButton"
+          id="bookingsListViewButton"
           class="es-bookings-view-button"
           type="button"
           role="tab"
           aria-selected="false"
         >
-          Calendar
+          Bookings
         </button>
       </div>
 
@@ -358,12 +527,34 @@
         class="es-bookings-calendar-shell"
         aria-label="Calendar view"
       >
-        <iframe
-          id="bookingsCalendarFrame"
-          class="es-bookings-calendar-frame"
-          title="Bookings calendar"
-          data-src="/calendar/?embedded=1"
-        ></iframe>
+        <div class="es-bookings-calendar-layout">
+          <div class="es-bookings-calendar-panel">
+            <iframe
+              id="bookingsCalendarFrame"
+              class="es-bookings-calendar-frame"
+              title="Bookings calendar"
+              data-src="/calendar/?embedded=1"
+            ></iframe>
+          </div>
+
+          <aside class="es-bookings-week-panel" aria-label="Upcoming appointments">
+            <div class="es-bookings-week-header">
+              <div>
+                <p class="es-eyebrow">Schedule</p>
+                <h2>Upcoming appointments</h2>
+                <p>Next 7 days</p>
+              </div>
+
+              <span id="bookingsWeekCount" class="es-bookings-week-count">0</span>
+            </div>
+
+            <div id="bookingsWeekList" class="es-bookings-week-list">
+              <div class="es-empty-state">
+                Loading appointments…
+              </div>
+            </div>
+          </aside>
+        </div>
       </section>
 
 
@@ -1010,22 +1201,27 @@
           const url = new URL(window.location.href);
 
           if (isCalendar) {
-            url.searchParams.set("view", "calendar");
-          } else {
             url.searchParams.delete("view");
+          } else {
+            url.searchParams.set("view", "bookings");
           }
 
           history.replaceState({}, "", url);
         }
       }
 
+      window.setBookingsWorkspaceView = setView;
+
       listButton.addEventListener("click", () => setView("bookings"));
       calendarButton.addEventListener("click", () => setView("calendar"));
 
+      const requestedView =
+        new URLSearchParams(window.location.search).get("view");
+
       const initialView =
-        new URLSearchParams(window.location.search).get("view") === "calendar"
-          ? "calendar"
-          : "bookings";
+        requestedView === "bookings"
+          ? "bookings"
+          : "calendar";
 
       setView(initialView, false);
     })();
