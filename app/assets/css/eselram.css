@@ -4104,3 +4104,27 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 .es-sidebar .es-sidebar-brand {
   display: none !important;
 }
+
+
+/* =======================================================
+   Eselram sidebar logo — show complete symbol
+   ======================================================= */
+
+.es-sidebar .es-sidebar-brand-logo {
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  border-radius: 8px !important;
+  overflow: visible !important;
+}
+
+.es-sidebar .es-sidebar-brand-lockup {
+  gap: 12px !important;
+  overflow: visible !important;
+}
