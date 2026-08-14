@@ -63,6 +63,17 @@ const paymentStatusFilter =
     "paymentStatusFilter"
   );
 
+
+const paymentTypeFilter =
+  document.getElementById(
+    "paymentTypeFilter"
+  );
+
+const paymentSort =
+  document.getElementById(
+    "paymentSort"
+  );
+
 const paymentDrawer =
   document.getElementById(
     "paymentDrawer"
@@ -142,6 +153,17 @@ paymentSearch.addEventListener(
 
 
 paymentStatusFilter.addEventListener(
+  "change",
+  renderCurrentView
+);
+
+
+paymentTypeFilter.addEventListener(
+  "change",
+  renderCurrentView
+);
+
+paymentSort.addEventListener(
   "change",
   renderCurrentView
 );
@@ -815,62 +837,104 @@ function renderCurrentView() {
 function renderPayments() {
 
   const query =
-    paymentSearch
-      .value
+    paymentSearch.value
       .trim()
       .toLowerCase();
 
   const status =
     paymentStatusFilter.value;
 
+  const type =
+    paymentTypeFilter.value;
+
 
   const filtered =
-    payments.filter(
-      (payment) => {
-
-        if (
-          status === "refund"
-        ) {
+    payments
+      .filter(
+        (payment) => {
 
           if (
-            payment.payment_type !==
-            "refund"
+            status === "refund"
+          ) {
+            if (
+              payment.payment_type !==
+              "refund"
+            ) {
+              return false;
+            }
+          } else if (
+            status !== "all" &&
+            payment.status !== status
           ) {
             return false;
           }
 
-        } else if (
-          status !== "all" &&
-          payment.status !== status
-        ) {
 
-          return false;
+          if (
+            type !== "all" &&
+            payment.payment_type !== type
+          ) {
+            return false;
+          }
+
+
+          if (!query) {
+            return true;
+          }
+
+
+          const searchable = [
+            payment.first_name,
+            payment.last_name,
+            payment.provider_reference,
+            payment.provider,
+            payment.payment_method,
+            payment.service_name,
+            payment.package_name,
+            formatPaymentType(payment.payment_type),
+            formatStatus(payment.status)
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+
+          return searchable.includes(
+            query
+          );
         }
+      )
+      .sort(
+        (a, b) => {
 
+          if (
+            paymentSort.value ===
+            "oldest"
+          ) {
+            return paymentDateValue(a) -
+              paymentDateValue(b);
+          }
 
-        if (!query) {
-          return true;
+          if (
+            paymentSort.value ===
+            "highest"
+          ) {
+            return Number(b.amount_minor || 0) -
+              Number(a.amount_minor || 0);
+          }
+
+          if (
+            paymentSort.value ===
+            "lowest"
+          ) {
+            return Number(a.amount_minor || 0) -
+              Number(b.amount_minor || 0);
+          }
+
+          return paymentDateValue(b) -
+            paymentDateValue(a);
         }
-
-
-        const searchable = [
-          payment.first_name,
-          payment.last_name,
-          payment.provider_reference,
-          payment.provider,
-          payment.payment_method,
-          payment.service_name
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-
-        return searchable.includes(
-          query
-        );
-      }
-    );
+      );
 
 
   if (
@@ -881,13 +945,8 @@ function renderPayments() {
       "es-empty-state";
 
     paymentsList.innerHTML = `
-      <strong>
-        No payments found.
-      </strong>
-
-      <span>
-        Recorded payments will appear here.
-      </span>
+      <strong>No payments found.</strong>
+      <span>Try changing your search or filters.</span>
     `;
 
     return;
@@ -895,112 +954,99 @@ function renderPayments() {
 
 
   paymentsList.className =
-    "es-payments-list";
+    "es-finance-list";
 
 
   paymentsList.innerHTML =
     filtered
       .map(
-        (payment) => `
-          <article class="es-payment-row-v2">
+        (payment) => {
 
-            <div class="es-payment-cell">
-              <strong>
-                ${formatMoney(
-                  payment.amount_minor
-                )}
-              </strong>
+          const customer =
+            `${payment.first_name || ""} ${payment.last_name || ""}`.trim() ||
+            "Customer";
 
-              <span>
-                ${escapeHtml(
-                  formatPaymentType(
-                    payment.payment_type
-                  )
-                )}
-              </span>
-            </div>
-
-
-            <div class="es-payment-cell">
-              <strong>
-                ${escapeHtml(
-                  `${payment.first_name || ""} ${payment.last_name || ""}`.trim() ||
-                  "Customer"
-                )}
-              </strong>
-
-              <span>
-                ${escapeHtml(
-                  payment.appointment_booking_kind ===
-                    "consultation" &&
+          const context =
+            payment.package_name
+              ? `Package · ${payment.package_name}`
+              : (
+                  payment.appointment_booking_kind === "consultation" &&
                   payment.service_name
-                    ? `Consultation · ${
-                        payment.service_name
-                      }`
+                    ? `Consultation · ${payment.service_name}`
                     : (
                         payment.service_name ||
-                        "No appointment"
+                        "No linked appointment"
                       )
-                )}
-              </span>
-            </div>
+                );
 
+          const displayStatus =
+            payment.payment_type === "refund"
+              ? "refunded"
+              : payment.status;
 
-            <div class="es-payment-cell">
-              <strong>
-                ${escapeHtml(
-                  formatMethod(
-                    payment.payment_method
-                  )
-                )}
-              </strong>
+          return `
+            <article class="es-finance-row ${
+              displayStatus === "failed"
+                ? "is-failed"
+                : ""
+            }">
 
-              <span>
-                ${escapeHtml(
-                  payment.provider_display_name ||
-                  payment.provider
-                )}
-              </span>
-            </div>
+              <div class="es-finance-cell">
+                <strong>${formatMoney(payment.amount_minor)}</strong>
+                <span>${escapeHtml(formatPaymentType(payment.payment_type))}</span>
+              </div>
 
+              <div class="es-finance-cell">
+                <strong>${escapeHtml(customer)}</strong>
+                <span>${escapeHtml(context)}</span>
+              </div>
 
-            <div>
-              <span
-                class="es-payment-status es-payment-status-${escapeHtml(
-                  payment.payment_type ===
-                    "refund"
-                    ? "refunded"
-                    : payment.status
-                )}"
-              >
-                ${escapeHtml(
-                  payment.payment_type ===
-                    "refund"
-                    ? "Refund"
-                    : formatStatus(
-                        payment.status
-                      )
-                )}
-              </span>
-            </div>
+              <div class="es-finance-cell">
+                <strong>${escapeHtml(formatMethod(payment.payment_method))}</strong>
+                <span>${escapeHtml(payment.provider_display_name || payment.provider || "—")}</span>
+              </div>
 
+              <div class="es-finance-cell">
+                <strong>${escapeHtml(formatFullDateTime(payment.paid_at || payment.created_at))}</strong>
+                <span>${escapeHtml(payment.provider_reference || "No reference")}</span>
+              </div>
 
-            <div class="es-payment-actions">
+              <div>
+                <span class="es-payment-status es-payment-status-${escapeHtml(displayStatus)}">
+                  ${escapeHtml(
+                    payment.payment_type === "refund"
+                      ? "Refund"
+                      : formatStatus(payment.status)
+                  )}
+                </span>
+              </div>
 
-              <button
-                class="es-payment-action"
-                type="button"
-                data-view-payment="${escapeHtml(
-                  payment.id
-                )}"
-              >
-                View
-              </button>
+              <div class="es-finance-actions">
+                ${
+                  payment.customer_id
+                    ? `
+                      <a
+                        class="es-secondary-button"
+                        href="/customers/?customer=${encodeURIComponent(payment.customer_id)}"
+                      >
+                        Customer
+                      </a>
+                    `
+                    : ""
+                }
 
-            </div>
+                <button
+                  class="es-payment-action"
+                  type="button"
+                  data-view-payment="${escapeHtml(payment.id)}"
+                >
+                  View
+                </button>
+              </div>
 
-          </article>
-        `
+            </article>
+          `;
+        }
       )
       .join("");
 
@@ -1020,16 +1066,12 @@ function renderPayments() {
               payments.find(
                 (item) =>
                   item.id ===
-                  button.dataset
-                    .viewPayment
+                  button.dataset.viewPayment
               );
 
 
             if (payment) {
-
-              showPaymentDetails(
-                payment
-              );
+              showPaymentDetails(payment);
             }
           }
         );
@@ -1077,13 +1119,8 @@ function renderOutstanding() {
       "es-empty-state";
 
     paymentsList.innerHTML = `
-      <strong>
-        Nothing outstanding.
-      </strong>
-
-      <span>
-        All appointment balances are covered.
-      </span>
+      <strong>Nothing outstanding.</strong>
+      <span>All appointment balances are covered.</span>
     `;
 
     return;
@@ -1091,83 +1128,58 @@ function renderOutstanding() {
 
 
   paymentsList.className =
-    "es-payments-list";
+    "es-finance-list";
 
 
   paymentsList.innerHTML =
     filtered
       .map(
         (item) => `
-          <article class="es-outstanding-row">
+          <article class="es-finance-outstanding-row">
 
-            <div class="es-payment-cell">
+            <div class="es-finance-cell">
               <strong>
-                ${escapeHtml(
-                  `${item.first_name} ${item.last_name}`
-                )}
+                ${escapeHtml(`${item.first_name} ${item.last_name}`)}
               </strong>
-
-              <span>
-                ${escapeHtml(
-                  item.service_name
-                )}
-              </span>
+              <span>${escapeHtml(item.service_name)}</span>
             </div>
 
-
-            <div class="es-payment-cell">
-              <strong>
-                ${formatShortDate(
-                  item.start_at
-                )}
-              </strong>
-
-              <span>
-                ${formatTime(
-                  item.start_at
-                )}
-              </span>
+            <div class="es-finance-cell">
+              <strong>${formatShortDate(item.start_at)}</strong>
+              <span>${formatTime(item.start_at)}</span>
             </div>
 
-
-            <div class="es-payment-cell">
-              <strong>
-                ${formatMoney(
-                  item.price_minor
-                )}
-              </strong>
-
-              <span>
-                value
-              </span>
+            <div class="es-finance-cell">
+              <strong>${formatMoney(item.price_minor)}</strong>
+              <span>Appointment value</span>
             </div>
 
-
-            <div class="es-payment-cell">
-              <strong>
-                ${formatMoney(
-                  item.balance_minor
-                )}
-              </strong>
-
-              <span>
-                outstanding
-              </span>
+            <div class="es-finance-cell">
+              <strong>${formatMoney(item.balance_minor)}</strong>
+              <span>Outstanding</span>
             </div>
 
-
-            <div class="es-payment-actions">
+            <div class="es-finance-actions">
+              ${
+                item.customer_id
+                  ? `
+                    <a
+                      class="es-secondary-button"
+                      href="/customers/?customer=${encodeURIComponent(item.customer_id)}"
+                    >
+                      Customer
+                    </a>
+                  `
+                  : ""
+              }
 
               <button
                 class="es-payment-action"
                 type="button"
-                data-record-balance="${escapeHtml(
-                  item.id
-                )}"
+                data-record-balance="${escapeHtml(item.id)}"
               >
                 Record payment
               </button>
-
             </div>
 
           </article>
@@ -1191,8 +1203,7 @@ function renderOutstanding() {
               appointments.find(
                 (item) =>
                   item.id ===
-                  button.dataset
-                    .recordBalance
+                  button.dataset.recordBalance
               );
 
 
@@ -1296,6 +1307,15 @@ function showPaymentDetails(
           )
     )}
 
+    ${
+      payment.package_name
+        ? detailItem(
+            "Package",
+            payment.package_name
+          )
+        : ""
+    }
+
     ${detailItem(
       "Reference",
       payment.provider_reference ||
@@ -1343,6 +1363,34 @@ function showPaymentDetails(
             )}"
           >
             Open customer
+          </a>
+        `
+        : ""
+    }
+
+    ${
+      payment.appointment_id
+        ? `
+          <a
+            class="es-secondary-button"
+            href="/bookings/?view=bookings&booking=${encodeURIComponent(
+              payment.appointment_id
+            )}"
+          >
+            Open booking
+          </a>
+        `
+        : ""
+    }
+
+    ${
+      payment.customer_package_id
+        ? `
+          <a
+            class="es-secondary-button"
+            href="/packages/"
+          >
+            Open packages
           </a>
         `
         : ""
@@ -1608,6 +1656,24 @@ function handleAuthentication(
       "Authentication required."
     );
   }
+}
+
+
+function paymentDateValue(
+  payment
+) {
+
+  const value =
+    payment.paid_at ||
+    payment.created_at ||
+    "";
+
+  const parsed =
+    new Date(value).getTime();
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : 0;
 }
 
 
