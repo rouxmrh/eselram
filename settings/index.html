@@ -15,6 +15,120 @@
     rel="stylesheet"
     href="/app/assets/css/eselram.css"
   >
+
+  <style>
+    .es-settings-header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .es-settings-header-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .es-settings-header-actions .es-secondary-button {
+      min-width:132px;
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      text-decoration:none;
+    }
+
+    .es-settings-layout {
+      gap:18px;
+      align-items:start;
+    }
+
+    .es-settings-tabs {
+      position:sticky;
+      top:18px;
+      padding:10px;
+      border:1px solid var(--es-border);
+      border-radius:18px;
+      background:var(--es-surface);
+      box-shadow:0 7px 22px rgba(28,34,30,.035);
+    }
+
+    .es-settings-tabs::before {
+      content:"Settings";
+      display:block;
+      padding:8px 10px 10px;
+      color:var(--es-muted);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .es-settings-tabs button,
+    .es-settings-tabs .es-settings-nav-link {
+      width:100%;
+      min-height:42px;
+      display:flex;
+      align-items:center;
+      box-sizing:border-box;
+      border-radius:11px;
+    }
+
+    .es-settings-tabs button {
+      text-align:left;
+    }
+
+    .es-settings-tabs .es-settings-nav-link {
+      padding:0 12px;
+      text-decoration:none;
+    }
+
+    .es-settings-panel {
+      border:1px solid var(--es-border);
+      border-radius:18px;
+      background:var(--es-surface);
+      padding:22px;
+      box-shadow:0 7px 22px rgba(28,34,30,.035);
+    }
+
+    .es-settings-panel .es-panel-header {
+      padding-bottom:16px;
+      margin-bottom:18px;
+      border-bottom:1px solid var(--es-border);
+    }
+
+    .es-settings-panel .es-form-actions {
+      display:flex;
+      align-items:center;
+      gap:9px;
+      flex-wrap:wrap;
+    }
+
+    .es-settings-panel .es-form-actions .es-button,
+    .es-settings-panel .es-form-actions .es-secondary-button,
+    .es-settings-panel .es-form-actions button,
+    .es-settings-panel .es-form-actions a {
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+    }
+
+    @media(max-width:850px) {
+      .es-settings-header {
+        flex-direction:column;
+      }
+
+      .es-settings-tabs {
+        position:static;
+      }
+    }
+  </style>
+
 </head>
 
 <body class="es-dashboard-body">
@@ -29,7 +143,7 @@
 
     <main class="es-dashboard-main">
 
-      <header class="es-dashboard-header">
+      <header class="es-dashboard-header es-settings-header">
 
         <div>
           <p class="es-eyebrow">
@@ -44,6 +158,15 @@
             Manage your business, branding,
             availability and platform preferences.
           </p>
+        </div>
+
+        <div class="es-settings-header-actions">
+          <a
+            class="es-secondary-button"
+            href="/dashboard/"
+          >
+            Back to Dashboard
+          </a>
         </div>
 
       </header>
@@ -72,7 +195,7 @@
             type="button"
             data-tab="hours"
           >
-            Working Hours
+            Hours & availability
           </button>
 
           <button
@@ -86,7 +209,7 @@
             type="button"
             data-tab="email"
           >
-            Email
+            Email provider
           </button>
 
           <button
