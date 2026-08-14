@@ -168,6 +168,22 @@ export async function onRequestGet({
               p.payment_method,
               p.notes,
 
+              (
+                SELECT cpp.customer_package_id
+                FROM customer_package_payments cpp
+                WHERE cpp.payment_id = p.id
+                LIMIT 1
+              ) AS customer_package_id,
+
+              (
+                SELECT cp.name_snapshot
+                FROM customer_package_payments cpp
+                JOIN customer_packages cp
+                  ON cp.id = cpp.customer_package_id
+                WHERE cpp.payment_id = p.id
+                LIMIT 1
+              ) AS package_name,
+
               c.first_name,
               c.last_name,
 
