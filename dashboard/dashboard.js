@@ -63,14 +63,18 @@ async function loadDashboard() {
 
 
 function renderHeader(data) {
-  const firstName =
-    String(data.user?.name || "")
-      .trim()
-      .split(/\s+/)[0] ||
-    "there";
+  const businessName =
+    String(
+      data.business?.name ||
+      "Business"
+    ).trim() ||
+    "Business";
 
   welcomeTitle.textContent =
-    `${greeting()}, ${firstName}`;
+    `${businessName} Dashboard`;
+
+  document.title =
+    `${businessName} Dashboard | Eselram`;
 
   dashboardDate.textContent =
     new Intl.DateTimeFormat(
