@@ -1,7 +1,38 @@
 const navItems = [
-  { key: "dashboard", label: "Dashboard", href: "/dashboard/" },
-  { key: "setup", label: "Setup", href: "/setup/" },
-  { key: "settings", label: "Settings", href: "/settings/" }
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    href: "/dashboard/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5v-9.7Z"/>
+      </svg>
+    `
+  },
+  {
+    key: "setup",
+    label: "Setup",
+    href: "/setup/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.2"/>
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/>
+      </svg>
+    `
+  },
+  {
+    key: "settings",
+    label: "Settings",
+    href: "/settings/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h10M18 7h2M10 12h10M4 12h2M4 17h10M18 17h2"/>
+        <circle cx="16" cy="7" r="2"/>
+        <circle cx="8" cy="12" r="2"/>
+        <circle cx="16" cy="17" r="2"/>
+      </svg>
+    `
+  }
 ];
 
 
@@ -24,7 +55,10 @@ export function renderSidebar(activeKey) {
           href="${item.href}"
           class="${item.key === activeKey ? "active" : ""}"
         >
-          ${item.label}
+          <span class="es-sidebar-nav-icon">
+            ${item.icon}
+          </span>
+          <span>${item.label}</span>
         </a>
       `).join("")}
     </nav>
@@ -55,7 +89,14 @@ export function renderSidebar(activeKey) {
         class="es-sidebar-signout"
         href="/auth/logout.html"
       >
-        Log out
+        <span class="es-sidebar-nav-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10"/>
+            <path d="M13 8l4 4-4 4"/>
+            <path d="M8 12h9"/>
+          </svg>
+        </span>
+        <span>Log out</span>
       </a>
     </div>
   `;
