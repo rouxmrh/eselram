@@ -49,6 +49,19 @@ const drawerContent =
 const closeDrawerButton =
   document.getElementById("closeCommunicationsDrawer");
 
+const aftercareEditor =
+  document.getElementById("aftercareEditor");
+
+const aftercareStatus =
+  document.getElementById("aftercareStatus");
+
+const aftercareTabs =
+  document.getElementById("aftercareTabs");
+
+let aftercareTemplates = {};
+let selectedAftercareKey =
+  "tattoo_removal";
+
 let rows = [];
 let settings = {};
 let selectedCategory = "";
@@ -588,6 +601,423 @@ function closeDrawer() {
 }
 
 
+
+function showAftercareStatus(
+  message,
+  type = "success"
+) {
+  if (!aftercareStatus) return;
+
+  aftercareStatus.hidden = false;
+  aftercareStatus.className =
+    `es-status ${type}`;
+  aftercareStatus.textContent =
+    message;
+}
+
+
+function currentAftercareFromEditor() {
+  const template =
+    aftercareTemplates[
+      selectedAftercareKey
+    ];
+
+  if (
+    !template ||
+    !aftercareEditor
+  ) {
+    return null;
+  }
+
+  const serviceLabel =
+    String(
+      aftercareEditor.querySelector(
+        "[data-aftercare-service-label]"
+      )?.value ||
+      ""
+    ).trim();
+
+  const sections =
+    [
+      ...aftercareEditor.querySelectorAll(
+        "[data-aftercare-section]"
+      )
+    ].map(
+      card => {
+        const title =
+          String(
+            card.querySelector(
+              "[data-aftercare-section-title]"
+            )?.value ||
+            ""
+          ).trim();
+
+        const items =
+          String(
+            card.querySelector(
+              "[data-aftercare-section-items]"
+            )?.value ||
+            ""
+          )
+            .split("\n")
+            .map(
+              value =>
+                value
+                  .replace(
+                    /^\s*[-•]\s*/,
+                    ""
+                  )
+                  .trim()
+            )
+            .filter(Boolean);
+
+        return [
+          title,
+          items
+        ];
+      }
+    );
+
+  const note =
+    String(
+      aftercareEditor.querySelector(
+        "[data-aftercare-note]"
+      )?.value ||
+      ""
+    ).trim();
+
+  return {
+    key:
+      selectedAftercareKey,
+    serviceLabel,
+    sections,
+    note
+  };
+}
+
+
+function renderAftercareEditor() {
+  if (!aftercareEditor) return;
+
+  const template =
+    aftercareTemplates[
+      selectedAftercareKey
+    ];
+
+  if (!template) {
+    aftercareEditor.innerHTML = `
+      <div class="es-empty-state">
+        <strong>Aftercare unavailable.</strong>
+        <span>Refresh Communications and try again.</span>
+      </div>
+    `;
+    return;
+  }
+
+  aftercareEditor.innerHTML = `
+    <label class="es-aftercare-service-title">
+      Email / treatment heading
+      <input
+        type="text"
+        data-aftercare-service-label
+        maxlength="120"
+        value="${escapeHtml(
+          template.serviceLabel ||
+          ""
+        )}"
+      >
+    </label>
+
+    <p class="es-aftercare-help">
+      Each line in an instructions box becomes one bullet point in the email.
+    </p>
+
+    ${(template.sections || [])
+      .map(
+        ([title, items], index) => `
+          <section
+            class="es-aftercare-section-card"
+            data-aftercare-section="${index}"
+          >
+            <label>
+              Section heading
+              <input
+                type="text"
+                maxlength="120"
+                data-aftercare-section-title
+                value="${escapeHtml(title)}"
+              >
+            </label>
+
+            <label>
+              Instructions
+              <textarea
+                data-aftercare-section-items
+                rows="${Math.max(
+                  5,
+                  Math.min(
+                    12,
+                    (items || []).length + 1
+                  )
+                )}"
+              >${escapeHtml(
+                (items || []).join("\n")
+              )}</textarea>
+            </label>
+          </section>
+        `
+      )
+      .join("")}
+
+    <section class="es-aftercare-note">
+      <label>
+        Important note
+        <textarea
+          data-aftercare-note
+          rows="4"
+        >${escapeHtml(
+          template.note ||
+          ""
+        )}</textarea>
+      </label>
+    </section>
+
+    <div class="es-aftercare-actions">
+      <button
+        id="saveAftercareButton"
+        class="es-button"
+        type="button"
+      >
+        Save changes
+      </button>
+
+      <button
+        id="restoreAftercareButton"
+        class="es-secondary-button"
+        type="button"
+      >
+        Restore Eselram default
+      </button>
+    </div>
+  `;
+
+  document
+    .getElementById(
+      "saveAftercareButton"
+    )
+    ?.addEventListener(
+      "click",
+      saveAftercare
+    );
+
+  document
+    .getElementById(
+      "restoreAftercareButton"
+    )
+    ?.addEventListener(
+      "click",
+      restoreAftercare
+    );
+}
+
+
+async function loadAftercare() {
+  if (!aftercareEditor) return;
+
+  try {
+    const response =
+      await fetch(
+        "/api/communications/aftercare",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to load aftercare."
+      );
+    }
+
+    aftercareTemplates =
+      data.templates ||
+      {};
+
+    renderAftercareEditor();
+  } catch (error) {
+    aftercareEditor.innerHTML = `
+      <div class="es-empty-state">
+        <strong>Unable to load aftercare.</strong>
+        <span>${escapeHtml(
+          error.message ||
+          "Please refresh the page."
+        )}</span>
+      </div>
+    `;
+  }
+}
+
+
+async function saveAftercare() {
+  const template =
+    currentAftercareFromEditor();
+
+  if (!template) return;
+
+  try {
+    const response =
+      await fetch(
+        "/api/communications/aftercare",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              key:
+                selectedAftercareKey,
+              template
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to save aftercare."
+      );
+    }
+
+    aftercareTemplates[
+      selectedAftercareKey
+    ] = data.template;
+
+    renderAftercareEditor();
+
+    showAftercareStatus(
+      "Aftercare saved. Future completed treatments will use this version."
+    );
+  } catch (error) {
+    showAftercareStatus(
+      error.message ||
+      "Unable to save aftercare.",
+      "error"
+    );
+  }
+}
+
+
+async function restoreAftercare() {
+  if (
+    !window.confirm(
+      "Restore the Eselram default aftercare for this treatment?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `/api/communications/aftercare?key=${encodeURIComponent(
+          selectedAftercareKey
+        )}`,
+        {
+          method: "DELETE",
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to restore aftercare."
+      );
+    }
+
+    aftercareTemplates[
+      selectedAftercareKey
+    ] = data.template;
+
+    renderAftercareEditor();
+
+    showAftercareStatus(
+      "Eselram default aftercare restored."
+    );
+  } catch (error) {
+    showAftercareStatus(
+      error.message ||
+      "Unable to restore aftercare.",
+      "error"
+    );
+  }
+}
+
+
+aftercareTabs
+  ?.querySelectorAll(
+    "[data-aftercare-key]"
+  )
+  .forEach(
+    button => {
+      button.addEventListener(
+        "click",
+        () => {
+          selectedAftercareKey =
+            button.dataset.aftercareKey;
+
+          aftercareTabs
+            .querySelectorAll(
+              "[data-aftercare-key]"
+            )
+            .forEach(
+              item =>
+                item.classList.toggle(
+                  "active",
+                  item === button
+                )
+            );
+
+          if (aftercareStatus) {
+            aftercareStatus.hidden = true;
+          }
+
+          renderAftercareEditor();
+        }
+      );
+    }
+  );
+
+
 async function loadCommunications() {
   statusBox.hidden = true;
 
@@ -802,3 +1232,4 @@ runButton
 
 
 loadCommunications();
+loadAftercare();
