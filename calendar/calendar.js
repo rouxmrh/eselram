@@ -51,6 +51,17 @@ const openBookingsButton =
 
 let bookings = [];
 
+const isEmbeddedCalendar =
+  window.self !== window.top ||
+  new URLSearchParams(window.location.search).get("embedded") === "1";
+
+if (
+  isEmbeddedCalendar &&
+  openBookingsButton
+) {
+  openBookingsButton.target = "_top";
+}
+
 let currentMonth =
   startOfMonth(
     new Date()
@@ -822,10 +833,24 @@ function openNewBooking(
   date
 ) {
 
-  window.location.href =
+  const destination =
     `/bookings/?date=${encodeURIComponent(
       date
     )}`;
+
+  if (
+    isEmbeddedCalendar &&
+    window.top
+  ) {
+
+    window.top.location.href =
+      destination;
+
+    return;
+  }
+
+  window.location.href =
+    destination;
 }
 
 
