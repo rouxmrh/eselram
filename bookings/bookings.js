@@ -133,6 +133,12 @@ const openManageBookingsButton =
   );
 
 
+const backToCalendarButton =
+  document.getElementById(
+    "backToCalendarButton"
+  );
+
+
 let services = [];
 let bookings = [];
 let bookingPackages = [];
@@ -203,6 +209,23 @@ if (openManageBookingsButton) {
       ) {
         window.setBookingsWorkspaceView(
           "bookings"
+        );
+      }
+    }
+  );
+}
+
+
+if (backToCalendarButton) {
+  backToCalendarButton.addEventListener(
+    "click",
+    () => {
+      if (
+        typeof window.setBookingsWorkspaceView ===
+        "function"
+      ) {
+        window.setBookingsWorkspaceView(
+          "calendar"
         );
       }
     }
