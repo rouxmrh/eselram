@@ -242,6 +242,10 @@
       box-shadow: 0 5px 16px rgba(28, 34, 30, .08);
     }
 
+    .es-bookings-calendar-mode .es-dashboard-main {
+      max-width: 1420px;
+    }
+
     .es-bookings-calendar-shell {
       display: none;
       overflow: hidden;
@@ -262,7 +266,7 @@
 
     .es-bookings-calendar-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 310px;
+      grid-template-columns: minmax(0, 1fr) 340px;
       min-height: 0;
     }
 
@@ -274,7 +278,7 @@
     .es-bookings-calendar-frame {
       display: block;
       width: 100%;
-      height: 650px;
+      height: 700px;
       min-height: 0;
       border: 0;
       background: var(--es-surface);
@@ -430,7 +434,7 @@
 
     @media (max-width: 1120px) {
       .es-bookings-calendar-layout {
-        grid-template-columns: minmax(0, 1fr) 270px;
+        grid-template-columns: minmax(0, 1fr) 300px;
       }
     }
 
@@ -581,6 +585,13 @@
               >
                 Open manage bookings
               </button>
+
+              <a
+                class="es-secondary-button es-bookings-week-action"
+                href="/packages/"
+              >
+                Packages &amp; courses
+              </a>
 
               <a
                 class="es-secondary-button es-bookings-week-action"
