@@ -263,7 +263,7 @@
     .es-bookings-calendar-layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 310px;
-      min-height: 720px;
+      min-height: 0;
     }
 
     .es-bookings-calendar-panel {
@@ -274,10 +274,11 @@
     .es-bookings-calendar-frame {
       display: block;
       width: 100%;
-      height: min(920px, calc(100vh - 225px));
-      min-height: 720px;
+      height: 650px;
+      min-height: 0;
       border: 0;
       background: var(--es-surface);
+      overflow: hidden;
     }
 
     .es-bookings-week-panel {
@@ -409,6 +410,24 @@
       background: var(--es-success);
     }
 
+    .es-bookings-week-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--es-border);
+    }
+
+    .es-bookings-week-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 38px;
+      box-sizing: border-box;
+      text-decoration: none;
+    }
+
     @media (max-width: 1120px) {
       .es-bookings-calendar-layout {
         grid-template-columns: minmax(0, 1fr) 270px;
@@ -444,8 +463,8 @@
       }
 
       .es-bookings-calendar-frame {
-        height: 780px;
-        min-height: 780px;
+        height: 650px;
+        min-height: 0;
       }
 
       .es-bookings-week-list {
@@ -517,7 +536,7 @@
           role="tab"
           aria-selected="false"
         >
-          Bookings
+          Manage bookings
         </button>
       </div>
 
@@ -542,7 +561,7 @@
               <div>
                 <p class="es-eyebrow">Schedule</p>
                 <h2>Upcoming appointments</h2>
-                <p>Next 7 days</p>
+                <p>Current week</p>
               </div>
 
               <span id="bookingsWeekCount" class="es-bookings-week-count">0</span>
@@ -552,6 +571,23 @@
               <div class="es-empty-state">
                 Loading appointments…
               </div>
+            </div>
+
+            <div class="es-bookings-week-actions">
+              <button
+                id="openManageBookingsButton"
+                class="es-button es-bookings-week-action"
+                type="button"
+              >
+                Open manage bookings
+              </button>
+
+              <a
+                class="es-secondary-button es-bookings-week-action"
+                href="/settings/#hours"
+              >
+                Block dates
+              </a>
             </div>
           </aside>
         </div>
