@@ -3976,3 +3976,58 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 .es-sidebar-powered-by * {
   -webkit-text-fill-color: #ffffff;
 }
+
+
+/* =======================================================
+   Powered by Eselram — containment fix
+   ======================================================= */
+
+.es-sidebar .es-sidebar-powered-by {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 36px !important;
+  padding: 6px 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+.es-sidebar .es-sidebar-powered-by img.es-sidebar-powered-logo {
+  display: block !important;
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+.es-sidebar .es-sidebar-powered-copy,
+.es-sidebar .es-sidebar-powered-copy strong {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.es-sidebar .es-sidebar-powered-copy {
+  display: inline !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
+
+.es-sidebar .es-sidebar-powered-copy strong {
+  font-weight: 800 !important;
+}
