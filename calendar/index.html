@@ -576,6 +576,9 @@
   
     html.es-calendar-embedded,
     html.es-calendar-embedded body {
+      height: auto;
+      min-height: 0;
+      overflow: hidden;
       background: transparent;
     }
 
@@ -600,6 +603,39 @@
       margin: 0;
       border: 0;
       box-shadow: none;
+    }
+
+    html.es-calendar-embedded .es-dashboard-main {
+      overflow: hidden;
+      padding: 14px;
+    }
+
+    html.es-calendar-embedded .es-dashboard-panel {
+      padding: 14px;
+    }
+
+    html.es-calendar-embedded .es-calendar-toolbar {
+      margin-bottom: 12px;
+    }
+
+    html.es-calendar-embedded .es-calendar-day {
+      min-height: 76px;
+      padding: 5px;
+    }
+
+    html.es-calendar-embedded .es-calendar-event {
+      min-height: 30px;
+      padding: 4px 5px 4px 10px;
+    }
+
+    html.es-calendar-embedded .es-calendar-event strong,
+    html.es-calendar-embedded .es-calendar-event .es-calendar-event-customer,
+    html.es-calendar-embedded .es-calendar-event .es-calendar-event-service {
+      font-size: 9px;
+    }
+
+    html.es-calendar-embedded .es-calendar-summary {
+      margin-top: 10px;
     }
 
     html.es-calendar-embedded .es-calendar-drawer {
