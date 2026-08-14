@@ -45,8 +45,26 @@ export function renderSidebar(activeKey) {
   }
 
   sidebar.innerHTML = `
-    <div class="es-sidebar-brand">
-      eselram
+    <div
+      class="es-sidebar-brand-lockup"
+      aria-label="Powered by Eselram"
+    >
+      <img
+        class="es-sidebar-brand-logo"
+        src="/assets/eselram_logo.png"
+        alt=""
+        width="38"
+        height="38"
+      >
+
+      <div class="es-sidebar-brand-copy">
+        <span class="es-sidebar-powered-label">
+          Powered by
+        </span>
+        <span class="es-sidebar-brand-name">
+          eselram
+        </span>
+      </div>
     </div>
 
     <nav class="es-sidebar-nav">
@@ -83,25 +101,6 @@ export function renderSidebar(activeKey) {
             Owner
           </span>
         </div>
-      </div>
-
-      <div
-        class="es-sidebar-powered-by"
-        aria-label="Powered by Eselram"
-        style="display:flex;align-items:center;gap:8px;width:100%;max-width:100%;overflow:hidden;padding:6px 0;color:#fff;"
-      >
-        <img
-          class="es-sidebar-powered-logo"
-          src="/assets/eselram_logo.png"
-          alt=""
-          width="28"
-          height="28"
-          style="width:28px;height:28px;max-width:28px;max-height:28px;min-width:28px;min-height:28px;object-fit:cover;display:block;"
-        >
-
-        <span class="es-sidebar-powered-copy">
-          Powered by esel<strong>ram</strong>
-        </span>
       </div>
 
       <a
