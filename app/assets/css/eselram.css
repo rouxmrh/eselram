@@ -3935,3 +3935,44 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
 .es-sidebar a.es-sidebar-signout .es-sidebar-nav-icon svg {
   stroke-width: 2.2 !important;
 }
+
+
+/* =======================================================
+   Permanent Eselram product signature
+   ======================================================= */
+
+.es-sidebar-powered-by {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 7px 8px;
+  color: #ffffff;
+}
+
+.es-sidebar-powered-logo {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: block;
+  object-fit: cover;
+  border-radius: 7px;
+}
+
+.es-sidebar-powered-copy {
+  color: #ffffff !important;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.es-sidebar-powered-copy strong {
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+.es-sidebar-powered-by,
+.es-sidebar-powered-by * {
+  -webkit-text-fill-color: #ffffff;
+}
