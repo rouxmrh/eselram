@@ -2156,7 +2156,9 @@ function customerCommunicationLabel(
     payment_receipt:
       "Payment confirmation",
     package_payment_confirmation:
-      "Package payment confirmation"
+      "Package payment confirmation",
+    treatment_aftercare:
+      "Treatment aftercare"
   }[type] ||
   formatStatus(
     type
