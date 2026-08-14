@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Fitzpatrick Skin Test | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+
+  <style>
+    .es-fitz-shell {
+      display: grid;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .es-fitz-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 48px;
+    }
+
+    .es-fitz-brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: transparent;
+    }
+
+    .es-fitz-brand-copy {
+      display: grid;
+      gap: 2px;
+    }
+
+    .es-fitz-brand-copy strong {
+      font-size: 14px;
+    }
+
+    .es-fitz-brand-copy span {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-fitz-question {
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+      border: 1px solid var(--es-border);
+      border-radius: 16px;
+      background: #fafbf8;
+    }
+
+    .es-fitz-question h3 {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.45;
+      letter-spacing: .03em;
+    }
+
+    .es-fitz-options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .es-fitz-option {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      min-height: 46px;
+      padding: 11px 12px;
+      border: 1px solid var(--es-border);
+      border-radius: 12px;
+      background: var(--es-surface);
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .es-fitz-option:hover {
+      border-color: var(--es-primary);
+    }
+
+    .es-fitz-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .es-fitz-mark {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      display: grid;
+      place-items: center;
+      margin-top: 1px;
+      border: 2px solid #a9b0ad;
+      border-radius: 999px;
+      background: #fff;
+    }
+
+    .es-fitz-mark::after {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--es-primary);
+      transform: scale(0);
+      transition: transform .12s ease;
+    }
+
+    .es-fitz-option input:checked + .es-fitz-mark {
+      border-color: var(--es-primary);
+    }
+
+    .es-fitz-option input:checked + .es-fitz-mark::after {
+      transform: scale(1);
+    }
+
+    .es-fitz-result {
+      display: grid;
+      gap: 8px;
+      margin-top: 4px;
+      padding: 20px;
+      border: 1px solid var(--es-border);
+      border-radius: 16px;
+      background: #f7f9f6;
+    }
+
+    .es-fitz-result[hidden] {
+      display: none;
+    }
+
+    .es-fitz-result-pill {
+      width: fit-content;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(54, 81, 120, .12);
+      color: var(--es-primary);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .es-fitz-result strong {
+      font-size: 20px;
+    }
+
+    .es-fitz-result p {
+      margin: 0;
+      color: var(--es-muted);
+      line-height: 1.55;
+    }
+
+    .es-fitz-note {
+      padding: 14px 16px;
+      border-left: 4px solid var(--es-primary);
+      border-radius: 4px 12px 12px 4px;
+      background: #f7f9f6;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .es-fitz-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    @media (max-width: 760px) {
+      .es-fitz-options {
+        grid-template-columns: 1fr;
+      }
+
+      .es-fitz-actions .es-button,
+      .es-fitz-actions .es-secondary-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
+
+    <aside
+      id="appSidebar"
+      class="es-sidebar"
+    ></aside>
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+
+        <div>
+          <p class="es-eyebrow">
+            Clinical tool
+          </p>
+
+          <h1>
+            Fitzpatrick Skin Test
+          </h1>
+
+          <p class="es-lead">
+            Estimate a client’s Fitzpatrick skin type before treatment planning and patch testing.
+          </p>
+        </div>
+
+        <a
+          class="es-secondary-button"
+          href="/treatment-records/"
+        >
+          Close
+        </a>
+
+      </header>
+
+      <section class="es-dashboard-panel es-fitz-shell">
+
+        <div
+          id="fitzBrand"
+          class="es-fitz-brand"
+          hidden
+        >
+          <img
+            id="fitzBrandLogo"
+            alt=""
+            hidden
+          >
+
+          <div class="es-fitz-brand-copy">
+            <strong id="fitzBusinessName"></strong>
+            <span>Fitzpatrick skin assessment</span>
+          </div>
+        </div>
+
+        <div class="es-fitz-note">
+          <strong>Clinical note</strong><br>
+          This questionnaire is a screening aid only. Final suitability, laser parameters and patch testing decisions should be confirmed during professional consultation and clinical assessment.
+        </div>
+
+        <form
+          id="fitzForm"
+          autocomplete="off"
+        >
+
+          <div class="es-fitz-question">
+            <h3>1) What is your natural hair colour? (Before any colouring or dyeing)</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q1" value="0" required><span class="es-fitz-mark"></span><span>Red or strawberry blonde</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q1" value="1"><span class="es-fitz-mark"></span><span>Blond</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q1" value="2"><span class="es-fitz-mark"></span><span>Dark blonde or light brown</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q1" value="3"><span class="es-fitz-mark"></span><span>Dark brown to black</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q1" value="4"><span class="es-fitz-mark"></span><span>Black</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>2) What is your natural eye colour?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q2" value="0" required><span class="es-fitz-mark"></span><span>Very light blue, light grey or light green</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q2" value="1"><span class="es-fitz-mark"></span><span>Blue / grey / green</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q2" value="2"><span class="es-fitz-mark"></span><span>Hazel or light brown</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q2" value="3"><span class="es-fitz-mark"></span><span>Dark brown</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q2" value="4"><span class="es-fitz-mark"></span><span>Very dark brown or black</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>3) What is your natural skin colour on an area that is not usually exposed to the sun?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q3" value="0" required><span class="es-fitz-mark"></span><span>Reddish or very fair</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q3" value="1"><span class="es-fitz-mark"></span><span>Fair</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q3" value="2"><span class="es-fitz-mark"></span><span>Beige or light olive</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q3" value="3"><span class="es-fitz-mark"></span><span>Light brown or olive</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q3" value="4"><span class="es-fitz-mark"></span><span>Dark brown</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>4) Freckles on parts of the skin not exposed to the sun</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q4" value="0" required><span class="es-fitz-mark"></span><span>Many</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q4" value="1"><span class="es-fitz-mark"></span><span>Several</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q4" value="2"><span class="es-fitz-mark"></span><span>Few</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q4" value="3"><span class="es-fitz-mark"></span><span>Incidental</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q4" value="4"><span class="es-fitz-mark"></span><span>None</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>5) If you spend a whole day in strong summer sun without sunscreen, what usually happens?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q5" value="0" required><span class="es-fitz-mark"></span><span>I always burn badly and my skin peels</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q5" value="1"><span class="es-fitz-mark"></span><span>I burn and sometimes peel</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q5" value="2"><span class="es-fitz-mark"></span><span>I usually get a mild sunburn</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q5" value="3"><span class="es-fitz-mark"></span><span>I rarely burn</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q5" value="4"><span class="es-fitz-mark"></span><span>I never burn</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>6) After spending several days in the sun, how much colour (tan) does your skin develop?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q6" value="0" required><span class="es-fitz-mark"></span><span>I don’t tan at all</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q6" value="1"><span class="es-fitz-mark"></span><span>I develop a very light tan</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q6" value="2"><span class="es-fitz-mark"></span><span>I develop a moderate tan</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q6" value="3"><span class="es-fitz-mark"></span><span>I tan easily</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q6" value="4"><span class="es-fitz-mark"></span><span>I tan very dark</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>7) Can your skin develop a noticeable tan after just one sunny day?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q7" value="0" required><span class="es-fitz-mark"></span><span>Never</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q7" value="1"><span class="es-fitz-mark"></span><span>Rarely</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q7" value="2"><span class="es-fitz-mark"></span><span>Sometimes</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q7" value="3"><span class="es-fitz-mark"></span><span>Often</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q7" value="4"><span class="es-fitz-mark"></span><span>Always</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>8) How does your face usually react to sunlight?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q8" value="0" required><span class="es-fitz-mark"></span><span>It becomes very red or irritated</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q8" value="1"><span class="es-fitz-mark"></span><span>It is quite sensitive and often becomes red</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q8" value="2"><span class="es-fitz-mark"></span><span>It is sometimes sensitive</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q8" value="3"><span class="es-fitz-mark"></span><span>It rarely reacts</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q8" value="4"><span class="es-fitz-mark"></span><span>It never reacts</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>9) When was the last time you had significant sun exposure or used a sunbed?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q9" value="0" required><span class="es-fitz-mark"></span><span>More than 3 months ago</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q9" value="1"><span class="es-fitz-mark"></span><span>2–3 months ago</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q9" value="2"><span class="es-fitz-mark"></span><span>1–2 months ago</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q9" value="3"><span class="es-fitz-mark"></span><span>Within the last month</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q9" value="4"><span class="es-fitz-mark"></span><span>Within the last 2 weeks</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-question">
+            <h3>10) How often is the treatment area exposed to sunlight?</h3>
+
+            <div class="es-fitz-options">
+              <label class="es-fitz-option"><input type="radio" name="q10" value="0" required><span class="es-fitz-mark"></span><span>Never</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q10" value="1"><span class="es-fitz-mark"></span><span>Rarely</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q10" value="2"><span class="es-fitz-mark"></span><span>Sometimes</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q10" value="3"><span class="es-fitz-mark"></span><span>Often</span></label>
+              <label class="es-fitz-option"><input type="radio" name="q10" value="4"><span class="es-fitz-mark"></span><span>Almost every day</span></label>
+            </div>
+          </div>
+
+          <div class="es-fitz-actions">
+            <button
+              class="es-button"
+              type="submit"
+            >
+              Calculate skin type
+            </button>
+
+            <button
+              id="fitzResetButton"
+              class="es-secondary-button"
+              type="button"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div
+            id="fitzResult"
+            class="es-fitz-result"
+            hidden
+            aria-live="polite"
+          >
+            <span
+              id="fitzResultPill"
+              class="es-fitz-result-pill"
+            >
+              Type
+            </span>
+
+            <strong id="fitzResultTitle"></strong>
+
+            <p id="fitzResultDescription"></p>
+          </div>
+
+        </form>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script type="module">
+    import { renderSidebar } from "/components/sidebar.js";
+    renderSidebar("treatment-records");
+  </script>
+
+  <script src="/fitzpatrick/fitzpatrick.js"></script>
+
+</body>
+</html>
