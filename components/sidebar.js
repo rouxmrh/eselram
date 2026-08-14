@@ -1,21 +1,24 @@
-export function renderSidebar(activePage) {
-  const sidebar = document.getElementById("appSidebar");
+const navItems = [
+  { key: "dashboard", label: "Dashboard", href: "/dashboard/" },
+  { key: "setup", label: "Setup", href: "/setup/" },
+  { key: "settings", label: "Settings", href: "/settings/" }
+];
+
+
+export function renderSidebar(
+  activeKey
+) {
+
+  const sidebar =
+    document.getElementById(
+      "appSidebar"
+    );
+
 
   if (!sidebar) {
     return;
   }
 
-const items = [
-  { key: "dashboard", label: "Overview", href: "/dashboard/" },
-  { key: "bookings", label: "Bookings", href: "/bookings/" },
-  { key: "customers", label: "Customers", href: "/customers/" },
-  { key: "services", label: "Services", href: "/services/" },
-  { key: "clinical-records", label: "Clinical Records", href: "/clinical-submissions/" },
-  { key: "payments", label: "Payments", href: "/payments/" },
-  { key: "communications", label: "Communications", href: "/communications/" },
-  { key: "setup", label: "Setup", href: "/setup/" },
-  { key: "settings", label: "Settings", href: "/settings/" }
-];
 
   sidebar.innerHTML = `
     <div class="es-sidebar-brand">
@@ -23,12 +26,16 @@ const items = [
     </div>
 
     <nav class="es-sidebar-nav">
-      ${items
+      ${navItems
         .map(
           (item) => `
             <a
               href="${item.href}"
-              class="${item.key === activePage ? "active" : ""}"
+              class="${
+                item.key === activeKey
+                  ? "active"
+                  : ""
+              }"
             >
               ${item.label}
             </a>
@@ -38,17 +45,65 @@ const items = [
     </nav>
 
     <div class="es-sidebar-footer">
-      <div id="sidebarUser">
+      <div id="sidebarBusinessName">
         Loading…
       </div>
 
-      <button
-        id="logoutButton"
-        class="es-logout-button"
-        type="button"
-      >
+      <a href="/auth/logout.html">
         Sign out
-      </button>
+      </a>
     </div>
   `;
+
+
+  loadSidebarBusinessName();
+}
+
+
+async function loadSidebarBusinessName() {
+
+  const target =
+    document.getElementById(
+      "sidebarBusinessName"
+    );
+
+
+  if (!target) {
+    return;
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/me",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+
+    if (!response.ok) {
+      return;
+    }
+
+
+    const data =
+      await response.json();
+
+
+    target.textContent =
+      data.business?.name ||
+      data.business_name ||
+      "";
+
+  } catch {
+    // Keep sidebar navigation usable if business-name lookup fails.
+  }
 }
