@@ -383,6 +383,98 @@
         grid-column:auto;
       }
     }
+  
+    .es-aftercare-tabs {
+      display:flex;
+      gap:7px;
+      flex-wrap:wrap;
+      margin:14px 0 18px;
+    }
+
+    .es-aftercare-tab {
+      min-height:36px;
+      padding:0 14px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:var(--es-surface);
+      color:var(--es-text);
+      font-size:11px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .es-aftercare-tab.active {
+      border-color:var(--es-primary);
+      background:#edf2ee;
+      color:var(--es-primary);
+    }
+
+    .es-aftercare-editor {
+      display:grid;
+      gap:14px;
+    }
+
+    .es-aftercare-service-title {
+      max-width:520px;
+    }
+
+    .es-aftercare-section-card {
+      display:grid;
+      gap:10px;
+      padding:16px;
+      border:1px solid var(--es-border);
+      border-radius:15px;
+      background:#fafbf8;
+    }
+
+    .es-aftercare-section-card label,
+    .es-aftercare-note label {
+      display:grid;
+      gap:6px;
+    }
+
+    .es-aftercare-section-card textarea,
+    .es-aftercare-note textarea {
+      width:100%;
+      min-height:128px;
+      resize:vertical;
+      line-height:1.5;
+    }
+
+    .es-aftercare-section-card input {
+      width:100%;
+    }
+
+    .es-aftercare-help {
+      margin:0;
+      color:var(--es-muted);
+      font-size:10px;
+      line-height:1.5;
+    }
+
+    .es-aftercare-note {
+      display:grid;
+      gap:8px;
+      padding:16px;
+      border-left:4px solid var(--es-primary);
+      border-radius:4px 14px 14px 4px;
+      background:#fafbf8;
+    }
+
+    .es-aftercare-actions {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    @media (max-width: 760px) {
+      .es-aftercare-actions .es-button,
+      .es-aftercare-actions .es-secondary-button {
+        width:100%;
+      }
+    }
+
   </style>
 </head>
 
@@ -447,6 +539,59 @@
           id="communicationsAutomationSummary"
           class="es-comms-automation-grid"
         ></div>
+      </section>
+
+      <section class="es-dashboard-panel es-aftercare-manager" style="margin-bottom:18px;">
+        <div class="es-panel-header">
+          <div>
+            <p class="es-eyebrow">Aftercare</p>
+            <h2>Treatment aftercare</h2>
+            <p class="es-muted-copy">
+              Review and customise the instructions automatically emailed when a treatment is completed.
+            </p>
+          </div>
+        </div>
+
+        <div
+          id="aftercareStatus"
+          class="es-status"
+          hidden
+        ></div>
+
+        <div
+          id="aftercareTabs"
+          class="es-aftercare-tabs"
+          role="tablist"
+          aria-label="Aftercare treatment"
+        >
+          <button
+            class="es-aftercare-tab active"
+            type="button"
+            data-aftercare-key="tattoo_removal"
+          >
+            Tattoo Removal
+          </button>
+
+          <button
+            class="es-aftercare-tab"
+            type="button"
+            data-aftercare-key="carbon_facial"
+          >
+            Carbon Facial
+          </button>
+
+          <button
+            class="es-aftercare-tab"
+            type="button"
+            data-aftercare-key="fungal_nail"
+          >
+            Fungal Nail
+          </button>
+        </div>
+
+        <div id="aftercareEditor" class="es-aftercare-editor">
+          Loading aftercare…
+        </div>
       </section>
 
       <section class="es-dashboard-panel">
