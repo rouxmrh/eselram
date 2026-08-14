@@ -3850,3 +3850,108 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
     justify-content: start;
   }
 }
+
+
+/* =======================================================
+   Clinical Templates — published / archived library
+   ======================================================= */
+
+.es-template-sidebar-intro {
+  margin: 8px 0 18px;
+  color: var(--es-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.es-template-list-section,
+.es-template-archive-section {
+  display: grid;
+  gap: 8px;
+}
+
+.es-template-list-heading,
+.es-template-archive-section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  color: var(--es-text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.es-template-list-heading {
+  padding: 0 4px;
+}
+
+.es-template-list-heading > span,
+.es-template-list-count {
+  min-width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--es-border);
+  border-radius: 999px;
+  background: #f7f8f5;
+  color: var(--es-muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.es-template-list-group {
+  display: grid;
+  gap: 6px;
+}
+
+.es-template-list-empty {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px dashed var(--es-border);
+  border-radius: 12px;
+  color: var(--es-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.es-template-list-empty strong {
+  color: var(--es-text);
+}
+
+.es-template-list-empty.compact {
+  padding: 10px 12px;
+}
+
+.es-template-archive-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--es-border);
+}
+
+.es-template-archive-section > summary {
+  list-style: none;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.es-template-archive-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.es-template-archive-section > summary::before {
+  content: "›";
+  margin-right: 5px;
+  color: var(--es-muted);
+  transition: transform .15s ease;
+}
+
+.es-template-archive-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.es-template-list-button-archived {
+  opacity: .72;
+  background: #fafafa;
+}
