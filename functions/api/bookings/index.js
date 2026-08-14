@@ -297,6 +297,97 @@ async function getAvailableSlots({
       .first();
 
 
+  const blockedSetting =
+    await env.DB
+      .prepare(`
+        SELECT setting_value
+        FROM business_settings
+        WHERE
+          business_id = ?
+          AND setting_key =
+            'public_booking_blocked_dates'
+        LIMIT 1
+      `)
+      .bind(
+        businessId
+      )
+      .first();
+
+
+  let blockedDates = [];
+
+
+  try {
+    blockedDates =
+      JSON.parse(
+        blockedSetting?.setting_value ||
+        "[]"
+      );
+  } catch {
+    blockedDates = [];
+  }
+
+
+  const blockedDate =
+    (
+      Array.isArray(blockedDates)
+        ? blockedDates
+        : []
+    )
+      .map(
+        (item) => {
+          const legacyDate =
+            String(
+              item?.date ||
+              ""
+            ).trim();
+
+          return {
+            start_date:
+              String(
+                item?.start_date ||
+                legacyDate ||
+                ""
+              ).trim(),
+            end_date:
+              String(
+                item?.end_date ||
+                legacyDate ||
+                item?.start_date ||
+                ""
+              ).trim(),
+            reason:
+              String(
+                item?.reason ||
+                ""
+              ).trim()
+          };
+        }
+      )
+      .find(
+        (item) =>
+          item.start_date &&
+          item.end_date &&
+          date >= item.start_date &&
+          date <= item.end_date
+      );
+
+
+  if (blockedDate) {
+    return {
+      service,
+      timezone:
+        business?.timezone ||
+        "Europe/London",
+      slots: [],
+      reason:
+        blockedDate.reason
+          ? `This date is blocked: ${blockedDate.reason}.`
+          : "This date is blocked."
+    };
+  }
+
+
   const dateObject =
     new Date(
       `${date}T12:00:00Z`
