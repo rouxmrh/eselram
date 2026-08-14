@@ -14,6 +14,112 @@
     rel="stylesheet"
     href="/app/assets/css/eselram.css"
   >
+
+  <style>
+    .es-setup-topbar {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+    }
+
+    .es-setup-top-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .es-setup-top-actions .es-secondary-button {
+      min-width:118px;
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      text-decoration:none;
+    }
+
+    .es-setup-intro {
+      margin-bottom:18px;
+      padding:16px 18px;
+      border:1px solid var(--es-border);
+      border-radius:16px;
+      background:#fafbf8;
+      color:var(--es-muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .es-setup-summary {
+      margin-bottom:18px;
+    }
+
+    .es-setup-summary .es-dashboard-kpi {
+      min-height:118px;
+      border-radius:18px;
+      box-shadow:0 7px 22px rgba(28,34,30,.035);
+    }
+
+    .es-setup-checklist {
+      display:grid;
+      gap:10px;
+    }
+
+    .es-setup-check {
+      border-radius:15px;
+    }
+
+    .es-setup-check .es-secondary-button {
+      min-width:96px;
+      min-height:38px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      text-decoration:none;
+    }
+
+    .es-setup-independence-panel {
+      margin-top:14px;
+    }
+
+    .es-setup-independence-panel details summary {
+      list-style:none;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      cursor:pointer;
+      padding:0;
+    }
+
+    .es-setup-independence-panel details summary::-webkit-details-marker {
+      display:none;
+    }
+
+    .es-setup-independence-panel details summary::after {
+      content:"⌄";
+      color:var(--es-muted);
+      font-size:16px;
+    }
+
+    .es-setup-independence-panel details[open] summary::after {
+      transform:rotate(180deg);
+    }
+
+    .es-setup-independence-panel .es-setup-independence {
+      margin-top:18px;
+      padding-top:16px;
+      border-top:1px solid var(--es-border);
+    }
+
+    @media(max-width:700px) {
+      .es-setup-topbar {
+        flex-direction:column;
+      }
+    }
+  </style>
+
 </head>
 
 <body class="es-dashboard-body">
@@ -28,7 +134,7 @@
 
   <main class="es-dashboard-main">
 
-    <section class="es-dashboard-welcome">
+    <section class="es-dashboard-welcome es-setup-topbar">
 
       <div>
 
@@ -47,7 +153,21 @@
       </div>
 
 
-      <div class="es-dashboard-header-actions">
+      <div class="es-dashboard-header-actions es-setup-top-actions">
+
+        <a
+          class="es-secondary-button"
+          href="/dashboard/"
+        >
+          Back to Dashboard
+        </a>
+
+        <a
+          class="es-secondary-button"
+          href="/settings/"
+        >
+          Settings
+        </a>
 
         <button
           id="refreshSetupHealth"
@@ -68,6 +188,9 @@
       hidden
     ></section>
 
+    <div class="es-setup-intro">
+      Use this page as the installation checklist. Items needing attention appear below with a direct Configure action; completed items remain available to review.
+    </div>
 
     <section class="es-setup-summary">
 
@@ -155,37 +278,29 @@
     </section>
 
 
-    <section class="es-dashboard-panel">
+    <section class="es-dashboard-panel es-setup-independence-panel">
+      <details>
+        <summary>
+          <div>
+            <p class="es-eyebrow">
+              Installation
+            </p>
+            <h2>
+              Technical ownership
+            </h2>
+          </div>
+        </summary>
 
-      <div class="es-panel-header">
-
-        <div>
-
-          <p class="es-eyebrow">
-            Independence
+        <div class="es-setup-independence">
+          <p>
+            Eselram is designed so this business can run independently using its own Cloudflare account, database, domain, email provider and payment-provider accounts.
           </p>
 
-          <h2>
-            This installation owns its services
-          </h2>
-
+          <p>
+            Provider credentials are not supplied by the Eselram software vendor. Each installation connects and controls its own services.
+          </p>
         </div>
-
-      </div>
-
-
-      <div class="es-setup-independence">
-
-        <p>
-          Eselram is designed so this business can run independently using its own Cloudflare account, database, domain, email provider and payment-provider accounts.
-        </p>
-
-        <p>
-          Provider credentials are not supplied by the Eselram software vendor. Each installation connects and controls its own services.
-        </p>
-
-      </div>
-
+      </details>
     </section>
 
   </main>
