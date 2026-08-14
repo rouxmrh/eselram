@@ -4192,3 +4192,40 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
     overflow: visible !important;
   }
 }
+
+
+/* =======================================================
+   Sidebar account / logout — keep comfortably above bottom
+   ======================================================= */
+
+.es-sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.es-sidebar-footer {
+  position: absolute !important;
+  left: 22px !important;
+  right: 22px !important;
+  bottom: 54px !important;
+  margin: 0 !important;
+  padding: 18px 10px 4px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 900px) {
+  .es-sidebar {
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .es-sidebar-footer {
+    position: static !important;
+    margin-top: auto !important;
+  }
+}
