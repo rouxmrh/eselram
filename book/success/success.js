@@ -155,4 +155,21 @@ async function init() {
   }
 }
 
+
+const backToBookingLink =
+  document.querySelector(
+    'a[href="/book/"]'
+  );
+
+backToBookingLink?.addEventListener(
+  "click",
+  event => {
+    event.preventDefault();
+
+    window.location.replace(
+      "/book/"
+    );
+  }
+);
+
 document.addEventListener("DOMContentLoaded", init);

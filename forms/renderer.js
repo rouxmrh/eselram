@@ -683,16 +683,83 @@ async function submitForm(event) {
   submitButton.textContent = "Submitting…";
 
   try {
-    const response = await fetch("/api/forms/submissions", {
-      method: "POST",
-      body: data,
-      headers: { Accept: "application/json" }
-    });
+    let response = null;
+    let result = null;
+    let lastError = null;
 
-    const result = await response.json();
+    for (
+      let attempt = 0;
+      attempt < 2;
+      attempt += 1
+    ) {
+      try {
+        response =
+          await fetch(
+            "/api/forms/submissions",
+            {
+              method: "POST",
+              body: data,
+              headers: {
+                Accept:
+                  "application/json"
+              }
+            }
+          );
 
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || "Unable to submit form.");
+        result =
+          await response.json();
+
+        if (
+          response.ok &&
+          result.ok
+        ) {
+          lastError = null;
+          break;
+        }
+
+        // Client/validation errors are not transient and must
+        // still be shown immediately rather than retried.
+        if (
+          response.status < 500
+        ) {
+          throw new Error(
+            result.error ||
+            "Unable to submit form."
+          );
+        }
+
+        lastError =
+          new Error(
+            result.error ||
+            "Unable to submit form."
+          );
+      } catch (error) {
+        lastError = error;
+      }
+
+      if (
+        attempt === 0
+      ) {
+        await new Promise(
+          resolve =>
+            setTimeout(
+              resolve,
+              350
+            )
+        );
+      }
+    }
+
+    if (
+      !response?.ok ||
+      !result?.ok
+    ) {
+      throw (
+        lastError ||
+        new Error(
+          "Unable to submit form."
+        )
+      );
     }
 
     const internalRecord = requestToken.startsWith("fri_");
