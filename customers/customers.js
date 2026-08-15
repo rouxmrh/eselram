@@ -1477,7 +1477,7 @@ function updateCustomerFormActionMode() {
 
   button.textContent =
     template?.record_mode === "internal"
-      ? "Open record form"
+      ? "Open record"
       : "Generate secure link";
 
   customerGeneratedFormLinkWrap.hidden = true;
@@ -1612,7 +1612,7 @@ async function generateCustomerFormLink() {
     button.disabled =
       false;
 
-    button.textContent = selectedCustomerFormTemplate()?.record_mode === "internal" ? "Open record form" : "Generate secure link";
+    button.textContent = selectedCustomerFormTemplate()?.record_mode === "internal" ? "Open record" : "Generate secure link";
   }
 }
 
@@ -2257,26 +2257,59 @@ function renderCustomerCommunications(
 
 
 function visibleOutstandingFormRequests(formRequests) {
-  const rawOutstanding = (formRequests || []).filter(
-    request => ["created", "opened"].includes(request.status)
-  );
+  const rawOutstanding =
+    (formRequests || []).filter(
+      request => {
+        const token =
+          String(
+            request.request_token ||
+            ""
+          );
 
-  const seenActiveConsultations = new Set();
+        const isInternalRecord =
+          token.startsWith(
+            "fri_"
+          );
 
-  return rawOutstanding.filter(request => {
-    if (request.template_type !== "consultation") {
+        return (
+          !isInternalRecord &&
+          ["created", "opened"].includes(
+            request.status
+          )
+        );
+      }
+    );
+
+  const seenActiveConsultations =
+    new Set();
+
+  return rawOutstanding.filter(
+    request => {
+      if (
+        request.template_type !==
+        "consultation"
+      ) {
+        return true;
+      }
+
+      const key =
+        "active-consultation";
+
+      if (
+        seenActiveConsultations.has(
+          key
+        )
+      ) {
+        return false;
+      }
+
+      seenActiveConsultations.add(
+        key
+      );
+
       return true;
     }
-
-    const key = "active-consultation";
-
-    if (seenActiveConsultations.has(key)) {
-      return false;
-    }
-
-    seenActiveConsultations.add(key);
-    return true;
-  });
+  );
 }
 
 
