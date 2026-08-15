@@ -658,13 +658,23 @@ function renderServices() {
                 }
               </small>
 
-              <button
-                class="es-secondary-button es-service-edit"
-                type="button"
-                data-edit="${escapeHtml(service.id)}"
-              >
-                Edit service
-              </button>
+              <div class="es-service-card-footer-actions">
+                <button
+                  class="es-secondary-button es-service-edit"
+                  type="button"
+                  data-edit="${escapeHtml(service.id)}"
+                >
+                  Edit service
+                </button>
+                <button
+                  class="es-secondary-button es-service-delete"
+                  type="button"
+                  data-delete-service="${escapeHtml(service.id)}"
+                  data-delete-service-name="${escapeHtml(service.name)}"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </article>
         `;
@@ -693,6 +703,45 @@ function renderServices() {
         }
       );
     });
+
+  document
+    .querySelectorAll("[data-delete-service]")
+    .forEach(button => {
+      button.addEventListener("click", async () => {
+        const serviceId = button.dataset.deleteService;
+        const serviceName = button.dataset.deleteServiceName || "this service";
+
+        if (!window.confirm(
+          `Delete "${serviceName}"?\n\nThis is only allowed when the service has no bookings, packages or other records that depend on it.`
+        )) return;
+
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = "Deleting…";
+
+        try {
+          const response = await fetch(
+            `/api/services?id=${encodeURIComponent(serviceId)}`,
+            { method:"DELETE", headers:{Accept:"application/json"} }
+          );
+          const data = await response.json();
+
+          if (!response.ok || !data.ok) {
+            throw new Error(data.error || "Unable to delete service.");
+          }
+
+          services = services.filter(service => service.id !== serviceId);
+          renderServiceSummary();
+          renderConsultationServiceOptions();
+          renderServices();
+        } catch (error) {
+          window.alert(error.message || "Unable to delete service.");
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+      });
+    });
+
 }
 
 

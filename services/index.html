@@ -177,6 +177,45 @@
       }
     }
 
+  
+    .es-service-card-footer-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:0 0 auto;
+    }
+
+    .es-service-delete {
+      min-width:76px;
+      min-height:38px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-color:#e3c9c9;
+      color:#8b3f3f;
+      background:#fffafa;
+    }
+
+    .es-service-delete:hover {
+      border-color:#d8aaaa;
+      background:#fff5f5;
+    }
+
+    @media(max-width:650px) {
+      .es-service-card-footer {
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .es-service-card-footer-actions {
+        width:100%;
+      }
+
+      .es-service-card-footer-actions button {
+        flex:1 1 0;
+      }
+    }
+
   </style>
 
 </head>
