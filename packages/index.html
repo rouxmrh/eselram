@@ -275,20 +275,131 @@
       transform:translateX(16px);
     }
 
-    .es-package-variants{margin-top:18px;padding:16px;border:1px solid var(--es-border);border-radius:16px;background:#fafbf8;overflow:hidden}
-    .es-package-variants-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
-    .es-package-variant-row{display:grid;grid-template-columns:minmax(68px,.75fr) minmax(110px,1.2fr) minmax(70px,.72fr) minmax(70px,.72fr) minmax(78px,.72fr);gap:8px;align-items:end;padding:12px 0;border-top:1px solid var(--es-border);min-width:0}
-    .es-package-variant-row:first-child{border-top:0}
-    .es-package-variant-row label{margin:0;min-width:0}
-    .es-package-variant-row input,.es-package-variant-row select{width:100%;min-width:0;box-sizing:border-box}
-    .es-package-variant-row [data-v-remove]{width:100%;min-width:0;padding-left:8px;padding-right:8px;white-space:nowrap}
-    .es-package-variants-empty{color:var(--es-muted);font-size:12px;padding:6px 0}
+    .es-package-variants{
+      margin-top:18px;
+      padding:16px;
+      border:1px solid var(--es-border);
+      border-radius:16px;
+      background:#fafbf8;
+      overflow:hidden;
+    }
+
+    .es-package-variants-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:10px;
+    }
+
+    .es-package-variants-head strong{
+      display:block;
+      margin-bottom:3px;
+    }
+
+    .es-package-variant-row{
+      display:grid;
+      grid-template-columns:minmax(88px,.85fr) minmax(170px,1.65fr) minmax(88px,.8fr);
+      grid-template-areas:
+        "variant service service"
+        "price deposit remove";
+      gap:10px 8px;
+      align-items:end;
+      padding:14px 0;
+      border-top:1px solid var(--es-border);
+      min-width:0;
+    }
+
+    .es-package-variant-row:first-child{
+      border-top:0;
+    }
+
+    .es-package-variant-row label{
+      margin:0;
+      min-width:0;
+      display:grid;
+      gap:6px;
+      align-content:end;
+    }
+
+    .es-package-variant-row label:nth-child(1){
+      grid-area:variant;
+    }
+
+    .es-package-variant-row label:nth-child(2){
+      grid-area:service;
+    }
+
+    .es-package-variant-row label:nth-child(3){
+      grid-area:price;
+    }
+
+    .es-package-variant-row label:nth-child(4){
+      grid-area:deposit;
+    }
+
+    .es-package-variant-row input,
+    .es-package-variant-row select{
+      width:100%;
+      min-width:0;
+      height:44px;
+      min-height:44px;
+      box-sizing:border-box;
+      margin:0;
+      padding-top:0;
+      padding-bottom:0;
+    }
+
+    .es-package-variant-row select{
+      text-overflow:ellipsis;
+    }
+
+    .es-package-variant-row [data-v-remove]{
+      grid-area:remove;
+      width:100%;
+      min-width:0;
+      height:44px;
+      min-height:44px;
+      margin:0;
+      padding:0 10px;
+      white-space:nowrap;
+      align-self:end;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+    }
+
+    .es-package-variants-empty{
+      color:var(--es-muted);
+      font-size:12px;
+      line-height:1.5;
+      padding:6px 0;
+    }
+
     @media(max-width:620px){
-      .es-package-variants{padding:14px}
-      .es-package-variants-head{align-items:stretch;flex-direction:column}
-      .es-package-variants-head button{width:100%}
-      .es-package-variant-row{grid-template-columns:1fr}
-      .es-package-variant-row [data-v-remove]{width:100%}
+      .es-package-variants{
+        padding:14px;
+      }
+
+      .es-package-variants-head{
+        align-items:stretch;
+        flex-direction:column;
+      }
+
+      .es-package-variants-head button{
+        width:100%;
+      }
+
+      .es-package-variant-row{
+        grid-template-columns:1fr;
+        grid-template-areas:
+          "variant"
+          "service"
+          "price"
+          "deposit"
+          "remove";
+      }
     }
 
     .es-package-form-actions {
