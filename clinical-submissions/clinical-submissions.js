@@ -13,6 +13,7 @@ const recordAppointment=document.getElementById("recordAppointment");
 const saveRecordAssignment=document.getElementById("saveRecordAssignment");
 const markReviewedButton=document.getElementById("markReviewedButton");
 const openCustomerButton=document.getElementById("openCustomerButton");
+const deleteClinicalRecordButton=document.getElementById("deleteClinicalRecordButton");
 
 let submissions=[],templates=[],customers=[],appointments=[],activeSubmission=null;
 
@@ -25,6 +26,7 @@ assignmentFilter.addEventListener("change",renderSubmissions);
 recordCustomer.addEventListener("change",renderAppointmentOptions);
 saveRecordAssignment.addEventListener("click",saveAssignment);
 markReviewedButton.addEventListener("click",toggleReviewed);
+deleteClinicalRecordButton.addEventListener("click",deleteClinicalRecord);
 
 async function loadSubmissions(){
   try{
@@ -104,6 +106,7 @@ async function openSubmission(id){
     recordTitle.textContent=activeSubmission.template_name||"Clinical record";
     renderMeta();renderCustomerOptions();recordCustomer.value=activeSubmission.customer_id||"";renderAppointmentOptions();recordAppointment.value=activeSubmission.appointment_id||"";renderSections();
     markReviewedButton.textContent=activeSubmission.status==="reviewed"?"Mark awaiting review":"Mark reviewed";
+    deleteClinicalRecordButton.hidden=activeSubmission.submitted_by!=="staff";
     if(activeSubmission.customer_id){openCustomerButton.hidden=false;openCustomerButton.href=`/customers/?customer=${encodeURIComponent(activeSubmission.customer_id)}`}else{openCustomerButton.hidden=true}
     openDrawer();
   }catch(error){alert(error.message||"Unable to load clinical record.")}
@@ -163,6 +166,38 @@ async function toggleReviewed(){
     await loadSubmissions();await openSubmission(id);
   }catch(error){alert(error.message||"Unable to update review status.")}
   finally{markReviewedButton.disabled=false}
+}
+
+async function deleteClinicalRecord(){
+  if(!activeSubmission)return;
+
+  const id=activeSubmission.id;
+  const confirmed=window.confirm(
+    "Delete this internal clinical record? This cannot be undone. The customer and appointment will not be deleted."
+  );
+  if(!confirmed)return;
+
+  deleteClinicalRecordButton.disabled=true;
+  const originalText=deleteClinicalRecordButton.textContent;
+  deleteClinicalRecordButton.textContent="Deleting…";
+
+  try{
+    const response=await fetch(
+      `/api/clinical-submissions?id=${encodeURIComponent(id)}`,
+      {method:"DELETE",headers:{Accept:"application/json"}}
+    );
+    if(response.status===401){location.href="/auth/login.html";return}
+    const data=await response.json();
+    if(!response.ok||!data.ok)throw new Error(data.error||"Unable to delete clinical record.");
+
+    closeDrawer();
+    await loadSubmissions();
+  }catch(error){
+    alert(error.message||"Unable to delete clinical record.");
+  }finally{
+    deleteClinicalRecordButton.disabled=false;
+    deleteClinicalRecordButton.textContent=originalText;
+  }
 }
 
 function openDrawer(){recordDrawer.classList.add("is-open");recordBackdrop.classList.add("is-open");recordDrawer.setAttribute("aria-hidden","false")}
