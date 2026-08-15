@@ -37,7 +37,8 @@ const EXPECTED_MIGRATIONS = [
   "030_clinic_balance_payment",
   "031_treatment_aftercare_communications",
   "032_service_public_booking_modes",
-  "033_service_consultation_pathways"
+  "033_service_consultation_pathways",
+  "034_package_variants"
 ];
 
 
