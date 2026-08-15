@@ -702,6 +702,43 @@
       }
     }
 
+  
+    /* Sell-package action alignment */
+    #assignDialog .es-form-actions {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-top:22px;
+    }
+
+    #assignDialog .es-form-actions .es-button,
+    #assignDialog .es-form-actions .es-secondary-button {
+      width:150px;
+      height:48px;
+      min-height:48px;
+      padding:0 18px;
+      margin:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    @media(max-width:560px) {
+      #assignDialog .es-form-actions {
+        display:grid;
+        grid-template-columns:1fr 1fr;
+      }
+
+      #assignDialog .es-form-actions .es-button,
+      #assignDialog .es-form-actions .es-secondary-button {
+        width:100%;
+        min-width:0;
+      }
+    }
+
   </style>
 </head>
 
