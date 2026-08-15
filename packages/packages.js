@@ -4,6 +4,7 @@ let templates = [];
 let customerPackages = [];
 let customers = [];
 let services = [];
+let packageVariants = [];
 let currency = "GBP";
 let activeView = "customers";
 
@@ -65,6 +66,11 @@ async function load() {
   customerPackages = data.customer_packages || [];
   customers = data.customers || [];
   services = data.services || [];
+  packageVariants = data.variants || [];
+  templates = templates.map(template => ({
+    ...template,
+    variants: packageVariants.filter(variant => variant.package_template_id === template.id)
+  }));
   currency = data.currency || "GBP";
 
   render();
@@ -114,7 +120,9 @@ function packageTemplateCard(
 
       <div class="es-package-meta">
         <span>${item.sessions_total} sessions</span>
-        <span>${money(item.price_minor)}</span>
+        ${item.variants?.length
+          ? `<span>${item.variants.length} variants · from ${money(Math.min(...item.variants.map(v => Number(v.price_minor || 0))))}</span>`
+          : `<span>${money(item.price_minor)}</span>`}
 
         ${Number(item.deposit_minor || 0) > 0
           ? `<span>${money(item.deposit_minor)} suggested deposit</span>`
@@ -529,10 +537,64 @@ function populateSelects() {
       .filter(item => Number(item.is_active) === 1)
       .map(item => `
         <option value="${escapeHtml(item.id)}">
-          ${escapeHtml(item.name)} · ${item.sessions_total} sessions · ${money(item.price_minor)}
+          ${escapeHtml(item.name)} · ${item.sessions_total} sessions${item.variants?.length ? ` · ${item.variants.length} variants` : ` · ${money(item.price_minor)}`}
         </option>
       `)
       .join("");
+}
+
+function serviceOptionsHtml(selectedId = "") {
+  return services
+    .filter(service => String(service.service_type || "standard") !== "consultation")
+    .map(service => `<option value="${escapeHtml(service.id)}" ${service.id === selectedId ? "selected" : ""}>${escapeHtml(service.name)}</option>`)
+    .join("");
+}
+
+function renderVariantEmpty() {
+  const wrap = $("#packageVariantRows");
+  wrap.querySelector(".es-package-variants-empty")?.remove();
+  if (!wrap.querySelector(".es-package-variant-row")) {
+    wrap.insertAdjacentHTML("beforeend", `<div class="es-package-variants-empty">No variants added. The package will use the default service, price and deposit above.</div>`);
+  }
+}
+
+function addVariantRow(variant = null) {
+  const wrap = $("#packageVariantRows");
+  wrap.querySelector(".es-package-variants-empty")?.remove();
+  const row = document.createElement("div");
+  row.className = "es-package-variant-row";
+  row.dataset.variantId = variant?.id || "";
+  row.innerHTML = `
+    <label>Variant<input data-v-name type="text" maxlength="100" placeholder="e.g. Small" value="${escapeHtml(variant?.name || "")}"></label>
+    <label>Service<select data-v-service><option value="">Choose service</option>${serviceOptionsHtml(variant?.service_id || "")}</select></label>
+    <label>Price<input data-v-price type="number" min="0" step="0.01" value="${variant ? (Number(variant.price_minor || 0)/100).toFixed(2) : ""}"></label>
+    <label>Deposit<input data-v-deposit type="number" min="0" step="0.01" value="${variant ? (Number(variant.deposit_minor || 0)/100).toFixed(2) : "0.00"}"></label>
+    <button class="es-secondary-button" type="button" data-v-remove>Remove</button>
+  `;
+  row.querySelector("[data-v-remove]").addEventListener("click", () => { row.remove(); renderVariantEmpty(); });
+  wrap.append(row);
+}
+
+function readVariants() {
+  return [...document.querySelectorAll(".es-package-variant-row")]
+    .map(row => ({
+      id: row.dataset.variantId || null,
+      name: row.querySelector("[data-v-name]").value.trim(),
+      service_id: row.querySelector("[data-v-service]").value,
+      price_minor: Math.round(Number(row.querySelector("[data-v-price]").value || 0) * 100),
+      deposit_minor: Math.round(Number(row.querySelector("[data-v-deposit]").value || 0) * 100)
+    }))
+    .filter(v => v.name || v.service_id);
+}
+
+function updateAssignVariantOptions() {
+  const template = templates.find(item => item.id === $("#assignTemplate").value);
+  const variants = (template?.variants || []).filter(v => Number(v.is_active) === 1);
+  $("#assignVariantWrap").hidden = !variants.length;
+  $("#assignVariant").required = Boolean(variants.length);
+  $("#assignVariant").innerHTML = variants.length
+    ? `<option value="">Choose variant</option>` + variants.map(v => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.name)} · ${escapeHtml(v.service_name)} · ${money(v.price_minor)}</option>`).join("")
+    : "";
 }
 
 function updatePackagePublicAvailability() {
@@ -616,6 +678,10 @@ function openTemplateDialog(template = null) {
   $("#templateActive").checked = template ? Number(template.is_active) === 1 : true;
   $("#templatePublic").checked = template ? Number(template.is_public) === 1 : false;
 
+  $("#packageVariantRows").innerHTML = "";
+  for (const variant of template?.variants || []) addVariantRow(variant);
+  renderVariantEmpty();
+
   updatePackagePublicAvailability();
 
   $("#templateDialog").showModal();
@@ -625,6 +691,7 @@ function openAssignDialog() {
   $("#assignForm").reset();
   $("#assignStatus").hidden = true;
   $("#assignStartsOn").value = new Date().toISOString().slice(0, 10);
+  updateAssignVariantOptions();
   $("#assignDialog").showModal();
 }
 
@@ -664,6 +731,8 @@ $("#templateService").addEventListener(
   "change",
   updatePackagePublicAvailability
 );
+$("#addPackageVariant").addEventListener("click", () => addVariantRow());
+$("#assignTemplate").addEventListener("change", updateAssignVariantOptions);
 
 $("#newTemplateButton").addEventListener("click", () => openTemplateDialog());
 $("#assignPackageButton").addEventListener("click", openAssignDialog);
@@ -704,7 +773,8 @@ $("#templateForm").addEventListener("submit", async event => {
       validity_days: $("#templateValidity").value || null,
       description: $("#templateDescription").value.trim(),
       is_active: $("#templateActive").checked ? 1 : 0,
-      is_public: $("#templatePublic").checked ? 1 : 0
+      is_public: $("#templatePublic").checked ? 1 : 0,
+      variants: readVariants()
     });
 
     $("#templateDialog").close();
@@ -731,6 +801,7 @@ $("#assignForm").addEventListener("submit", async event => {
         action: "assign",
         customer_id: $("#assignCustomer").value,
         package_template_id: $("#assignTemplate").value,
+        package_variant_id: $("#assignVariant").value || null,
         starts_on: $("#assignStartsOn").value || null,
         notes: $("#assignNotes").value.trim()
       });
@@ -749,6 +820,7 @@ $("#assignForm").addEventListener("submit", async event => {
       body: JSON.stringify({
         customer_id: $("#assignCustomer").value,
         package_template_id: $("#assignTemplate").value,
+        package_variant_id: $("#assignVariant").value || null,
         payment_choice: paymentChoice
       })
     });

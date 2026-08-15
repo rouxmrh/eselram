@@ -275,6 +275,14 @@
       transform:translateX(16px);
     }
 
+    .es-package-variants{margin-top:18px;padding:16px;border:1px solid var(--es-border);border-radius:16px;background:#fafbf8}
+    .es-package-variants-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+    .es-package-variant-row{display:grid;grid-template-columns:minmax(100px,.7fr) minmax(160px,1.2fr) minmax(100px,.7fr) minmax(100px,.7fr) auto;gap:8px;align-items:end;padding:12px 0;border-top:1px solid var(--es-border)}
+    .es-package-variant-row:first-child{border-top:0}
+    .es-package-variant-row label{margin:0}
+    .es-package-variants-empty{color:var(--es-muted);font-size:12px;padding:6px 0}
+    @media(max-width:760px){.es-package-variant-row{grid-template-columns:1fr}}
+
     .es-package-form-actions {
       display:flex;
       align-items:center;
@@ -515,6 +523,17 @@
         <textarea id="templateDescription" maxlength="1000"></textarea>
       </label>
 
+      <section class="es-package-variants">
+        <div class="es-package-variants-head">
+          <div>
+            <strong>Package variants</strong>
+            <div class="es-muted-copy">Optional. Use variants for tiers such as Tiny, Small, Medium, Large and XL.</div>
+          </div>
+          <button id="addPackageVariant" class="es-secondary-button" type="button">Add variant</button>
+        </div>
+        <div id="packageVariantRows"></div>
+      </section>
+
       <div class="es-package-toggle-grid">
         <label class="es-package-toggle">
           <input id="templateActive" type="checkbox" checked>
@@ -572,6 +591,11 @@
       <label>
         Package
         <select id="assignTemplate" required></select>
+      </label>
+
+      <label id="assignVariantWrap" hidden>
+        Variant
+        <select id="assignVariant"></select>
       </label>
 
       <label>
