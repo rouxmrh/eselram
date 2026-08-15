@@ -878,6 +878,115 @@ export async function onRequestPut({
 
 
 /* =======================================================
+   DELETE
+   ======================================================= */
+
+export async function onRequestDelete({
+  request,
+  env
+}) {
+  try {
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
+
+    if (!user) {
+      return unauthorized();
+    }
+
+    const url =
+      new URL(
+        request.url
+      );
+
+    const id =
+      String(
+        url.searchParams.get(
+          "id"
+        ) || ""
+      ).trim();
+
+    if (!id) {
+      return badRequest(
+        "Treatment record id is required."
+      );
+    }
+
+    const existing =
+      await env.DB
+        .prepare(`
+          SELECT id
+          FROM treatment_records
+          WHERE
+            id = ?
+            AND business_id = ?
+          LIMIT 1
+        `)
+        .bind(
+          id,
+          user.business_id
+        )
+        .first();
+
+    if (!existing) {
+      return notFound(
+        "Treatment record not found."
+      );
+    }
+
+    await env.DB.batch([
+      env.DB
+        .prepare(`
+          UPDATE customer_photos
+          SET treatment_record_id = NULL
+          WHERE
+            treatment_record_id = ?
+            AND business_id = ?
+        `)
+        .bind(
+          id,
+          user.business_id
+        ),
+
+      env.DB
+        .prepare(`
+          DELETE FROM treatment_records
+          WHERE
+            id = ?
+            AND business_id = ?
+        `)
+        .bind(
+          id,
+          user.business_id
+        )
+    ]);
+
+    return Response.json({
+      ok: true
+    });
+  } catch (error) {
+    console.error(
+      "Treatment record deletion failed:",
+      error
+    );
+
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to delete treatment record."
+      },
+      {
+        status: 500
+      }
+    );
+  }
+}
+
+
+/* =======================================================
    Validation
    ======================================================= */
 
