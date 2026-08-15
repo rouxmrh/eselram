@@ -105,6 +105,8 @@ export async function onRequestGet({
             name,
             description,
             booking_group,
+            service_type,
+            consultation_service_id,
             post_consultation_booking,
             duration_minutes,
             price_minor,
@@ -347,6 +349,23 @@ async function saveService({
         )
       : "client_can_book";
 
+  const serviceType =
+    String(
+      body.service_type ||
+      "standard"
+    ) === "consultation"
+      ? "consultation"
+      : "standard";
+
+  const consultationServiceId =
+    serviceType === "standard" &&
+    body.requires_consultation
+      ? String(
+          body.consultation_service_id ||
+          ""
+        ).trim()
+      : "";
+
 
   const duration =
     Number(
@@ -374,7 +393,8 @@ async function saveService({
 
 
   const consultationDuration =
-    body.requires_consultation
+    body.requires_consultation &&
+    !consultationServiceId
       ? Number(
           body.consultation_duration_minutes ||
           30
@@ -382,14 +402,16 @@ async function saveService({
       : null;
 
   const consultationPriceMinor =
-    body.requires_consultation
+    body.requires_consultation &&
+    !consultationServiceId
       ? moneyToMinor(
           body.consultation_price || 0
         )
       : 0;
 
   const consultationPaymentTiming =
-    body.requires_consultation
+    body.requires_consultation &&
+    !consultationServiceId
       ? String(
           body.consultation_payment_timing ||
           "free"
@@ -447,6 +469,38 @@ async function saveService({
     "pay_at_appointment",
     "free"
   ];
+
+
+  if (consultationServiceId) {
+    const linkedConsultation =
+      await env.DB
+        .prepare(`
+          SELECT id
+          FROM services
+          WHERE
+            id = ?
+            AND business_id = ?
+            AND service_type = 'consultation'
+            AND is_active = 1
+          LIMIT 1
+        `)
+        .bind(
+          consultationServiceId,
+          user.business_id
+        )
+        .first();
+
+    if (!linkedConsultation) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Choose a valid active consultation service."
+        },
+        { status: 400 }
+      );
+    }
+  }
 
 
   if (!name) {
@@ -721,6 +775,8 @@ async function saveService({
           name = ?,
           description = ?,
           booking_group = ?,
+          service_type = ?,
+          consultation_service_id = ?,
           post_consultation_booking = ?,
           duration_minutes = ?,
           price_minor = ?,
@@ -759,6 +815,8 @@ async function saveService({
         name,
         description || null,
         bookingGroup || null,
+        serviceType,
+        consultationServiceId || null,
         postConsultationBooking,
         duration,
         priceMinor,
@@ -796,6 +854,8 @@ async function saveService({
           name,
           description,
           booking_group,
+          service_type,
+          consultation_service_id,
           post_consultation_booking,
           duration_minutes,
           price_minor,
@@ -811,7 +871,7 @@ async function saveService({
         )
 
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
           CASE ?
             WHEN 'online_full'
               THEN 'stripe_full'
@@ -834,6 +894,8 @@ async function saveService({
         name,
         description || null,
         bookingGroup || null,
+        serviceType,
+        consultationServiceId || null,
         postConsultationBooking,
         duration,
         priceMinor,
