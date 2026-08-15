@@ -54,6 +54,7 @@ export async function onRequestPost({ request, env }) {
     const body = await request.json();
     const customerId = String(body.customer_id || "").trim();
     const templateId = String(body.package_template_id || "").trim();
+    const variantId = String(body.package_variant_id || "").trim();
     const paymentChoice = String(body.payment_choice || "full").trim();
 
     if (!customerId || !templateId) {
@@ -101,21 +102,83 @@ export async function onRequestPost({ request, env }) {
       return badRequest("Package is unavailable.");
     }
 
-    if (
+    const variantRows = await env.DB.prepare(`
+      SELECT
+        pv.id,
+        pv.service_id,
+        pv.name,
+        pv.price_minor,
+        pv.deposit_minor,
+        s.requires_consultation
+      FROM package_variants pv
+      JOIN services s
+        ON s.id = pv.service_id
+       AND s.business_id = pv.business_id
+      WHERE
+        pv.package_template_id = ?
+        AND pv.business_id = ?
+        AND pv.is_active = 1
+      ORDER BY pv.sort_order, pv.name COLLATE NOCASE
+    `).bind(template.id, user.business_id).all();
+
+    const variants = variantRows.results || [];
+
+    if (variants.length > 0 && !variantId) {
+      return badRequest("Choose a package variant.");
+    }
+
+    const variant =
+      variantId
+        ? variants.find(item => item.id === variantId)
+        : null;
+
+    if (variantId && !variant) {
+      return badRequest("Selected package variant is unavailable.");
+    }
+
+    const resolvedServiceId =
+      variant?.service_id ||
+      template.service_id;
+
+    const resolvedPriceMinor =
+      Math.max(
+        0,
+        Number(
+          variant?.price_minor ??
+          template.price_minor ??
+          0
+        )
+      );
+
+    const resolvedDepositMinor =
+      Math.max(
+        0,
+        Number(
+          variant?.deposit_minor ??
+          template.deposit_minor ??
+          0
+        )
+      );
+
+    const resolvedName =
+      variant
+        ? `${template.name} · ${variant.name}`
+        : template.name;
+
+    const requiresConsultation =
       Number(
-        template.requires_consultation ||
+        variant?.requires_consultation ??
+        template.requires_consultation ??
         0
-      ) === 1
-    ) {
+      );
+
+    if (requiresConsultation === 1) {
       const consultationCompleted =
         await hasCompletedConsultation({
           env,
-          businessId:
-            user.business_id,
-          customerId:
-            customer.id,
-          serviceId:
-            template.service_id
+          businessId: user.business_id,
+          customerId: customer.id,
+          serviceId: resolvedServiceId
         });
 
       if (!consultationCompleted) {
@@ -125,15 +188,15 @@ export async function onRequestPost({ request, env }) {
       }
     }
 
-    const price = Math.max(0, Number(template.price_minor || 0));
-    const deposit = Math.max(0, Number(template.deposit_minor || 0));
+    const price = resolvedPriceMinor;
+    const deposit = resolvedDepositMinor;
 
     const availableCredit =
       await findAvailableConsultationCredit({
         env,
         businessId: user.business_id,
         customerId: customer.id,
-        serviceId: template.service_id
+        serviceId: resolvedServiceId
       });
 
     const consultationCreditSourceAppointmentId =
@@ -175,12 +238,12 @@ export async function onRequestPost({ request, env }) {
 
       await env.DB.prepare(`
         INSERT INTO customer_packages (
-          id, business_id, customer_id, package_template_id, service_id,
+          id, business_id, customer_id, package_template_id, package_variant_id, service_id,
           name_snapshot, sessions_total, price_minor, status,
           starts_on, expires_on, notes
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, 'active', date('now'),
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', date('now'),
           CASE WHEN ? > 0 THEN date('now', '+' || ? || ' days') ELSE NULL END,
           'Created from package sale using consultation credit'
         )
@@ -189,8 +252,9 @@ export async function onRequestPost({ request, env }) {
         user.business_id,
         customer.id,
         template.id,
-        template.service_id,
-        template.name,
+        variant?.id || null,
+        resolvedServiceId,
+        resolvedName,
         template.sessions_total,
         price,
         validityDays,
@@ -199,14 +263,14 @@ export async function onRequestPost({ request, env }) {
 
       await env.DB.prepare(`
         INSERT INTO package_sales (
-          id, business_id, customer_id, package_template_id,
+          id, business_id, customer_id, package_template_id, package_variant_id,
           source, payment_choice, amount_minor, currency,
           status, payment_id, customer_package_id, created_by_user_id,
           paid_at, consultation_credit_source_appointment_id,
           consultation_credit_minor
         )
         VALUES (
-          ?, ?, ?, ?, 'staff', ?, 0, ?, 'paid', NULL, ?, ?,
+          ?, ?, ?, ?, ?, 'staff', ?, 0, ?, 'paid', NULL, ?, ?,
           CURRENT_TIMESTAMP, ?, ?
         )
       `).bind(
@@ -214,6 +278,7 @@ export async function onRequestPost({ request, env }) {
         user.business_id,
         customer.id,
         template.id,
+        variant?.id || null,
         paymentChoice,
         currency,
         customerPackageId,
@@ -279,7 +344,7 @@ export async function onRequestPost({ request, env }) {
         status, payment_id, created_by_user_id,
         consultation_credit_source_appointment_id, consultation_credit_minor
       )
-      VALUES (?, ?, ?, ?, 'staff', ?, ?, ?, 'pending', ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 'staff', ?, ?, ?, 'pending', ?, ?, ?, ?)
     `).bind(
       saleId,
       user.business_id,
@@ -312,14 +377,17 @@ export async function onRequestPost({ request, env }) {
     params.set(
       "line_items[0][price_data][product_data][name]",
       paymentChoice === "deposit"
-        ? `${template.name} deposit`
-        : template.name
+        ? `${resolvedName} deposit`
+        : resolvedName
     );
     params.set("line_items[0][quantity]", "1");
     params.set("metadata[payment_id]", paymentId);
     params.set("metadata[business_id]", user.business_id);
     params.set("metadata[package_sale_id]", saleId);
     params.set("metadata[package_template_id]", template.id);
+    if (variant?.id) {
+      params.set("metadata[package_variant_id]", variant.id);
+    }
     params.set("metadata[package_sale_source]", "staff");
     params.set("payment_intent_data[metadata][payment_id]", paymentId);
     params.set("payment_intent_data[metadata][business_id]", user.business_id);

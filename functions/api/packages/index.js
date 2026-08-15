@@ -224,7 +224,7 @@ export async function onRequestGet({ request, env }) {
       });
     }
 
-    const [templates, packages, customers, services] = await Promise.all([
+    const [templates, packages, customers, services, variants] = await Promise.all([
       env.DB
         .prepare(`
           SELECT
@@ -368,6 +368,34 @@ export async function onRequestGet({ request, env }) {
           ORDER BY sort_order, name COLLATE NOCASE
         `)
         .bind(user.business_id)
+        .all(),
+
+      env.DB
+        .prepare(`
+          SELECT
+            pv.id,
+            pv.package_template_id,
+            pv.service_id,
+            pv.name,
+            pv.price_minor,
+            pv.deposit_minor,
+            pv.is_active,
+            pv.sort_order,
+            s.name AS service_name,
+            s.requires_consultation,
+            s.consultation_service_id,
+            s.post_consultation_booking
+          FROM package_variants pv
+          JOIN services s
+            ON s.id = pv.service_id
+           AND s.business_id = pv.business_id
+          WHERE pv.business_id = ?
+          ORDER BY
+            pv.package_template_id,
+            pv.sort_order,
+            pv.name COLLATE NOCASE
+        `)
+        .bind(user.business_id)
         .all()
     ]);
 
@@ -377,7 +405,8 @@ export async function onRequestGet({ request, env }) {
       templates: templates.results || [],
       customer_packages: (packages.results || []).map(enrichPackage),
       customers: customers.results || [],
-      services: services.results || []
+      services: services.results || [],
+      variants: variants.results || []
     });
   } catch (error) {
     console.error("Packages GET failed:", error);
@@ -412,6 +441,11 @@ export async function onRequestPost({ request, env }) {
           ? null
           : Number(body.validity_days);
 
+      const variants =
+        Array.isArray(body.variants)
+          ? body.variants
+          : [];
+
       if (!name || !serviceId) {
         return badRequest("Package name and service are required.");
       }
@@ -438,6 +472,63 @@ export async function onRequestPost({ request, env }) {
       ) {
         return badRequest("Validity must be a positive number of days.");
       }
+
+      const cleanVariants = [];
+
+      for (let index = 0; index < variants.length; index += 1) {
+        const raw = variants[index] || {};
+        const variantName = String(raw.name || "").trim();
+        const variantServiceId = String(raw.service_id || "").trim();
+        const variantPriceMinor = Number(raw.price_minor);
+        const variantDepositMinor = Number(raw.deposit_minor || 0);
+
+        if (!variantName || !variantServiceId) {
+          return badRequest("Every package variant needs a name and service.");
+        }
+
+        if (!Number.isInteger(variantPriceMinor) || variantPriceMinor < 0) {
+          return badRequest(`Enter a valid price for variant "${variantName}".`);
+        }
+
+        if (
+          !Number.isInteger(variantDepositMinor) ||
+          variantDepositMinor < 0 ||
+          variantDepositMinor > variantPriceMinor
+        ) {
+          return badRequest(`Enter a valid deposit for variant "${variantName}".`);
+        }
+
+        const variantService = await env.DB.prepare(`
+          SELECT
+            id,
+            service_type,
+            requires_consultation,
+            consultation_service_id,
+            post_consultation_booking
+          FROM services
+          WHERE id = ? AND business_id = ? AND is_active = 1
+          LIMIT 1
+        `).bind(variantServiceId, user.business_id).first();
+
+        if (!variantService) {
+          return badRequest(`Service for variant "${variantName}" was not found.`);
+        }
+
+        if (String(variantService.service_type || "standard") === "consultation") {
+          return badRequest(`Variant "${variantName}" must use a treatment/service.`);
+        }
+
+        cleanVariants.push({
+          id: String(raw.id || "").trim() || `pkv_${crypto.randomUUID()}`,
+          name: variantName,
+          service_id: variantServiceId,
+          price_minor: variantPriceMinor,
+          deposit_minor: variantDepositMinor,
+          sort_order: index,
+          service: variantService
+        });
+      }
+
 
       const service = await env.DB
         .prepare(`
@@ -480,14 +571,22 @@ export async function onRequestPost({ request, env }) {
         ) ===
           "practitioner_managed";
 
+      const allVariantsPractitionerManaged =
+        cleanVariants.length > 0 &&
+        cleanVariants.every(
+          variant =>
+            Number(variant.service.requires_consultation || 0) === 1 &&
+            String(
+              variant.service.post_consultation_booking ||
+              "client_can_book"
+            ) === "practitioner_managed"
+        );
+
       const isPublic =
-        practitionerManaged
+        practitionerManaged ||
+        allVariantsPractitionerManaged
           ? 0
-          : (
-              body.is_public === 1
-                ? 1
-                : 0
-            );
+          : (body.is_public === 1 ? 1 : 0);
 
       const templateId = id || `pkg_${crypto.randomUUID()}`;
 
@@ -568,6 +667,37 @@ export async function onRequestPost({ request, env }) {
             body.is_public === 1 ? 1 : 0
           )
           .run();
+      }
+
+      await env.DB.prepare(`
+        DELETE FROM package_variants
+        WHERE package_template_id = ? AND business_id = ?
+      `).bind(templateId, user.business_id).run();
+
+      for (const variant of cleanVariants) {
+        await env.DB.prepare(`
+          INSERT INTO package_variants (
+            id,
+            business_id,
+            package_template_id,
+            service_id,
+            name,
+            price_minor,
+            deposit_minor,
+            is_active,
+            sort_order
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+        `).bind(
+          variant.id,
+          user.business_id,
+          templateId,
+          variant.service_id,
+          variant.name,
+          variant.price_minor,
+          variant.deposit_minor,
+          variant.sort_order
+        ).run();
       }
 
       return Response.json({
@@ -654,6 +784,7 @@ export async function onRequestPost({ request, env }) {
     if (action === "assign") {
       const customerId = String(body.customer_id || "").trim();
       const templateId = String(body.package_template_id || "").trim();
+      const variantId = String(body.package_variant_id || "").trim();
       const startsOn = String(body.starts_on || "").trim() || null;
       const notes = String(body.notes || "").trim().slice(0, 1000) || null;
 
@@ -661,61 +792,88 @@ export async function onRequestPost({ request, env }) {
         return badRequest("Customer and package are required.");
       }
 
-      const customer = await env.DB
-        .prepare(`
-          SELECT id
-          FROM customers
-          WHERE id = ? AND business_id = ?
-          LIMIT 1
-        `)
-        .bind(customerId, user.business_id)
-        .first();
+      const customer = await env.DB.prepare(`
+        SELECT id
+        FROM customers
+        WHERE id = ? AND business_id = ?
+        LIMIT 1
+      `).bind(customerId, user.business_id).first();
 
       if (!customer) {
         return badRequest("Customer not found.");
       }
 
-      const template = await env.DB
-        .prepare(`
-          SELECT
-            pt.id,
-            pt.service_id,
-            pt.name,
-            pt.sessions_total,
-            pt.price_minor,
-            pt.validity_days,
-            pt.is_active,
-            s.requires_consultation
-          FROM package_templates pt
-          JOIN services s
-            ON s.id = pt.service_id
-           AND s.business_id = pt.business_id
-          WHERE
-            pt.id = ?
-            AND pt.business_id = ?
-          LIMIT 1
-        `)
-        .bind(templateId, user.business_id)
-        .first();
+      const template = await env.DB.prepare(`
+        SELECT
+          pt.id,
+          pt.service_id,
+          pt.name,
+          pt.sessions_total,
+          pt.price_minor,
+          pt.validity_days,
+          pt.is_active,
+          s.requires_consultation
+        FROM package_templates pt
+        JOIN services s
+          ON s.id = pt.service_id
+         AND s.business_id = pt.business_id
+        WHERE pt.id = ? AND pt.business_id = ?
+        LIMIT 1
+      `).bind(templateId, user.business_id).first();
 
       if (!template || Number(template.is_active) !== 1) {
         return badRequest("Package template is unavailable.");
       }
 
-      if (
-        Number(
-          template.requires_consultation ||
-          0
-        ) === 1
-      ) {
+      const variantRows = await env.DB.prepare(`
+        SELECT
+          pv.id,
+          pv.service_id,
+          pv.name,
+          pv.price_minor,
+          pv.deposit_minor,
+          s.requires_consultation
+        FROM package_variants pv
+        JOIN services s
+          ON s.id = pv.service_id
+         AND s.business_id = pv.business_id
+        WHERE
+          pv.package_template_id = ?
+          AND pv.business_id = ?
+          AND pv.is_active = 1
+        ORDER BY pv.sort_order, pv.name COLLATE NOCASE
+      `).bind(template.id, user.business_id).all();
+
+      const variants = variantRows.results || [];
+
+      if (variants.length > 0 && !variantId) {
+        return badRequest("Choose a package variant.");
+      }
+
+      const variant =
+        variantId
+          ? variants.find(item => item.id === variantId)
+          : null;
+
+      if (variantId && !variant) {
+        return badRequest("Selected package variant is unavailable.");
+      }
+
+      const serviceId = variant?.service_id || template.service_id;
+      const priceMinor = Number(variant?.price_minor ?? template.price_minor ?? 0);
+      const name = variant
+        ? `${template.name} · ${variant.name}`
+        : template.name;
+      const requiresConsultation =
+        Number(variant?.requires_consultation ?? template.requires_consultation ?? 0);
+
+      if (requiresConsultation === 1) {
         const consultationCompleted =
           await hasCompletedConsultation({
             env,
-            businessId:
-              user.business_id,
+            businessId: user.business_id,
             customerId,
-            serviceId:
-              template.service_id
+            serviceId
           });
 
         if (!consultationCompleted) {
@@ -737,38 +895,37 @@ export async function onRequestPost({ request, env }) {
 
       const id = `cpk_${crypto.randomUUID()}`;
 
-      await env.DB
-        .prepare(`
-          INSERT INTO customer_packages (
-            id,
-            business_id,
-            customer_id,
-            package_template_id,
-            service_id,
-            name_snapshot,
-            sessions_total,
-            price_minor,
-            status,
-            starts_on,
-            expires_on,
-            notes
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
-        `)
-        .bind(
+      await env.DB.prepare(`
+        INSERT INTO customer_packages (
           id,
-          user.business_id,
-          customerId,
-          templateId,
-          template.service_id,
-          template.name,
-          template.sessions_total,
-          template.price_minor,
-          startsOn,
-          expiresOn,
+          business_id,
+          customer_id,
+          package_template_id,
+          package_variant_id,
+          service_id,
+          name_snapshot,
+          sessions_total,
+          price_minor,
+          status,
+          starts_on,
+          expires_on,
           notes
         )
-        .run();
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+      `).bind(
+        id,
+        user.business_id,
+        customerId,
+        template.id,
+        variant?.id || null,
+        serviceId,
+        name,
+        template.sessions_total,
+        priceMinor,
+        startsOn,
+        expiresOn,
+        notes
+      ).run();
 
       return Response.json({
         ok: true,
