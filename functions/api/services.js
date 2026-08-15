@@ -104,6 +104,8 @@ export async function onRequestGet({
             id,
             name,
             description,
+            booking_group,
+            post_consultation_booking,
             duration_minutes,
             price_minor,
             deposit_minor,
@@ -326,6 +328,24 @@ async function saveService({
     String(
       body.description || ""
     ).trim();
+
+  const bookingGroup =
+    String(
+      body.booking_group || ""
+    ).trim().slice(0, 100);
+
+  const postConsultationBooking =
+    ["client_can_book", "practitioner_managed"].includes(
+      String(
+        body.post_consultation_booking ||
+        "client_can_book"
+      )
+    )
+      ? String(
+          body.post_consultation_booking ||
+          "client_can_book"
+        )
+      : "client_can_book";
 
 
   const duration =
@@ -700,6 +720,8 @@ async function saveService({
         SET
           name = ?,
           description = ?,
+          booking_group = ?,
+          post_consultation_booking = ?,
           duration_minutes = ?,
           price_minor = ?,
           deposit_minor = ?,
@@ -736,6 +758,8 @@ async function saveService({
       .bind(
         name,
         description || null,
+        bookingGroup || null,
+        postConsultationBooking,
         duration,
         priceMinor,
         depositMinor,
@@ -771,6 +795,8 @@ async function saveService({
           business_id,
           name,
           description,
+          booking_group,
+          post_consultation_booking,
           duration_minutes,
           price_minor,
           deposit_minor,
@@ -785,7 +811,7 @@ async function saveService({
         )
 
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?,
           CASE ?
             WHEN 'online_full'
               THEN 'stripe_full'
@@ -807,6 +833,8 @@ async function saveService({
         user.business_id,
         name,
         description || null,
+        bookingGroup || null,
+        postConsultationBooking,
         duration,
         priceMinor,
         depositMinor,
