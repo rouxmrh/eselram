@@ -4303,7 +4303,7 @@ async function loadBookingsOverview() {
     );
 
     setText(
-      "bookingsWeekCount",
+      "bookingsOverviewWeekCount",
       data.stats?.week_bookings ||
       0
     );
