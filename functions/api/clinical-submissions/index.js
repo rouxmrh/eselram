@@ -201,3 +201,55 @@ export async function onRequestPut({request,env}){
     return Response.json({ok:false,error:"Unable to update clinical record."},{status:500});
   }
 }
+
+export async function onRequestDelete({request,env}){
+  try{
+    const user=await getUserContext(request,env);if(!user)return unauthorized();
+    const url=new URL(request.url),submissionId=String(url.searchParams.get("id")||"").trim();
+    if(!submissionId)return badRequest("Clinical record id is required.");
+
+    const submission=await env.DB.prepare(`
+      SELECT id,submitted_by
+      FROM clinical_form_submissions
+      WHERE id=? AND business_id=?
+      LIMIT 1
+    `).bind(submissionId,user.business_id).first();
+
+    if(!submission)return Response.json({ok:false,error:"Clinical record not found."},{status:404});
+
+    if(submission.submitted_by!=="staff"){
+      return Response.json(
+        {ok:false,error:"Client-submitted forms cannot be deleted from this action."},
+        {status:403}
+      );
+    }
+
+    const uploadRows=await env.DB.prepare(`
+      SELECT id,storage_provider,storage_key
+      FROM clinical_form_uploads
+      WHERE submission_id=? AND business_id=?
+    `).bind(submissionId,user.business_id).all();
+
+    for(const upload of uploadRows.results||[]){
+      if(upload.storage_provider==="r2"&&upload.storage_key&&env.FORM_UPLOADS){
+        try{await env.FORM_UPLOADS.delete(upload.storage_key)}catch(error){
+          console.error("Unable to delete clinical upload:",error);
+        }
+      }
+    }
+
+    await env.DB.batch([
+      env.DB.prepare(`DELETE FROM clinical_form_uploads WHERE submission_id=? AND business_id=?`).bind(submissionId,user.business_id),
+      env.DB.prepare(`DELETE FROM clinical_form_signatures WHERE submission_id=? AND business_id=?`).bind(submissionId,user.business_id),
+      env.DB.prepare(`DELETE FROM clinical_form_answers WHERE submission_id=? AND business_id=?`).bind(submissionId,user.business_id),
+      env.DB.prepare(`DELETE FROM clinical_form_requests WHERE submission_id=? AND business_id=?`).bind(submissionId,user.business_id),
+      env.DB.prepare(`DELETE FROM clinical_form_submissions WHERE id=? AND business_id=?`).bind(submissionId,user.business_id)
+    ]);
+
+    return Response.json({ok:true});
+  }catch(error){
+    console.error("Clinical record DELETE failed:",error);
+    return Response.json({ok:false,error:"Unable to delete clinical record."},{status:500});
+  }
+}
+
