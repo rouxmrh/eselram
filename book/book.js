@@ -399,14 +399,41 @@ function renderSelectedBookingGroup(groupName) {
       service => String(service.post_consultation_booking || "client_can_book") === "client_can_book"
     );
 
-    const practitionerManaged = linkedTreatments.some(
-      service => String(service.post_consultation_booking || "") === "practitioner_managed"
-    );
+    const practitionerManaged =
+      linkedTreatments.some(
+        service =>
+          String(
+            service.post_consultation_booking ||
+            ""
+          ) ===
+          "practitioner_managed"
+      ) ||
+      Number(
+        consultationService.linked_practitioner_managed ||
+        0
+      ) === 1;
+
+    const hasClientBookableTreatment =
+      clientBookable.length > 0 ||
+      Number(
+        consultationService.linked_client_bookable ||
+        0
+      ) === 1;
 
     let selectedService = clientBookable[0] || null;
-    const patchRequired = linkedTreatments.some(
-      service => Number(service.requires_patch_test || 0) === 1
-    );
+
+    const patchRequired =
+      linkedTreatments.some(
+        service =>
+          Number(
+            service.requires_patch_test ||
+            0
+          ) === 1
+      ) ||
+      Number(
+        consultationService.linked_patch_test_required ||
+        0
+      ) === 1;
 
     panel.innerHTML = `
       <h3>${escapeHtml(group.name)}</h3>
@@ -414,11 +441,16 @@ function renderSelectedBookingGroup(groupName) {
         New clients start with a consultation. The consultation is
         ${Number(consultationService.duration_minutes || 0)} minutes and
         ${escapeHtml(paymentText(consultationService))}.
+        ${
+          Number(consultationService.price_minor || 0) > 0
+            ? "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase."
+            : ""
+        }
         ${patchRequired ? "A patch test is required before treatment." : ""}
         ${
-          practitionerManaged && !clientBookable.length
+          practitionerManaged && !hasClientBookableTreatment
             ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
-            : clientBookable.length
+            : hasClientBookableTreatment
               ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
               : ""
         }

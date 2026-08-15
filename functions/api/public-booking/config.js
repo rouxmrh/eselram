@@ -72,7 +72,34 @@ export async function onRequestGet({ env }) {
               WHERE
                 spp.service_id = s.id
                 AND spp.provider_key = 'stripe'
-            ) AS stripe_allowed
+            ) AS stripe_allowed,
+            EXISTS (
+              SELECT 1
+              FROM services linked
+              WHERE
+                linked.business_id = s.business_id
+                AND linked.consultation_service_id = s.id
+                AND linked.is_active = 1
+                AND linked.requires_patch_test = 1
+            ) AS linked_patch_test_required,
+            EXISTS (
+              SELECT 1
+              FROM services linked
+              WHERE
+                linked.business_id = s.business_id
+                AND linked.consultation_service_id = s.id
+                AND linked.is_active = 1
+                AND linked.post_consultation_booking = 'practitioner_managed'
+            ) AS linked_practitioner_managed,
+            EXISTS (
+              SELECT 1
+              FROM services linked
+              WHERE
+                linked.business_id = s.business_id
+                AND linked.consultation_service_id = s.id
+                AND linked.is_active = 1
+                AND linked.post_consultation_booking = 'client_can_book'
+            ) AS linked_client_bookable
           FROM services s
           WHERE
             s.business_id = ?
@@ -170,6 +197,12 @@ export async function onRequestGet({ env }) {
           "free",
         requires_consultation: Number(service.requires_consultation || 0),
         requires_patch_test: Number(service.requires_patch_test || 0),
+        linked_patch_test_required:
+          Number(service.linked_patch_test_required || 0),
+        linked_practitioner_managed:
+          Number(service.linked_practitioner_managed || 0),
+        linked_client_bookable:
+          Number(service.linked_client_bookable || 0),
         online_booking_available:
           !requiresOnlinePayment ||
           (Number(service.stripe_allowed || 0) === 1 && stripeReady),
