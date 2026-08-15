@@ -95,38 +95,38 @@ function renderStats() {
   );
 }
 
-function renderTemplates() {
-  const wrap = $("#packageTemplatesList");
-
-  if (!templates.length) {
-    wrap.innerHTML = `
-      <div class="es-empty-state" style="grid-column:1/-1;">
-        <strong>No package templates yet.</strong>
-        <span>Create a reusable package such as 6 sessions, a course of 3, or any other service bundle.</span>
-      </div>
-    `;
-    return;
-  }
-
-  wrap.innerHTML = templates.map(item => `
+function packageTemplateCard(
+  item,
+  archived = false
+) {
+  return `
     <article class="es-package-card">
       <div class="es-package-card-head">
         <div>
           <h3>${escapeHtml(item.name)}</h3>
           <span>${escapeHtml(item.service_name)}</span>
         </div>
-        <span class="es-package-status">${item.is_active ? "Active" : "Inactive"}</span>
+
+        <span class="es-package-status">
+          ${archived ? "Archived" : "Active"}
+        </span>
       </div>
 
       <div class="es-package-meta">
         <span>${item.sessions_total} sessions</span>
         <span>${money(item.price_minor)}</span>
+
         ${Number(item.deposit_minor || 0) > 0
           ? `<span>${money(item.deposit_minor)} suggested deposit</span>`
           : ""}
+
         ${item.validity_days
           ? `<span>${item.validity_days} days validity</span>`
           : `<span>No expiry rule</span>`}
+
+        ${item.is_public && !archived
+          ? `<span>Public purchase enabled</span>`
+          : ""}
       </div>
 
       ${item.description
@@ -134,25 +134,251 @@ function renderTemplates() {
         : ""}
 
       <div class="es-package-actions">
-        <button
-          class="es-secondary-button"
-          type="button"
-          data-edit-template="${escapeHtml(item.id)}"
-        >
-          Edit
-        </button>
+        ${
+          archived
+            ? `
+              <button
+                class="es-secondary-button"
+                type="button"
+                data-restore-template="${escapeHtml(item.id)}"
+              >
+                Restore
+              </button>
+            `
+            : `
+              <button
+                class="es-secondary-button"
+                type="button"
+                data-edit-template="${escapeHtml(item.id)}"
+              >
+                Edit
+              </button>
+
+              <button
+                class="es-secondary-button es-package-action-danger"
+                type="button"
+                data-archive-template="${escapeHtml(item.id)}"
+              >
+                Delete
+              </button>
+            `
+        }
       </div>
     </article>
-  `).join("");
+  `;
+}
 
-  wrap.querySelectorAll("[data-edit-template]").forEach(button => {
-    button.addEventListener("click", () => {
-      const template = templates.find(
-        item => item.id === button.dataset.editTemplate
+
+function bindTemplateActions(root) {
+  root
+    .querySelectorAll(
+      "[data-edit-template]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          const template =
+            templates.find(
+              item =>
+                item.id ===
+                button.dataset.editTemplate
+            );
+
+          if (template) {
+            openTemplateDialog(
+              template
+            );
+          }
+        }
       );
-      if (template) openTemplateDialog(template);
     });
-  });
+
+  root
+    .querySelectorAll(
+      "[data-archive-template]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        async () => {
+          const template =
+            templates.find(
+              item =>
+                item.id ===
+                button.dataset.archiveTemplate
+            );
+
+          if (!template) {
+            return;
+          }
+
+          const confirmed =
+            window.confirm(
+              `Delete "${template.name}" from active packages? It will move to Archived packages and can be restored later. Existing customer packages are not affected.`
+            );
+
+          if (!confirmed) {
+            return;
+          }
+
+          button.disabled = true;
+          const original =
+            button.textContent;
+          button.textContent =
+            "Archiving…";
+
+          try {
+            await postPackage({
+              action:
+                "archive_template",
+              id:
+                template.id
+            });
+
+            await load();
+          } catch (error) {
+            window.alert(
+              error.message ||
+              "Unable to archive package."
+            );
+
+            button.disabled = false;
+            button.textContent =
+              original;
+          }
+        }
+      );
+    });
+
+  root
+    .querySelectorAll(
+      "[data-restore-template]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        async () => {
+          const template =
+            templates.find(
+              item =>
+                item.id ===
+                button.dataset.restoreTemplate
+            );
+
+          if (!template) {
+            return;
+          }
+
+          button.disabled = true;
+          const original =
+            button.textContent;
+          button.textContent =
+            "Restoring…";
+
+          try {
+            await postPackage({
+              action:
+                "restore_template",
+              id:
+                template.id
+            });
+
+            await load();
+          } catch (error) {
+            window.alert(
+              error.message ||
+              "Unable to restore package."
+            );
+
+            button.disabled = false;
+            button.textContent =
+              original;
+          }
+        }
+      );
+    });
+}
+
+
+function renderTemplates() {
+  const activeWrap =
+    $("#packageTemplatesList");
+
+  const archivedWrap =
+    $("#archivedPackageTemplatesList");
+
+  const archiveCount =
+    $("#packageArchiveCount");
+
+  const archive =
+    $("#packageArchive");
+
+  const activeTemplates =
+    templates.filter(
+      item =>
+        Number(item.is_active) === 1
+    );
+
+  const archivedTemplates =
+    templates.filter(
+      item =>
+        Number(item.is_active) !== 1
+    );
+
+  archiveCount.textContent =
+    archivedTemplates.length;
+
+  if (!activeTemplates.length) {
+    activeWrap.innerHTML = `
+      <div class="es-empty-state" style="grid-column:1/-1;">
+        <strong>No active package templates.</strong>
+        <span>Create a reusable package such as 6 sessions, a course of 3, or restore one from the archive.</span>
+      </div>
+    `;
+  } else {
+    activeWrap.innerHTML =
+      activeTemplates
+        .map(
+          item =>
+            packageTemplateCard(
+              item,
+              false
+            )
+        )
+        .join("");
+  }
+
+  if (!archivedTemplates.length) {
+    archivedWrap.innerHTML = `
+      <div class="es-empty-state" style="grid-column:1/-1;">
+        <strong>No archived packages.</strong>
+        <span>Deleted package templates will be kept here so they can be restored later.</span>
+      </div>
+    `;
+    archive.removeAttribute(
+      "open"
+    );
+  } else {
+    archivedWrap.innerHTML =
+      archivedTemplates
+        .map(
+          item =>
+            packageTemplateCard(
+              item,
+              true
+            )
+        )
+        .join("");
+  }
+
+  bindTemplateActions(
+    activeWrap
+  );
+
+  bindTemplateActions(
+    archivedWrap
+  );
 }
 
 function renderCustomerPackages() {
