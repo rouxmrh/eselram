@@ -138,6 +138,188 @@
       padding:26px;
     }
 
+    .es-package-archive {
+      margin-top:18px;
+      border-top:1px solid var(--es-border);
+      padding-top:16px;
+    }
+
+    .es-package-archive summary {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      min-height:42px;
+      cursor:pointer;
+      font-weight:800;
+      list-style:none;
+    }
+
+    .es-package-archive summary::-webkit-details-marker {
+      display:none;
+    }
+
+    .es-package-archive summary::after {
+      content:"⌄";
+      color:var(--es-muted);
+      font-size:16px;
+      line-height:1;
+      transition:transform .15s ease;
+    }
+
+    .es-package-archive[open] summary::after {
+      transform:rotate(180deg);
+    }
+
+    .es-package-archive-count {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:28px;
+      min-height:28px;
+      padding:0 8px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:#f7f8f5;
+      color:var(--es-muted);
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .es-package-archive .es-package-grid {
+      margin-top:14px;
+    }
+
+    .es-package-toggle-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin:18px 0 4px;
+    }
+
+    .es-package-toggle {
+      position:relative;
+      display:block;
+      cursor:pointer;
+    }
+
+    .es-package-toggle input {
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .es-package-toggle-card {
+      display:grid;
+      grid-template-columns:40px minmax(0,1fr);
+      gap:12px;
+      align-items:center;
+      min-height:78px;
+      padding:14px;
+      border:1px solid var(--es-border);
+      border-radius:16px;
+      background:#fafbf8;
+      transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
+    }
+
+    .es-package-toggle-control {
+      display:inline-flex;
+      align-items:center;
+      width:40px;
+      height:24px;
+      padding:3px;
+      border-radius:999px;
+      background:#cfd4cf;
+      box-sizing:border-box;
+      transition:background .15s ease;
+    }
+
+    .es-package-toggle-control::after {
+      content:"";
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 1px 4px rgba(24,34,31,.16);
+      transition:transform .15s ease;
+    }
+
+    .es-package-toggle-copy {
+      display:grid;
+      gap:3px;
+      min-width:0;
+    }
+
+    .es-package-toggle-copy strong {
+      font-size:12px;
+      line-height:1.25;
+    }
+
+    .es-package-toggle-copy span {
+      color:var(--es-muted);
+      font-size:10px;
+      line-height:1.4;
+    }
+
+    .es-package-toggle input:checked + .es-package-toggle-card {
+      border-color:rgba(54,81,120,.5);
+      background:rgba(54,81,120,.07);
+      box-shadow:0 5px 16px rgba(28,34,30,.035);
+    }
+
+    .es-package-toggle input:checked + .es-package-toggle-card .es-package-toggle-control {
+      background:var(--es-primary);
+    }
+
+    .es-package-toggle input:checked + .es-package-toggle-card .es-package-toggle-control::after {
+      transform:translateX(16px);
+    }
+
+    .es-package-form-actions {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-top:22px;
+    }
+
+    .es-package-form-actions .es-button,
+    .es-package-form-actions .es-secondary-button {
+      width:150px;
+      height:48px;
+      min-height:48px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      line-height:1;
+      margin:0;
+    }
+
+    .es-package-action-danger {
+      color:#a33b32;
+    }
+
+    .es-package-action-danger:hover {
+      border-color:#d8aaa5;
+      background:#fff8f7;
+    }
+
+    @media(max-width:650px) {
+      .es-package-toggle-grid {
+        grid-template-columns:1fr;
+      }
+
+      .es-package-form-actions {
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .es-package-form-actions .es-button,
+      .es-package-form-actions .es-secondary-button {
+        width:100%;
+      }
+    }
+
     @media(max-width:800px) {
       .es-package-grid,
       .es-package-form-grid,
@@ -273,6 +455,15 @@
 
       <div id="packageTemplatesView" hidden>
         <div id="packageTemplatesList" class="es-package-grid"></div>
+
+        <details id="packageArchive" class="es-package-archive">
+          <summary>
+            <span>Archived packages</span>
+            <span id="packageArchiveCount" class="es-package-archive-count">0</span>
+          </summary>
+
+          <div id="archivedPackageTemplatesList" class="es-package-grid"></div>
+        </details>
       </div>
     </section>
   </main>
@@ -324,19 +515,37 @@
         <textarea id="templateDescription" maxlength="1000"></textarea>
       </label>
 
-      <label style="display:flex;gap:8px;align-items:center;">
-        <input id="templateActive" type="checkbox" checked>
-        Package is active
-      </label>
+      <div class="es-package-toggle-grid">
+        <label class="es-package-toggle">
+          <input id="templateActive" type="checkbox" checked>
 
-      <label style="display:flex;gap:8px;align-items:center;">
-        <input id="templatePublic" type="checkbox">
-        Available for public purchase
-      </label>
+          <span class="es-package-toggle-card">
+            <span class="es-package-toggle-control" aria-hidden="true"></span>
+
+            <span class="es-package-toggle-copy">
+              <strong>Package is active</strong>
+              <span>Can be assigned or sold to customers.</span>
+            </span>
+          </span>
+        </label>
+
+        <label class="es-package-toggle">
+          <input id="templatePublic" type="checkbox">
+
+          <span class="es-package-toggle-card">
+            <span class="es-package-toggle-control" aria-hidden="true"></span>
+
+            <span class="es-package-toggle-copy">
+              <strong>Available for public purchase</strong>
+              <span>Show this package on the public purchase page.</span>
+            </span>
+          </span>
+        </label>
+      </div>
 
       <div id="templateStatus" class="es-status" hidden></div>
 
-      <div class="es-form-actions">
+      <div class="es-package-form-actions">
         <button class="es-button" type="submit">Save package</button>
         <button id="closeTemplateDialog" class="es-secondary-button" type="button">Cancel</button>
       </div>
