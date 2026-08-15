@@ -346,12 +346,12 @@ export async function onRequestPost({ request, env }) {
       paymentChoice === "deposit" ? "deposit" : "full",
       amountMinor,
       currency,
-      `Public package purchase: ${template.name}`
+      `Public package purchase: ${resolvedName}`
     ).run();
 
     await env.DB.prepare(`
       INSERT INTO package_sales (
-        id, business_id, customer_id, package_template_id,
+        id, business_id, customer_id, package_template_id, package_variant_id,
         source, payment_choice, amount_minor, currency,
         status, payment_id,
         consultation_credit_source_appointment_id, consultation_credit_minor
@@ -362,6 +362,7 @@ export async function onRequestPost({ request, env }) {
       business.id,
       customer.id,
       template.id,
+      variant?.id || null,
       paymentChoice,
       amountMinor,
       currency,
