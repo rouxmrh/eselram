@@ -535,6 +535,69 @@ function populateSelects() {
       .join("");
 }
 
+function updatePackagePublicAvailability() {
+  const service =
+    services.find(
+      item =>
+        item.id ===
+        $("#templateService").value
+    );
+
+  const publicToggle =
+    $("#templatePublic");
+
+  const note =
+    $("#templatePublicNote");
+
+  if (!service) {
+    publicToggle.disabled = false;
+    note.hidden = true;
+    note.textContent = "";
+    return;
+  }
+
+  const consultationService =
+    String(
+      service.service_type ||
+      "standard"
+    ) === "consultation";
+
+  const practitionerManaged =
+    Number(
+      service.requires_consultation ||
+      0
+    ) === 1 &&
+    String(
+      service.post_consultation_booking ||
+      "client_can_book"
+    ) ===
+      "practitioner_managed";
+
+  if (
+    consultationService ||
+    practitionerManaged
+  ) {
+    publicToggle.checked =
+      false;
+    publicToggle.disabled =
+      true;
+
+    note.hidden = false;
+    note.textContent =
+      consultationService
+        ? "Packages cannot be linked to a consultation service. Choose the related treatment/service instead."
+        : "This service is practitioner managed after consultation, so its packages are sold or assigned internally and are not shown for public purchase.";
+
+    return;
+  }
+
+  publicToggle.disabled =
+    false;
+  note.hidden = true;
+  note.textContent = "";
+}
+
+
 function openTemplateDialog(template = null) {
   $("#templateForm").reset();
   $("#templateStatus").hidden = true;
@@ -552,6 +615,8 @@ function openTemplateDialog(template = null) {
   $("#templateDescription").value = template?.description || "";
   $("#templateActive").checked = template ? Number(template.is_active) === 1 : true;
   $("#templatePublic").checked = template ? Number(template.is_public) === 1 : false;
+
+  updatePackagePublicAvailability();
 
   $("#templateDialog").showModal();
 }
@@ -594,6 +659,11 @@ async function postPackage(payload) {
 
   return data;
 }
+
+$("#templateService").addEventListener(
+  "change",
+  updatePackagePublicAvailability
+);
 
 $("#newTemplateButton").addEventListener("click", () => openTemplateDialog());
 $("#assignPackageButton").addEventListener("click", openAssignDialog);
