@@ -168,6 +168,7 @@ export async function onRequestGet({ request, env }) {
         WHERE
           business_id = ?
           AND is_active = 1
+          AND is_published = 1
           AND is_client_sendable = 0
         ORDER BY
           template_type,
@@ -305,6 +306,7 @@ export async function onRequestPost({ request, env }) {
                 id = ?
                 AND business_id = ?
                 AND is_active = 1
+                AND is_published = 1
               LIMIT 1
             `
           : `
