@@ -504,7 +504,7 @@ export async function onRequestPost({ request, env }) {
               is_active,
               is_public
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `)
           .bind(
             templateId,
@@ -516,6 +516,7 @@ export async function onRequestPost({ request, env }) {
             priceMinor,
             depositMinor,
             validityDays,
+            body.is_active === 0 ? 0 : 1,
             body.is_public === 1 ? 1 : 0
           )
           .run();
@@ -526,6 +527,81 @@ export async function onRequestPost({ request, env }) {
         template: { id: templateId }
       });
     }
+
+    if (
+      action ===
+        "archive_template" ||
+      action ===
+        "restore_template"
+    ) {
+      const id =
+        String(
+          body.id ||
+          ""
+        ).trim();
+
+      if (!id) {
+        return badRequest(
+          "Package template id is required."
+        );
+      }
+
+      const existing =
+        await env.DB
+          .prepare(`
+            SELECT id
+            FROM package_templates
+            WHERE
+              id = ?
+              AND business_id = ?
+            LIMIT 1
+          `)
+          .bind(
+            id,
+            user.business_id
+          )
+          .first();
+
+      if (!existing) {
+        return notFound(
+          "Package template not found."
+        );
+      }
+
+      const restoring =
+        action ===
+        "restore_template";
+
+      await env.DB
+        .prepare(`
+          UPDATE package_templates
+          SET
+            is_active = ?,
+            is_public =
+              CASE
+                WHEN ? = 0
+                  THEN 0
+                ELSE is_public
+              END,
+            updated_at =
+              CURRENT_TIMESTAMP
+          WHERE
+            id = ?
+            AND business_id = ?
+        `)
+        .bind(
+          restoring ? 1 : 0,
+          restoring ? 1 : 0,
+          id,
+          user.business_id
+        )
+        .run();
+
+      return Response.json({
+        ok: true
+      });
+    }
+
 
     if (action === "assign") {
       const customerId = String(body.customer_id || "").trim();
