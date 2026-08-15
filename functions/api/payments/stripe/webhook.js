@@ -487,7 +487,9 @@ async function updatePaymentFromSession({
         await sendPaymentReceipt({
           env,
           businessId,
-          paymentId
+          paymentId,
+          baseUrl:
+            new URL(request.url).origin
         });
 
       if (

@@ -1389,7 +1389,9 @@ export async function onRequestPost({
         businessId:
           user.business_id,
         paymentId:
-          id
+          id,
+        baseUrl:
+          new URL(request.url).origin
       });
     } catch (emailError) {
       console.error(
