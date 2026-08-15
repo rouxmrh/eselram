@@ -13,7 +13,7 @@ export async function onRequestGet({ env }) {
       );
     }
 
-    const [packageRows, variantRows] = await Promise.all([
+    const [packageRows, variantRows, branding] = await Promise.all([
       env.DB.prepare(`
         SELECT
           pt.id,
@@ -77,7 +77,14 @@ export async function onRequestGet({ env }) {
           pv.package_template_id,
           pv.sort_order,
           pv.name COLLATE NOCASE
-      `).bind(business.id).all()
+      `).bind(business.id).all(),
+
+      env.DB.prepare(`
+        SELECT primary_colour
+        FROM business_branding
+        WHERE business_id = ?
+        LIMIT 1
+      `).bind(business.id).first()
     ]);
 
     const variants = variantRows.results || [];
@@ -113,6 +120,11 @@ export async function onRequestGet({ env }) {
       business: {
         name: business.name,
         currency: business.currency || "GBP"
+      },
+      branding: {
+        primary_colour:
+          branding?.primary_colour ||
+          "#365178"
       },
       packages
     });

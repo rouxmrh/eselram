@@ -77,6 +77,11 @@ export async function onRequestGet({ env }) {
           WHERE
             s.business_id = ?
             AND s.is_active = 1
+            AND (
+              s.service_type = 'consultation'
+              OR s.requires_consultation = 0
+              OR s.post_consultation_booking = 'client_can_book'
+            )
           ORDER BY s.sort_order ASC, s.name COLLATE NOCASE ASC
         `)
         .bind(business.id)
