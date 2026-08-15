@@ -104,12 +104,6 @@ const openTreatmentCustomerButton =
   );
 
 
-const createNextTreatmentButton =
-  document.getElementById(
-    "createNextTreatmentButton"
-  );
-
-
 let records = [];
 let customers = [];
 let appointments = [];
@@ -176,18 +170,6 @@ document
       );
     }
   );
-
-
-createNextTreatmentButton.addEventListener(
-  "click",
-  () => {
-    if (!activeRecord) return;
-    const source = activeRecord;
-    closeTreatmentDrawer();
-    openTreatmentForm();
-    applySafePreviousRecordDefaults(source);
-  }
-);
 
 
 treatmentSearch.addEventListener(
@@ -584,30 +566,6 @@ function openTreatmentForm(
 }
 
 
-function applySafePreviousRecordDefaults(source) {
-  if (!source) return;
-
-  treatmentCustomer.value = source.customer_id || "";
-  renderAppointmentOptions();
-
-  treatmentService.value = source.service_id || "";
-  practitionerName.value = source.practitioner_name || currentUser?.name || "";
-  document.getElementById("treatmentArea").value = source.treatment_area || "";
-  document.getElementById("deviceName").value = source.device_name || "";
-
-  // Clinical observations and treatment settings deliberately stay blank.
-  document.getElementById("deviceSettings").value = "";
-  document.getElementById("treatmentNotes").value = "";
-  document.getElementById("clientResponse").value = "";
-  document.getElementById("clientTolerance").value = "";
-  document.getElementById("aftercareNotes").value = "";
-  document.getElementById("nextSessionPlan").value = "";
-  document.getElementById("nextTreatmentDate").value = "";
-  document.getElementById("treatmentStatus").value = "complete";
-
-  chooseSmartTreatmentAppointment(source.customer_id, source.service_id);
-}
-
 function chooseSmartTreatmentAppointment(customerId, serviceId = "") {
   const now = Date.now();
 
@@ -624,7 +582,6 @@ function chooseSmartTreatmentAppointment(customerId, serviceId = "") {
         String(record.appointment_id || "") === String(appointment.id)
     );
 
-  // "Create next record" is used for package and non-package treatments.
   // Prefer the customer's next unrecorded treatment appointment for this
   // service. If none is upcoming, fall back to the nearest unrecorded past
   // appointment, then to the nearest matching appointment of any kind.
@@ -1713,18 +1670,9 @@ loadTreatmentRecords().then(() => {
       "customer"
     );
 
-  const copyId =
-    params.get(
-      "copy"
-    );
-
   if (recordId) {
     const record = records.find((item) => item.id === recordId);
     if (record) showTreatmentDetails(record);
-  } else if (copyId) {
-    const source = records.find((item) => item.id === copyId);
-    openTreatmentForm();
-    if (source) applySafePreviousRecordDefaults(source);
   } else if (customerId) {
     openTreatmentForm();
     treatmentCustomer.value = customerId;
