@@ -484,6 +484,52 @@
       flex-wrap:wrap;
     }
 
+
+    .es-bookings-view-link {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      box-sizing:border-box;
+    }
+
+    .es-bookings-view-link:hover {
+      text-decoration:none;
+    }
+
+    #bookingPackagesList .es-booking-actions {
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      flex-wrap:nowrap;
+    }
+
+    #bookingPackagesList .es-booking-action {
+      min-width:92px;
+      height:38px;
+      min-height:38px;
+      padding:0 14px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      line-height:1;
+      white-space:nowrap;
+      text-decoration:none;
+    }
+
+    @media(max-width:700px) {
+      .es-bookings-view-switcher {
+        max-width:100%;
+        overflow-x:auto;
+      }
+
+      #bookingPackagesList .es-booking-actions {
+        justify-content:flex-start;
+      }
+    }
+
 </style>
 </head>
 
@@ -551,6 +597,15 @@
         >
           Manage bookings
         </button>
+
+        <a
+          class="es-bookings-view-button es-bookings-view-link"
+          href="/settings/#hours"
+          role="tab"
+          aria-selected="false"
+        >
+          Block dates
+        </a>
       </div>
 
 
@@ -586,22 +641,7 @@
               </div>
             </div>
 
-            <div class="es-bookings-week-actions">
-              <button
-                id="openManageBookingsButton"
-                class="es-button es-bookings-week-action"
-                type="button"
-              >
-                Open manage bookings
-              </button>
 
-              <a
-                class="es-secondary-button es-bookings-week-action"
-                href="/settings/#hours"
-              >
-                Block dates
-              </a>
-            </div>
           </aside>
         </div>
       </section>

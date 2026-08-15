@@ -1412,7 +1412,7 @@ function renderBookingPackages() {
                   ? `
                     <a
                       class="es-booking-action"
-                      href="/bookings/?package=${encodeURIComponent(
+                      href="/bookings/?view=bookings&package=${encodeURIComponent(
                         item.id
                       )}"
                       style="text-decoration:none;display:inline-flex;align-items:center;"
@@ -4242,6 +4242,18 @@ async function initialiseBookingsPage() {
     );
 
 
+  if (
+    packageIdFromUrl &&
+    typeof window.setBookingsWorkspaceView ===
+      "function"
+  ) {
+    window.setBookingsWorkspaceView(
+      "bookings",
+      false
+    );
+  }
+
+
   if (packageIdFromUrl) {
     await openPackageBooking(
       packageIdFromUrl
@@ -4250,6 +4262,16 @@ async function initialiseBookingsPage() {
 
 
   if (date && !packageIdFromUrl) {
+
+    if (
+      typeof window.setBookingsWorkspaceView ===
+        "function"
+    ) {
+      window.setBookingsWorkspaceView(
+        "bookings",
+        false
+      );
+    }
 
     openBookingForm();
 
