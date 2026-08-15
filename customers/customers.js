@@ -4613,6 +4613,26 @@ window.addEventListener("message", event => {
 });
 
 
-loadCustomers();
+const initialCustomerId =
+  new URLSearchParams(
+    location.search
+  )
+    .get("customer");
+
+
+loadCustomers()
+  .then(
+    () => {
+      if (initialCustomerId) {
+        return loadCustomerProfile(
+          initialCustomerId
+        );
+      }
+
+      return null;
+    }
+  );
+
+
 loadCustomerClinicalOverview();
 
