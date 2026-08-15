@@ -58,6 +58,7 @@ export async function onRequestPost({ request, env }) {
         pt.name,
         pt.sessions_total,
         pt.price_minor,
+        pt.payment_rule,
         pt.deposit_minor,
         pt.validity_days,
         s.requires_consultation,
@@ -83,6 +84,7 @@ export async function onRequestPost({ request, env }) {
         pv.service_id,
         pv.name,
         pv.price_minor,
+        pv.payment_rule,
         pv.deposit_minor,
         s.requires_consultation,
         s.post_consultation_booking
@@ -136,6 +138,17 @@ export async function onRequestPost({ request, env }) {
         )
       );
 
+    const resolvedPaymentRule =
+      String(
+        variant?.payment_rule ??
+        template.payment_rule ??
+        (
+          resolvedDepositMinor > 0
+            ? "deposit"
+            : "full"
+        )
+      );
+
     const resolvedName =
       variant
         ? `${template.name} · ${variant.name}`
@@ -169,6 +182,24 @@ export async function onRequestPost({ request, env }) {
         },
         { status: 409 }
       );
+    }
+
+    if (resolvedPaymentRule === "pay_later") {
+      return badRequest("This package is not available for online purchase.");
+    }
+
+    if (
+      resolvedPaymentRule === "full" &&
+      paymentChoice !== "full"
+    ) {
+      return badRequest("This package requires full payment.");
+    }
+
+    if (
+      resolvedPaymentRule === "deposit" &&
+      paymentChoice !== "deposit"
+    ) {
+      return badRequest("This package requires the configured deposit.");
     }
 
     const customer = await findOrCreatePublicCustomer({
@@ -231,7 +262,10 @@ export async function onRequestPost({ request, env }) {
     }
 
     const price = resolvedPriceMinor;
-    const deposit = resolvedDepositMinor;
+    const deposit =
+      resolvedPaymentRule === "deposit"
+        ? resolvedDepositMinor
+        : 0;
     const appliedConsultationCreditMinor = Math.min(consultationCreditMinor, price);
     const effectivePrice = Math.max(0, price - appliedConsultationCreditMinor);
     const effectiveDeposit = Math.max(0, deposit - appliedConsultationCreditMinor);

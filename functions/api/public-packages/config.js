@@ -21,6 +21,7 @@ export async function onRequestGet({ env }) {
           pt.description,
           pt.sessions_total,
           pt.price_minor,
+          pt.payment_rule,
           pt.deposit_minor,
           pt.validity_days,
           s.id AS service_id,
@@ -37,6 +38,7 @@ export async function onRequestGet({ env }) {
           AND pt.is_active = 1
           AND pt.is_public = 1
           AND s.is_active = 1
+          AND pt.payment_rule <> 'pay_later'
         ORDER BY pt.name COLLATE NOCASE
       `).bind(business.id).all(),
 
@@ -47,6 +49,7 @@ export async function onRequestGet({ env }) {
           pv.service_id,
           pv.name,
           pv.price_minor,
+          pv.payment_rule,
           pv.deposit_minor,
           s.name AS service_name,
           s.requires_consultation,
@@ -65,6 +68,7 @@ export async function onRequestGet({ env }) {
           AND pt.is_active = 1
           AND pt.is_public = 1
           AND s.is_active = 1
+          AND pv.payment_rule <> 'pay_later'
           AND (
             s.requires_consultation = 0
             OR s.post_consultation_booking = 'client_can_book'
