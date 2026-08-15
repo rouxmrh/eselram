@@ -783,6 +783,28 @@ function renderCustomerClinicalOverview(stats) {
           .join("");
     }
   }
+
+
+  document
+    .querySelectorAll(
+      "[data-customer-hub-open]"
+    )
+    .forEach(
+      (link) => {
+
+        link.addEventListener(
+          "click",
+          (event) => {
+            event.preventDefault();
+
+            loadCustomerProfile(
+              link.dataset
+                .customerHubOpen
+            );
+          }
+        );
+      }
+    );
 }
 
 
@@ -823,6 +845,7 @@ function customerHubRecordCard(
       <a
         class="es-customer-hub-record-action"
         href="/customers/?customer=${encodeURIComponent(record.customer_id)}"
+        data-customer-hub-open="${escapeHtml(record.customer_id)}"
       >
         Open customer
       </a>
