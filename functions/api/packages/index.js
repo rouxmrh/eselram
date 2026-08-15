@@ -3,6 +3,10 @@ import {
   hashSessionToken
 } from "../../../lib/auth.js";
 
+import {
+  hasCompletedConsultation
+} from "../../../lib/consultation-credit.js";
+
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
   if (!token) return null;
@@ -350,7 +354,15 @@ export async function onRequestGet({ request, env }) {
 
       env.DB
         .prepare(`
-          SELECT id, name, duration_minutes, price_minor
+          SELECT
+            id,
+            name,
+            duration_minutes,
+            price_minor,
+            service_type,
+            requires_consultation,
+            consultation_service_id,
+            post_consultation_booking
           FROM services
           WHERE business_id = ? AND is_active = 1
           ORDER BY sort_order, name COLLATE NOCASE
@@ -429,7 +441,12 @@ export async function onRequestPost({ request, env }) {
 
       const service = await env.DB
         .prepare(`
-          SELECT id
+          SELECT
+            id,
+            service_type,
+            requires_consultation,
+            consultation_service_id,
+            post_consultation_booking
           FROM services
           WHERE id = ? AND business_id = ?
           LIMIT 1
@@ -440,6 +457,37 @@ export async function onRequestPost({ request, env }) {
       if (!service) {
         return badRequest("Selected service was not found.");
       }
+
+      if (
+        String(
+          service.service_type ||
+          "standard"
+        ) === "consultation"
+      ) {
+        return badRequest(
+          "Packages must be linked to a treatment/service, not to a consultation service."
+        );
+      }
+
+      const practitionerManaged =
+        Number(
+          service.requires_consultation ||
+          0
+        ) === 1 &&
+        String(
+          service.post_consultation_booking ||
+          "client_can_book"
+        ) ===
+          "practitioner_managed";
+
+      const isPublic =
+        practitionerManaged
+          ? 0
+          : (
+              body.is_public === 1
+                ? 1
+                : 0
+            );
 
       const templateId = id || `pkg_${crypto.randomUUID()}`;
 
@@ -483,7 +531,7 @@ export async function onRequestPost({ request, env }) {
             depositMinor,
             validityDays,
             body.is_active === 0 ? 0 : 1,
-            body.is_public === 1 ? 1 : 0,
+            isPublic,
             id,
             user.business_id
           )
@@ -630,15 +678,21 @@ export async function onRequestPost({ request, env }) {
       const template = await env.DB
         .prepare(`
           SELECT
-            id,
-            service_id,
-            name,
-            sessions_total,
-            price_minor,
-            validity_days,
-            is_active
-          FROM package_templates
-          WHERE id = ? AND business_id = ?
+            pt.id,
+            pt.service_id,
+            pt.name,
+            pt.sessions_total,
+            pt.price_minor,
+            pt.validity_days,
+            pt.is_active,
+            s.requires_consultation
+          FROM package_templates pt
+          JOIN services s
+            ON s.id = pt.service_id
+           AND s.business_id = pt.business_id
+          WHERE
+            pt.id = ?
+            AND pt.business_id = ?
           LIMIT 1
         `)
         .bind(templateId, user.business_id)
@@ -646,6 +700,29 @@ export async function onRequestPost({ request, env }) {
 
       if (!template || Number(template.is_active) !== 1) {
         return badRequest("Package template is unavailable.");
+      }
+
+      if (
+        Number(
+          template.requires_consultation ||
+          0
+        ) === 1
+      ) {
+        const consultationCompleted =
+          await hasCompletedConsultation({
+            env,
+            businessId:
+              user.business_id,
+            customerId,
+            serviceId:
+              template.service_id
+          });
+
+        if (!consultationCompleted) {
+          return badRequest(
+            "Complete the required consultation before assigning this package."
+          );
+        }
       }
 
       let expiresOn = null;

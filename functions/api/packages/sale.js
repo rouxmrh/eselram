@@ -10,7 +10,8 @@ import {
 } from "../../../lib/stripe-business.js";
 
 import {
-  findAvailableConsultationCredit
+  findAvailableConsultationCredit,
+  hasCompletedConsultation
 } from "../../../lib/consultation-credit.js";
 
 
@@ -77,15 +78,51 @@ export async function onRequestPost({ request, env }) {
 
     const template = await env.DB.prepare(`
       SELECT
-        id, service_id, name, sessions_total,
-        price_minor, deposit_minor, validity_days, is_active
-      FROM package_templates
-      WHERE id = ? AND business_id = ?
+        pt.id,
+        pt.service_id,
+        pt.name,
+        pt.sessions_total,
+        pt.price_minor,
+        pt.deposit_minor,
+        pt.validity_days,
+        pt.is_active,
+        s.requires_consultation
+      FROM package_templates pt
+      JOIN services s
+        ON s.id = pt.service_id
+       AND s.business_id = pt.business_id
+      WHERE
+        pt.id = ?
+        AND pt.business_id = ?
       LIMIT 1
     `).bind(templateId, user.business_id).first();
 
     if (!template || Number(template.is_active) !== 1) {
       return badRequest("Package is unavailable.");
+    }
+
+    if (
+      Number(
+        template.requires_consultation ||
+        0
+      ) === 1
+    ) {
+      const consultationCompleted =
+        await hasCompletedConsultation({
+          env,
+          businessId:
+            user.business_id,
+          customerId:
+            customer.id,
+          serviceId:
+            template.service_id
+        });
+
+      if (!consultationCompleted) {
+        return badRequest(
+          "Complete the required consultation before selling this package."
+        );
+      }
     }
 
     const price = Math.max(0, Number(template.price_minor || 0));
