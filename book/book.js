@@ -354,135 +354,186 @@ function selectServiceRoute(service, bookingIntent) {
   setStep(2);
 }
 
-function renderServices() {
+function publicBookingGroup(service) {
+  return String(service.booking_group || service.name || "Service").trim() || "Service";
+}
+
+function groupedPublicServices() {
+  const groups = new Map();
+  for (const service of state.config?.services || []) {
+    const groupName = publicBookingGroup(service);
+    if (!groups.has(groupName)) groups.set(groupName, []);
+    groups.get(groupName).push(service);
+  }
+  return [...groups.entries()].map(([name, services]) => ({ name, services }));
+}
+
+function renderSelectedBookingGroup(groupName) {
   const container = $("#services");
-  container.innerHTML = "";
+  const groups = groupedPublicServices();
+  const group = groups.find(item => item.name === groupName) || groups[0];
+  if (!group) return;
 
-  const services = state.config?.services || [];
-  if (!services.length) {
-    const bookingEnabled =
-      state.config?.booking_rules?.enabled !== false;
+  container.querySelectorAll("[data-booking-group]").forEach(button => {
+    button.classList.toggle("active", button.dataset.bookingGroup === group.name);
+  });
 
-    container.innerHTML = `
-      <div class="message">
+  const panel = container.querySelector("#bookingGroupPanel");
+  const consultationServices = group.services.filter(
+    service => Number(service.requires_consultation || 0) === 1
+  );
+
+  if (consultationServices.length) {
+    const representative = consultationServices[0];
+    const clientBookable = consultationServices.filter(
+      service => String(service.post_consultation_booking || "client_can_book") === "client_can_book"
+    );
+    let selectedService = clientBookable[0] || representative;
+    const patchRequired = consultationServices.some(
+      service => Number(service.requires_patch_test || 0) === 1
+    );
+
+    panel.innerHTML = `
+      <h3>${escapeHtml(group.name)}</h3>
+      <p class="booking-category-copy">
+        New clients start with a consultation so the practitioner can assess suitability and recommend the right treatment or package.
+        The consultation is ${Number(representative.consultation_duration_minutes || 30)} minutes and ${escapeHtml(consultationPaymentText(representative))}.
+        ${patchRequired ? "A patch test is also required before treatment." : ""}
         ${
-          bookingEnabled
-            ? "No online services are available yet."
-            : "Online booking is currently unavailable."
+          clientBookable.length
+            ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
+            : "After the consultation, your practitioner will agree the correct treatment or package with you and manage the treatment bookings."
         }
+      </p>
+
+      ${clientBookable.length ? `
+        <div class="booking-service-pills">
+          ${clientBookable.map(service => `
+            <button class="booking-service-pill ${service.id === selectedService.id ? "active" : ""}" type="button" data-existing-service="${escapeHtml(service.id)}">
+              ${escapeHtml(serviceDisplayName(service.name))}
+            </button>
+          `).join("")}
+        </div>
+        <div id="existingServiceSummary" class="booking-service-summary"></div>
+      ` : ""}
+
+      <div class="service-choice-actions">
+        <button class="primary-button service-choice-button" type="button" id="bookSelectedConsultation" ${representative.online_booking_available ? "" : "disabled"}>
+          Book consultation
+        </button>
+        ${clientBookable.length ? `
+          <button class="text-button service-choice-button" type="button" id="bookExistingTreatment">
+            Existing client · Book treatment
+          </button>
+        ` : ""}
       </div>
     `;
+
+    panel.querySelector("#bookSelectedConsultation")?.addEventListener(
+      "click",
+      () => selectServiceRoute(representative, "consultation")
+    );
+
+    if (clientBookable.length) {
+      const summary = panel.querySelector("#existingServiceSummary");
+      function updateExistingService(service) {
+        selectedService = service;
+        panel.querySelectorAll("[data-existing-service]").forEach(button => {
+          button.classList.toggle("active", button.dataset.existingService === service.id);
+        });
+        summary.innerHTML = `
+          <strong>${escapeHtml(serviceDisplayName(service.name))}</strong>
+          <span>${Number(service.duration_minutes || 0)} min · ${escapeHtml(bookingDepositText(service))}</span>
+        `;
+      }
+      panel.querySelectorAll("[data-existing-service]").forEach(button => {
+        button.addEventListener("click", () => {
+          const service = clientBookable.find(item => item.id === button.dataset.existingService);
+          if (service) updateExistingService(service);
+        });
+      });
+      panel.querySelector("#bookExistingTreatment")?.addEventListener(
+        "click",
+        () => selectServiceRoute(selectedService, "service")
+      );
+      updateExistingService(selectedService);
+    }
     return;
   }
 
-  services.forEach((service) => {
-    const requiresConsultation =
-      Number(service.requires_consultation || 0) === 1;
+  let selectedService = group.services[0];
+  panel.innerHTML = `
+    <h3>${escapeHtml(group.name)}</h3>
+    ${group.services.length > 1 ? `
+      <p class="booking-category-copy">Choose the service you would like to book.</p>
+      <div class="booking-service-pills">
+        ${group.services.map(service => `
+          <button class="booking-service-pill ${service.id === selectedService.id ? "active" : ""}" type="button" data-direct-service="${escapeHtml(service.id)}">
+            ${escapeHtml(serviceDisplayName(service.name))}
+          </button>
+        `).join("")}
+      </div>
+    ` : ""}
+    <div id="directServiceSummary" class="booking-service-summary"></div>
+    <div class="service-choice-actions">
+      <button id="bookSelectedService" class="primary-button service-choice-button" type="button">Book treatment</button>
+    </div>
+  `;
 
-    const card = document.createElement("article");
-    card.className = "service-card service-choice-card";
-    card.dataset.serviceId = service.id;
+  const summary = panel.querySelector("#directServiceSummary");
+  const bookButton = panel.querySelector("#bookSelectedService");
 
-    if (!service.online_booking_available) {
-      card.classList.add("service-choice-card-disabled");
-    }
-
-    card.innerHTML = `
-      <h3>${escapeHtml(serviceDisplayName(service.name))}</h3>
-      <p>${escapeHtml(service.description || "")}</p>
-
-      ${
-        requiresConsultation
-          ? `
-            <div class="service-route-block">
-              <strong>First visit / consultation needed</strong>
-              <span>
-                ${Number(
-                  service.consultation_duration_minutes || 30
-                )} min · ${escapeHtml(
-                  consultationPaymentText(service)
-                )}
-              </span>
-              ${
-                Number(service.requires_patch_test || 0) === 1
-                  ? `<small>Patch test required before treatment.</small>`
-                  : ""
-              }
-            </div>
-
-            <div class="service-route-block">
-              <strong>Existing client</strong>
-              <span>
-                Completed consultation already? Book the treatment directly.
-              </span>
-              <span>
-                ${Number(service.duration_minutes || 0)} min ·
-                ${escapeHtml(bookingDepositText(service))}
-              </span>
-            </div>
-
-            <div class="service-choice-actions">
-              <button
-                class="primary-button service-choice-button"
-                type="button"
-                data-book-consultation="${escapeHtml(service.id)}"
-                ${service.online_booking_available ? "" : "disabled"}
-              >
-                Book consultation
-              </button>
-
-              <button
-                class="text-button service-choice-button"
-                type="button"
-                data-book-treatment="${escapeHtml(service.id)}"
-                ${service.online_booking_available ? "" : "disabled"}
-              >
-                Book treatment
-              </button>
-            </div>
-          `
-          : `
-            <div class="service-meta">
-              <span>${Number(service.duration_minutes || 0)} min</span>
-              <span>${escapeHtml(paymentText(service))}</span>
-            </div>
-
-            <div class="service-choice-actions">
-              <button
-                class="primary-button service-choice-button"
-                type="button"
-                data-book-treatment="${escapeHtml(service.id)}"
-                ${service.online_booking_available ? "" : "disabled"}
-              >
-                Book service
-              </button>
-            </div>
-          `
-      }
-
-      ${
-        service.unavailable_reason
-          ? `<div class="service-unavailable">${escapeHtml(
-              service.unavailable_reason
-            )}</div>`
-          : ""
-      }
+  function updateDirectService(service) {
+    selectedService = service;
+    panel.querySelectorAll("[data-direct-service]").forEach(button => {
+      button.classList.toggle("active", button.dataset.directService === service.id);
+    });
+    summary.innerHTML = `
+      <strong>${escapeHtml(serviceDisplayName(service.name))}</strong>
+      <span>${Number(service.duration_minutes || 0)} min · ${escapeHtml(bookingDepositText(service))}</span>
+      ${service.description ? `<span>${escapeHtml(service.description)}</span>` : ""}
     `;
+    bookButton.disabled = !service.online_booking_available;
+  }
 
-    card
-      .querySelector("[data-book-consultation]")
-      ?.addEventListener("click", () => {
-        selectServiceRoute(service, "consultation");
-      });
-
-    card
-      .querySelector("[data-book-treatment]")
-      ?.addEventListener("click", () => {
-        selectServiceRoute(service, "service");
-      });
-
-    container.appendChild(card);
+  panel.querySelectorAll("[data-direct-service]").forEach(button => {
+    button.addEventListener("click", () => {
+      const service = group.services.find(item => item.id === button.dataset.directService);
+      if (service) updateDirectService(service);
+    });
   });
+
+  bookButton.addEventListener("click", () => selectServiceRoute(selectedService, "service"));
+  updateDirectService(selectedService);
+}
+
+function renderServices() {
+  const container = $("#services");
+  const services = state.config?.services || [];
+  $("#publicPackagesButton").hidden = !state.config?.has_public_packages;
+
+  if (!services.length) {
+    container.innerHTML = `<div class="message">No online services are available yet.</div>`;
+    return;
+  }
+
+  const groups = groupedPublicServices();
+  container.innerHTML = `
+    <div class="booking-category-pills" role="tablist" aria-label="Treatments and services">
+      ${groups.map((group, index) => `
+        <button class="booking-category-pill ${index === 0 ? "active" : ""}" type="button" data-booking-group="${escapeHtml(group.name)}">
+          ${escapeHtml(group.name)}
+        </button>
+      `).join("")}
+    </div>
+    <div id="bookingGroupPanel" class="booking-category-panel"></div>
+  `;
+
+  container.querySelectorAll("[data-booking-group]").forEach(button => {
+    button.addEventListener("click", () => renderSelectedBookingGroup(button.dataset.bookingGroup));
+  });
+
+  renderSelectedBookingGroup(groups[0].name);
 }
 
 function escapeHtml(value) {
