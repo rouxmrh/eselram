@@ -561,21 +561,46 @@ function renderVariantEmpty() {
 function addVariantRow(variant = null) {
   const wrap = $("#packageVariantRows");
   wrap.querySelector(".es-package-variants-empty")?.remove();
+
   const row = document.createElement("div");
   row.className = "es-package-variant-row";
   row.dataset.variantId = variant?.id || "";
+
   row.innerHTML = `
     <label>Variant<input data-v-name type="text" maxlength="100" placeholder="e.g. Small" value="${escapeHtml(variant?.name || "")}"></label>
     <label>Service<select data-v-service><option value="">Choose service</option>${serviceOptionsHtml(variant?.service_id || "")}</select></label>
-    <label>Price<input data-v-price type="number" min="0" step="0.01" value="${variant ? (Number(variant.price_minor || 0)/100).toFixed(2) : ""}"></label>
-    <label>Deposit<input data-v-deposit type="number" min="0" step="0.01" value="${variant ? (Number(variant.deposit_minor || 0)/100).toFixed(2) : "0.00"}"></label>
+    <label>Price<input data-v-price type="number" min="0" step="0.01" value="${variant ? (Number(variant.price_minor || 0) / 100).toFixed(2) : ""}"></label>
+    <label>
+      Payment rule
+      <select data-v-rule>
+        <option value="full" ${(variant?.payment_rule || "full") === "full" ? "selected" : ""}>Full payment</option>
+        <option value="deposit" ${variant?.payment_rule === "deposit" ? "selected" : ""}>Deposit</option>
+        <option value="pay_later" ${variant?.payment_rule === "pay_later" ? "selected" : ""}>Pay later / staff managed</option>
+      </select>
+    </label>
+    <label data-v-deposit-wrap>Deposit amount<input data-v-deposit type="number" min="0" step="0.01" value="${variant ? (Number(variant.deposit_minor || 0) / 100).toFixed(2) : "0.00"}"></label>
     <button class="es-secondary-button" type="button" data-v-remove>Remove</button>
   `;
+
+  const rule = row.querySelector("[data-v-rule]");
+  const depositWrap = row.querySelector("[data-v-deposit-wrap]");
+
+  function updateVariantPaymentVisibility() {
+    depositWrap.hidden = rule.value !== "deposit";
+    if (depositWrap.hidden) {
+      row.querySelector("[data-v-deposit]").value = "0.00";
+    }
+  }
+
+  rule.addEventListener("change", updateVariantPaymentVisibility);
+  updateVariantPaymentVisibility();
+
   row.querySelector("[data-v-remove]").addEventListener("click", () => {
     row.remove();
     renderVariantEmpty();
     updateVariantPricingMode();
   });
+
   wrap.append(row);
   updateVariantPricingMode();
 }
@@ -587,9 +612,13 @@ function readVariants() {
       name: row.querySelector("[data-v-name]").value.trim(),
       service_id: row.querySelector("[data-v-service]").value,
       price_minor: Math.round(Number(row.querySelector("[data-v-price]").value || 0) * 100),
-      deposit_minor: Math.round(Number(row.querySelector("[data-v-deposit]").value || 0) * 100)
+      payment_rule: row.querySelector("[data-v-rule]").value,
+      deposit_minor:
+        row.querySelector("[data-v-rule]").value === "deposit"
+          ? Math.round(Number(row.querySelector("[data-v-deposit]").value || 0) * 100)
+          : 0
     }))
-    .filter(v => v.name || v.service_id);
+    .filter(variant => variant.name || variant.service_id);
 }
 
 function updateAssignVariantOptions() {
@@ -600,36 +629,90 @@ function updateAssignVariantOptions() {
   $("#assignVariant").innerHTML = variants.length
     ? `<option value="">Choose variant</option>` + variants.map(v => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.name)} · ${escapeHtml(v.service_name)} · ${money(v.price_minor)}</option>`).join("")
     : "";
+
+
+  updateAssignPaymentRule();
 }
 
+function updateAssignPaymentRule() {
+  const template =
+    templates.find(
+      item =>
+        item.id ===
+        $("#assignTemplate").value
+    );
+
+  const variant =
+    template?.variants?.find(
+      item =>
+        item.id ===
+        $("#assignVariant").value
+    );
+
+  const rule =
+    String(
+      variant?.payment_rule ??
+      template?.payment_rule ??
+      "full"
+    );
+
+  const select =
+    $("#assignPaymentChoice");
+
+  if (rule === "deposit") {
+    select.innerHTML =
+      `<option value="deposit">Take configured deposit online</option>`;
+  } else if (rule === "pay_later") {
+    select.innerHTML =
+      `<option value="assign_only">Assign now · record payment separately</option>`;
+  } else {
+    select.innerHTML =
+      `<option value="full">Take full payment online</option>`;
+  }
+}
+
+
 function updateVariantPricingMode() {
-  const variants = readVariants();
-  const hasVariants = variants.length > 0;
+  const hasVariants = readVariants().length > 0;
   const price = $("#templatePrice");
+  const paymentRule = $("#templatePaymentRule");
   const deposit = $("#templateDeposit");
 
   price.disabled = hasVariants;
+  paymentRule.disabled = hasVariants;
   deposit.disabled = hasVariants;
   price.required = !hasVariants;
 
   price.classList.toggle("es-package-derived-field", hasVariants);
+  paymentRule.classList.toggle("es-package-derived-field", hasVariants);
   deposit.classList.toggle("es-package-derived-field", hasVariants);
 
   $("#templatePriceHint").hidden = !hasVariants;
+  $("#templatePaymentRuleHint").hidden = !hasVariants;
   $("#templateDepositHint").hidden = !hasVariants;
 
   if (hasVariants) {
     price.value = "";
-    deposit.value = "";
     price.placeholder = "Set by package variants";
-    deposit.placeholder = "Set by package variants";
+    paymentRule.value = "full";
+    $("#templateDepositWrap").hidden = true;
+    deposit.value = "";
   } else {
     price.placeholder = "";
-    deposit.placeholder = "";
+    updateTemplatePaymentVisibility();
+  }
+}
 
-    if (!deposit.value) {
-      deposit.value = "0.00";
-    }
+function updateTemplatePaymentVisibility() {
+  const hasVariants = readVariants().length > 0;
+  const rule = $("#templatePaymentRule").value;
+
+  $("#templateDepositWrap").hidden =
+    hasVariants ||
+    rule !== "deposit";
+
+  if (!hasVariants && rule !== "deposit") {
+    $("#templateDeposit").value = "0.00";
   }
 }
 
@@ -708,6 +791,8 @@ function openTemplateDialog(template = null) {
   $("#templateSessions").value = template?.sessions_total || "";
   $("#templatePrice").value =
     template ? (Number(template.price_minor || 0) / 100).toFixed(2) : "";
+  $("#templatePaymentRule").value =
+    template?.payment_rule || "full";
   $("#templateDeposit").value =
     template ? (Number(template.deposit_minor || 0) / 100).toFixed(2) : "0.00";
   $("#templateValidity").value = template?.validity_days || "";
@@ -719,6 +804,7 @@ function openTemplateDialog(template = null) {
   for (const variant of template?.variants || []) addVariantRow(variant);
   renderVariantEmpty();
   updateVariantPricingMode();
+  updateTemplatePaymentVisibility();
 
   updatePackagePublicAvailability();
 
@@ -774,6 +860,7 @@ $("#addPackageVariant").addEventListener("click", () => {
   updateVariantPricingMode();
 });
 $("#assignTemplate").addEventListener("change", updateAssignVariantOptions);
+$("#assignVariant").addEventListener("change", updateAssignPaymentRule);
 
 $("#newTemplateButton").addEventListener("click", () => openTemplateDialog());
 $("#assignPackageButton").addEventListener("click", openAssignDialog);
@@ -818,7 +905,18 @@ $("#templateForm").addEventListener("submit", async event => {
       service_id: $("#templateService").value,
       sessions_total: Number($("#templateSessions").value),
       price_minor: derivedPriceMinor,
-      deposit_minor: derivedDepositMinor,
+      payment_rule:
+        variants.length
+          ? "full"
+          : $("#templatePaymentRule").value,
+      deposit_minor:
+        variants.length
+          ? 0
+          : (
+              $("#templatePaymentRule").value === "deposit"
+                ? derivedDepositMinor
+                : 0
+            ),
       validity_days: $("#templateValidity").value || null,
       description: $("#templateDescription").value.trim(),
       is_active: $("#templateActive").checked ? 1 : 0,
