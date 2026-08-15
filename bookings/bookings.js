@@ -681,6 +681,22 @@ function selectCustomer(
   customer
 ) {
 
+  if (
+    customerPackageId.value
+  ) {
+    showBookingError(
+      "This package session must be booked for the customer who owns the package."
+    );
+
+    customerSearch.value =
+      "";
+
+    customerSearchResults.hidden =
+      true;
+
+    return;
+  }
+
   selectedCustomerId.value =
     customer.id;
 
@@ -4189,6 +4205,16 @@ async function openPackageBooking(
 
   selectedCustomer.hidden =
     false;
+
+  // A package session always belongs to the package owner.
+  // Prevent staff from accidentally switching the customer or
+  // changing the package-covered service.
+  setBookingCustomerFieldsReadOnly(
+    true
+  );
+
+  serviceSelect.disabled =
+    true;
 
   packageBookingNotice.hidden =
     false;
