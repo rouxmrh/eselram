@@ -16,6 +16,20 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function clearCompletedCheckoutState() {
+  const key =
+    "eselram_public_checkout_pending";
+
+  try {
+    sessionStorage.removeItem(key);
+  } catch {}
+
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+}
+
+
 function money(minor, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
@@ -86,6 +100,8 @@ async function init() {
       text.textContent = "Stripe has returned you to the booking system, but the secure payment confirmation is taking a little longer than usual. Your booking reference has been saved.";
       return;
     }
+
+    clearCompletedCheckoutState();
 
     title.textContent = "Your appointment is confirmed";
     text.textContent = "Thank you. Your secure payment has been received and your appointment is now booked.";
@@ -165,6 +181,8 @@ backToBookingLink?.addEventListener(
   "click",
   event => {
     event.preventDefault();
+
+    clearCompletedCheckoutState();
 
     window.location.replace(
       "/book/"
