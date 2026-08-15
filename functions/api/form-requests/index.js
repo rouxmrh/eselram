@@ -170,6 +170,7 @@ export async function onRequestGet({ request, env }) {
           AND is_active = 1
           AND is_published = 1
           AND is_client_sendable = 0
+          AND lower(name) <> 'treatment record'
         ORDER BY
           template_type,
           name COLLATE NOCASE
@@ -307,6 +308,7 @@ export async function onRequestPost({ request, env }) {
                 AND business_id = ?
                 AND is_active = 1
                 AND is_published = 1
+                AND lower(name) <> 'treatment record'
               LIMIT 1
             `
           : `
