@@ -144,6 +144,7 @@ export async function onRequestGet({
       paymentRows,
       customerRows,
       appointmentRows,
+      packageRows,
       providerRows,
       paidMonth,
       refundMonth
@@ -360,6 +361,85 @@ export async function onRequestGet({
         env.DB
           .prepare(`
             SELECT
+              cp.id,
+              cp.customer_id,
+              cp.name_snapshot AS package_name,
+              cp.price_minor,
+              cp.starts_on,
+              cp.status,
+
+              c.first_name,
+              c.last_name,
+
+              s.name AS service_name,
+
+              COALESCE(
+                (
+                  SELECT SUM(
+                    CASE
+                      WHEN p.payment_type = 'refund'
+                           AND p.status = 'paid'
+                        THEN -ABS(p.amount_minor)
+                      WHEN p.payment_type != 'refund'
+                           AND p.status IN (
+                             'paid',
+                             'partially_refunded',
+                             'refunded'
+                           )
+                        THEN ABS(p.amount_minor)
+                      ELSE 0
+                    END
+                  )
+                  FROM customer_package_payments cpp
+                  JOIN payments p
+                    ON p.id = cpp.payment_id
+                  WHERE cpp.customer_package_id = cp.id
+                ),
+                0
+              ) AS paid_minor,
+
+              COALESCE(
+                (
+                  SELECT SUM(
+                    ps.consultation_credit_minor
+                  )
+                  FROM package_sales ps
+                  WHERE
+                    ps.business_id = cp.business_id
+                    AND ps.customer_package_id = cp.id
+                    AND ps.status = 'paid'
+                ),
+                0
+              ) AS consultation_credit_minor
+
+            FROM customer_packages cp
+
+            JOIN customers c
+              ON c.id = cp.customer_id
+
+            LEFT JOIN services s
+              ON s.id = cp.service_id
+
+            WHERE
+              cp.business_id = ?
+              AND cp.status NOT IN (
+                'cancelled',
+                'expired'
+              )
+
+            ORDER BY
+              date(cp.starts_on) DESC,
+              datetime(cp.created_at) DESC
+          `)
+          .bind(
+            user.business_id
+          )
+          .all(),
+
+
+        env.DB
+          .prepare(`
+            SELECT
               pp.provider_key,
               pp.display_name,
               pp.provider_type,
@@ -537,24 +617,91 @@ export async function onRequestGet({
       );
 
 
-    const outstanding =
-      appointments.filter(
-        (appointment) =>
+    const packageBalances =
+      (
+        packageRows.results ||
+        []
+      ).map(
+        item => {
+          const paidMinor =
+            Number(
+              item.paid_minor ||
+              0
+            );
+
+          const consultationCreditMinor =
+            Number(
+              item.consultation_credit_minor ||
+              0
+            );
+
+          const priceMinor =
+            Number(
+              item.price_minor ||
+              0
+            );
+
+          return {
+            ...item,
+            outstanding_type:
+              "package",
+            paid_minor:
+              paidMinor,
+            consultation_credit_minor:
+              consultationCreditMinor,
+            balance_minor:
+              Math.max(
+                priceMinor -
+                paidMinor -
+                consultationCreditMinor,
+                0
+              )
+          };
+        }
+      );
+
+
+    const appointmentOutstanding =
+      appointments
+        .filter(
+          appointment =>
+            Number(
+              appointment.balance_minor
+            ) > 0
+        )
+        .map(
+          appointment => ({
+            ...appointment,
+            outstanding_type:
+              "appointment"
+          })
+        );
+
+
+    const packageOutstanding =
+      packageBalances.filter(
+        item =>
           Number(
-            appointment.balance_minor
+            item.balance_minor
           ) > 0
       );
+
+
+    const outstanding = [
+      ...appointmentOutstanding,
+      ...packageOutstanding
+    ];
 
 
     const outstandingMinor =
       outstanding.reduce(
         (
           total,
-          appointment
+          item
         ) =>
           total +
           Number(
-            appointment.balance_minor ||
+            item.balance_minor ||
             0
           ),
         0
@@ -600,6 +747,9 @@ export async function onRequestGet({
         [],
 
       appointments,
+
+      package_balances:
+        packageBalances,
 
       outstanding,
 

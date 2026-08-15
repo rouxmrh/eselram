@@ -442,6 +442,39 @@ async function updatePaymentFromSession({
       .run();
 
 
+    const customerPackageId =
+      String(
+        session?.metadata
+          ?.customer_package_id ||
+        ""
+      ).trim();
+
+    if (
+      customerPackageId &&
+      paymentId
+    ) {
+      await env.DB.prepare(`
+        INSERT OR IGNORE INTO customer_package_payments (
+          customer_package_id,
+          payment_id
+        )
+        SELECT ?, ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM customer_packages
+          WHERE
+            id=?
+            AND business_id=?
+        )
+      `).bind(
+        customerPackageId,
+        paymentId,
+        customerPackageId,
+        businessId
+      ).run();
+    }
+
+
     await finalizePackageSale({
       env,
       session,

@@ -660,8 +660,10 @@ function updateAssignPaymentRule() {
     $("#assignPaymentChoice");
 
   if (rule === "deposit") {
-    select.innerHTML =
-      `<option value="deposit">Take configured deposit online</option>`;
+    select.innerHTML = `
+      <option value="full">Take remaining balance in full online</option>
+      <option value="deposit">Take configured deposit online</option>
+    `;
   } else if (rule === "pay_later") {
     select.innerHTML =
       `<option value="assign_only">Assign now · record payment separately</option>`;

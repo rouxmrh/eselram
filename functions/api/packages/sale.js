@@ -210,9 +210,13 @@ export async function onRequestPost({ request, env }) {
 
     if (
       resolvedPaymentRule === "deposit" &&
-      paymentChoice !== "deposit"
+      !["deposit", "full"].includes(
+        paymentChoice
+      )
     ) {
-      return badRequest("This package is configured for a deposit payment.");
+      return badRequest(
+        "Choose either the configured deposit or full payment for this package."
+      );
     }
 
     if (resolvedPaymentRule === "pay_later") {

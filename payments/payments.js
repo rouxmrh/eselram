@@ -165,11 +165,14 @@ let payments = [];
 let outstanding = [];
 let customers = [];
 let appointments = [];
+let packageBalances = [];
 let providers = [];
 let activeView = "payments";
 let activePayment = null;
 let activeTakePaymentAppointment = null;
+let activeTakePaymentPackage = null;
 let activeTakePaymentPaymentId = null;
+let activeRecordPackage = null;
 
 
 document
@@ -481,6 +484,10 @@ async function loadPayments() {
       data.appointments ||
       [];
 
+    packageBalances =
+      data.package_balances ||
+      [];
+
     providers =
       data.providers ||
       [];
@@ -560,6 +567,8 @@ function renderStats(
    ======================================================= */
 
 function openPaymentForm() {
+
+  activeRecordPackage = null;
 
   paymentForm.reset();
 
@@ -910,7 +919,15 @@ paymentForm.addEventListener(
                   paymentCustomer.value,
 
                 appointment_id:
-                  paymentAppointment.value ||
+                  activeRecordPackage
+                    ? null
+                    : (
+                        paymentAppointment.value ||
+                        null
+                      ),
+
+                customer_package_id:
+                  activeRecordPackage?.id ||
                   null,
 
                 amount_minor:
@@ -1292,20 +1309,18 @@ function renderOutstanding() {
       .trim()
       .toLowerCase();
 
-
   const filtered =
     outstanding.filter(
-      (item) => {
-
+      item => {
         if (!query) {
           return true;
         }
 
-
         return [
           item.first_name,
           item.last_name,
-          item.service_name
+          item.service_name,
+          item.package_name
         ]
           .filter(Boolean)
           .join(" ")
@@ -1314,106 +1329,112 @@ function renderOutstanding() {
       }
     );
 
-
-  if (
-    filtered.length === 0
-  ) {
-
+  if (filtered.length === 0) {
     paymentsList.className =
       "es-empty-state";
 
     paymentsList.innerHTML = `
       <strong>Nothing outstanding.</strong>
-      <span>All appointment balances are covered.</span>
+      <span>All appointment and package balances are covered.</span>
     `;
 
     return;
   }
 
-
   paymentsList.className =
     "es-finance-list";
-
 
   paymentsList.innerHTML =
     filtered
       .map(
-        (item) => `
-          <article class="es-finance-outstanding-row">
+        item => {
+          const isPackage =
+            item.outstanding_type ===
+              "package";
 
-            <div class="es-finance-cell">
-              <strong>
-                ${escapeHtml(`${item.first_name} ${item.last_name}`)}
-              </strong>
-              <span>${escapeHtml(item.service_name)}</span>
-            </div>
+          const label =
+            isPackage
+              ? item.package_name
+              : item.service_name;
 
-            <div class="es-finance-cell">
-              <strong>${formatShortDate(item.start_at)}</strong>
-              <span>${formatTime(item.start_at)}</span>
-            </div>
+          const dateValue =
+            isPackage
+              ? item.starts_on
+              : item.start_at;
 
-            <div class="es-finance-cell">
-              <strong>${formatMoney(item.price_minor)}</strong>
-              <span>Appointment value</span>
-            </div>
+          return `
+            <article class="es-finance-outstanding-row">
 
-            <div class="es-finance-cell">
-              <strong>${formatMoney(item.balance_minor)}</strong>
-              <span>Outstanding</span>
-            </div>
+              <div class="es-finance-cell">
+                <strong>
+                  ${escapeHtml(`${item.first_name} ${item.last_name}`)}
+                </strong>
+                <span>${escapeHtml(label || "")}</span>
+                <small>${isPackage ? "Package balance" : "Appointment balance"}</small>
+              </div>
 
-            <div class="es-finance-actions">
-              ${
-                item.customer_id
-                  ? `
-                    <a
-                      class="es-secondary-button"
-                      href="/customers/?customer=${encodeURIComponent(item.customer_id)}"
-                    >
-                      Customer
-                    </a>
-                  `
-                  : ""
-              }
+              <div class="es-finance-cell">
+                <strong>${formatShortDate(dateValue)}</strong>
+                <span>${isPackage ? "Package starts" : formatTime(dateValue)}</span>
+              </div>
 
-              <button
-                class="es-button"
-                type="button"
-                data-take-payment="${escapeHtml(item.id)}"
-              >
-                Take payment
-              </button>
+              <div class="es-finance-cell">
+                <strong>${formatMoney(item.price_minor)}</strong>
+                <span>${isPackage ? "Package value" : "Appointment value"}</span>
+              </div>
 
-              <button
-                class="es-payment-action"
-                type="button"
-                data-record-balance="${escapeHtml(item.id)}"
-              >
-                Record payment
-              </button>
-            </div>
+              <div class="es-finance-cell">
+                <strong>${formatMoney(item.balance_minor)}</strong>
+                <span>Outstanding</span>
+              </div>
 
-          </article>
-        `
+              <div class="es-finance-actions">
+                ${
+                  item.customer_id
+                    ? `
+                      <a
+                        class="es-secondary-button"
+                        href="/customers/?customer=${encodeURIComponent(item.customer_id)}"
+                      >
+                        Customer
+                      </a>
+                    `
+                    : ""
+                }
+
+                <button
+                  class="es-button"
+                  type="button"
+                  data-take-${isPackage ? "package" : "payment"}="${escapeHtml(item.id)}"
+                >
+                  Take payment
+                </button>
+
+                <button
+                  class="es-payment-action"
+                  type="button"
+                  data-record-${isPackage ? "package" : "balance"}="${escapeHtml(item.id)}"
+                >
+                  Record payment
+                </button>
+              </div>
+
+            </article>
+          `;
+        }
       )
       .join("");
 
-
   document
-    .querySelectorAll(
-      "[data-take-payment]"
-    )
+    .querySelectorAll("[data-take-payment]")
     .forEach(
-      (button) => {
-
+      button => {
         button.addEventListener(
           "click",
           () => {
-
             const appointment =
               appointments.find(
-                (item) =>
+                item =>
                   item.id ===
                   button.dataset.takePayment
               );
@@ -1428,30 +1449,47 @@ function renderOutstanding() {
       }
     );
 
-
   document
-    .querySelectorAll(
-      "[data-record-balance]"
-    )
+    .querySelectorAll("[data-take-package]")
     .forEach(
-      (button) => {
-
+      button => {
         button.addEventListener(
           "click",
           () => {
+            const item =
+              packageBalances.find(
+                packageItem =>
+                  packageItem.id ===
+                  button.dataset.takePackage
+              );
 
+            if (item) {
+              createPackagePaymentCheckout(
+                item
+              );
+            }
+          }
+        );
+      }
+    );
+
+  document
+    .querySelectorAll("[data-record-balance]")
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
             const appointment =
               appointments.find(
-                (item) =>
+                item =>
                   item.id ===
                   button.dataset.recordBalance
               );
 
-
             if (!appointment) {
               return;
             }
-
 
             openPaymentForm();
 
@@ -1459,7 +1497,6 @@ function renderOutstanding() {
               appointment.customer_id;
 
             renderAppointmentOptions();
-
             paymentAppointment.value =
               appointment.id;
 
@@ -1468,13 +1505,202 @@ function renderOutstanding() {
         );
       }
     );
+
+  document
+    .querySelectorAll("[data-record-package]")
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            const item =
+              packageBalances.find(
+                packageItem =>
+                  packageItem.id ===
+                  button.dataset.recordPackage
+              );
+
+            if (!item) {
+              return;
+            }
+
+            openPaymentForm();
+            activeRecordPackage =
+              item;
+
+            paymentCustomer.value =
+              item.customer_id;
+
+            renderAppointmentOptions();
+            paymentAppointment.value = "";
+
+            paymentAmount.value =
+              (
+                Number(
+                  item.balance_minor ||
+                  0
+                ) /
+                100
+              ).toFixed(2);
+
+            paymentType.value =
+              "balance";
+          }
+        );
+      }
+    );
 }
 
+
+
+async function createPackagePaymentCheckout(
+  item
+) {
+  activeTakePaymentAppointment =
+    null;
+
+  activeTakePaymentPackage =
+    item;
+
+  activeTakePaymentPaymentId =
+    null;
+
+  takePaymentResult.hidden =
+    true;
+
+  takePaymentStatus.hidden =
+    false;
+
+  takePaymentStatus.className =
+    "es-status";
+
+  takePaymentStatus.textContent =
+    "Creating secure Stripe Checkout…";
+
+  takePaymentContext.textContent =
+    `${item.first_name} ${item.last_name} · ${item.package_name}`;
+
+  takePaymentAmountSummary.innerHTML = `
+    <strong>${formatMoney(
+      item.balance_minor
+    )} outstanding</strong>
+    <span>
+      Package value ${formatMoney(
+        item.price_minor
+      )}
+      · Paid ${formatMoney(
+        item.paid_minor || 0
+      )}
+      ${
+        Number(
+          item.consultation_credit_minor ||
+          0
+        ) > 0
+          ? ` · Consultation credit ${formatMoney(
+              item.consultation_credit_minor
+            )}`
+          : ""
+      }
+    </span>
+  `;
+
+  if (
+    typeof takePaymentDialog.showModal ===
+    "function"
+  ) {
+    takePaymentDialog.showModal();
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/payments/stripe/package-checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              customer_package_id:
+                item.id
+            })
+        }
+      );
+
+    handleAuthentication(response);
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to create package payment link."
+      );
+    }
+
+    takePaymentLink.value =
+      data.checkout.url;
+
+    openTakePaymentLink.href =
+      data.checkout.url;
+
+    activeTakePaymentPaymentId =
+      data.checkout.payment_id;
+
+    if (
+      !window.EselramQr ||
+      typeof window.EselramQr.toDataUrl !==
+        "function"
+    ) {
+      throw new Error(
+        "Eselram QR generator is unavailable."
+      );
+    }
+
+    takePaymentQrCode.src =
+      window.EselramQr.toDataUrl(
+        data.checkout.url,
+        {
+          quiet: 4
+        }
+      );
+
+    takePaymentResult.hidden =
+      false;
+
+    takePaymentStatus.className =
+      "es-status success";
+
+    takePaymentStatus.textContent =
+      `${formatMoney(
+        data.checkout.amount_minor
+      )} ready to collect.`;
+
+  } catch (error) {
+    takePaymentStatus.className =
+      "es-status error";
+
+    takePaymentStatus.textContent =
+      error.message ||
+      "Unable to create package payment link.";
+  }
+}
 
 
 async function createTakePaymentCheckout(
   appointment
 ) {
+
+  activeTakePaymentPackage =
+    null;
 
   activeTakePaymentAppointment =
     appointment;
