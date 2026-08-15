@@ -2751,28 +2751,58 @@ function customerPhotoGroupKey(photo) {
   return `${photo.service_name || "Customer photos"}__${date}`;
 }
 
-function openCustomerPhotoCompare(beforePhoto, afterPhoto, label) {
+function openCustomerPhotoCompare(beforePhotos, afterPhotos, label) {
   customerPhotoCompareSelection = {
-    beforePhoto,
-    afterPhoto,
+    beforePhotos,
+    afterPhotos,
     label
   };
 
   const dialog = document.getElementById("customerPhotoCompareDialog");
   const title = document.getElementById("customerPhotoCompareTitle");
-  const beforeImage = document.getElementById("customerPhotoCompareBefore");
-  const afterImage = document.getElementById("customerPhotoCompareAfter");
+  const beforeList = document.getElementById("customerPhotoCompareBeforeList");
+  const afterList = document.getElementById("customerPhotoCompareAfterList");
 
-  if (!dialog || !beforeImage || !afterImage) return;
+  if (!dialog || !beforeList || !afterList) return;
 
   title.textContent = label || "Photo comparison";
-  beforeImage.src = beforePhoto.content_url;
-  afterImage.src = afterPhoto.content_url;
+
+  const renderComparePhotos = (photos, labelText) =>
+    (photos || [])
+      .map(
+        (photo, index) => `
+          <a
+            href="${escapeHtml(photo.content_url)}"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open ${escapeHtml(labelText)} photo ${index + 1}"
+          >
+            <img
+              src="${escapeHtml(photo.content_url)}"
+              alt="${escapeHtml(`${labelText} photo ${index + 1}`)}"
+            >
+          </a>
+        `
+      )
+      .join("");
+
+  beforeList.innerHTML =
+    renderComparePhotos(
+      beforePhotos,
+      "Before"
+    );
+
+  afterList.innerHTML =
+    renderComparePhotos(
+      afterPhotos,
+      "After"
+    );
 
   if (typeof dialog.showModal === "function") {
     dialog.showModal();
   }
 }
+
 
 function renderCustomerPhotos(
   photos
@@ -2835,8 +2865,12 @@ function renderCustomerPhotos(
         .filter(Boolean)
         .join(" · ");
 
-      const before = groupPhotos.find((photo) => photo.photo_type === "before");
-      const after = groupPhotos.find((photo) => photo.photo_type === "after");
+      const beforePhotos = groupPhotos.filter(
+        (photo) => photo.photo_type === "before"
+      );
+      const afterPhotos = groupPhotos.filter(
+        (photo) => photo.photo_type === "after"
+      );
 
       return `
         <section class="es-customer-photo-group">
@@ -2846,7 +2880,7 @@ function renderCustomerPhotos(
               <small>${groupPhotos.length} photo${groupPhotos.length === 1 ? "" : "s"}</small>
             </div>
             ${
-              before && after
+              beforePhotos.length && afterPhotos.length
                 ? `<button class="es-secondary-button es-photo-compare-button" type="button" data-photo-compare-group="${groupIndex}">Compare before & after</button>`
                 : ""
             }
@@ -2914,17 +2948,30 @@ function renderCustomerPhotos(
     .forEach((button) => {
       button.addEventListener("click", () => {
         const group = groupedValues[Number(button.dataset.photoCompareGroup)] || [];
-        const before = group.find((photo) => photo.photo_type === "before");
-        const after = group.find((photo) => photo.photo_type === "after");
+        const beforePhotos = group.filter(
+          (photo) => photo.photo_type === "before"
+        );
+        const afterPhotos = group.filter(
+          (photo) => photo.photo_type === "after"
+        );
         const first = group[0];
-        if (!before || !after || !first) return;
+
+        if (
+          !beforePhotos.length ||
+          !afterPhotos.length ||
+          !first
+        ) return;
 
         openCustomerPhotoCompare(
-          before,
-          after,
+          beforePhotos,
+          afterPhotos,
           [
             first.service_name || "Photo comparison",
-            formatShortDate(first.taken_at || first.appointment_start_at || first.created_at)
+            formatShortDate(
+              first.taken_at ||
+              first.appointment_start_at ||
+              first.created_at
+            )
           ].filter(Boolean).join(" · ")
         );
       });

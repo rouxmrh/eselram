@@ -1475,6 +1475,29 @@
         justify-self: start;
       }
     }
+
+    .es-photo-compare-list {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:10px;
+    }
+
+    .es-photo-compare-list a {
+      display:block;
+      min-width:0;
+    }
+
+    .es-photo-compare-list img {
+      display:block;
+      width:100%;
+      height:auto;
+      max-height:42vh;
+      object-fit:contain;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:#eef0ec;
+    }
+
 </style>
 </head>
 
@@ -2013,11 +2036,11 @@
       <div class="es-photo-compare-grid">
         <div class="es-photo-compare-panel">
           <strong>Before</strong>
-          <img id="customerPhotoCompareBefore" alt="Before treatment photo">
+          <div id="customerPhotoCompareBeforeList" class="es-photo-compare-list"></div>
         </div>
         <div class="es-photo-compare-panel">
           <strong>After</strong>
-          <img id="customerPhotoCompareAfter" alt="After treatment photo">
+          <div id="customerPhotoCompareAfterList" class="es-photo-compare-list"></div>
         </div>
       </div>
     </div>

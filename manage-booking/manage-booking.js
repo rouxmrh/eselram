@@ -1,5 +1,13 @@
 const params = new URLSearchParams(location.search);
-const token = String(params.get("token") || "").trim();
+const hashParams = new URLSearchParams(
+  String(location.hash || "").replace(/^#/, "")
+);
+
+const token = String(
+  params.get("token") ||
+  hashParams.get("token") ||
+  ""
+).trim();
 const state = { data: null };
 
 const $ = selector => document.querySelector(selector);

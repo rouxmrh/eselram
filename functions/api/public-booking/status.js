@@ -109,7 +109,7 @@ export async function onRequestGet({ request, env }) {
           });
 
         manageUrl =
-          `/manage-booking/?token=${encodeURIComponent(manageToken)}`;
+          `/manage-booking/#token=${encodeURIComponent(manageToken)}`;
       } catch (error) {
         console.error(
           "Unable to issue success-page manage link:",
