@@ -175,7 +175,28 @@ export async function onRequestPost({ request, env }) {
     ]);
 
     const fields = fieldRows.results || [];
-    const fieldMap = new Map(fields.map(field => [field.field_key, field]));
+    const fieldMap =
+      new Map(
+        fields.map(
+          field => [
+            field.field_key,
+            field
+          ]
+        )
+      );
+
+    const sectionConditionMap =
+      new Map(
+        (
+          sectionRows.results ||
+          []
+        ).map(
+          section => [
+            section.id,
+            section.condition_json
+          ]
+        )
+      );
 
     const fieldsBySection = new Map();
     for (const field of fields) {
@@ -235,9 +256,30 @@ export async function onRequestPost({ request, env }) {
     }
 
     for (const field of fields) {
-      if (field.is_required !== 1) continue;
+      if (field.is_required !== 1) {
+        continue;
+      }
 
-      if (!isConditionSatisfied(field.condition_json, answers)) {
+      const sectionCondition =
+        sectionConditionMap.get(
+          field.section_id
+        );
+
+      if (
+        !isConditionSatisfied(
+          sectionCondition,
+          answers
+        )
+      ) {
+        continue;
+      }
+
+      if (
+        !isConditionSatisfied(
+          field.condition_json,
+          answers
+        )
+      ) {
         continue;
       }
 
