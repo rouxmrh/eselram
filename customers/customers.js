@@ -2703,7 +2703,6 @@ function renderCustomerTreatmentRecords(
             <div class="es-customer-treatment-card-actions">
               <a class="es-customer-action" href="/treatment-records/?record=${encodeURIComponent(record.id)}">View / edit</a>
               <button class="es-customer-action" type="button" data-add-photo-to-record="${escapeHtml(record.id)}" data-appointment-id="${escapeHtml(record.appointment_id || "")}">Add photo</button>
-              <a class="es-customer-action" href="/treatment-records/?customer=${encodeURIComponent(activeProfileCustomer?.id || "")}&copy=${encodeURIComponent(record.id)}">Create next record</a>
             </div>
           </div>
         </article>
