@@ -55,7 +55,26 @@ function render() {
         ${item.validity_days ? `<span>${item.validity_days} days validity</span>` : ""}
       </div>
       ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
-      <div class="price">${money(item.price_minor)}</div>
+      <div class="price">${
+        item.variants?.length
+          ? `From ${money(
+              Math.min(
+                ...item.variants.map(
+                  variant =>
+                    Number(
+                      variant.price_minor ||
+                      0
+                    )
+                )
+              )
+            )}`
+          : money(item.price_minor)
+      }</div>
+      ${
+        item.variants?.length
+          ? `<div class="meta"><span>${item.variants.length} options</span></div>`
+          : ""
+      }
       ${Number(item.deposit_minor || 0) > 0
         ? `<div class="meta"><span>Deposit option ${money(item.deposit_minor)}</span></div>`
         : ""}
@@ -84,14 +103,70 @@ function openPurchase(id) {
 
   $("#packageId").value = item.id;
   $("#purchaseTitle").textContent = item.name;
-  $("#purchaseSummary").textContent =
-    `${item.sessions_total} sessions · ${money(item.price_minor)}`;
 
-  $("#paymentChoice").innerHTML =
-    `<option value="full">Pay in full · ${money(item.price_minor)}</option>` +
-    (Number(item.deposit_minor || 0) > 0
-      ? `<option value="deposit">Pay deposit · ${money(item.deposit_minor)}</option>`
-      : "");
+  $("#packageVariantChoice")?.remove();
+
+  if (item.variants?.length) {
+    const label = document.createElement("label");
+    label.id = "packageVariantChoice";
+    label.innerHTML = `
+      Variant
+      <select id="packageVariantId" required>
+        ${item.variants.map(
+          variant => `
+            <option value="${escapeHtml(variant.id)}">
+              ${escapeHtml(variant.name)} · ${money(variant.price_minor)}
+            </option>
+          `
+        ).join("")}
+      </select>
+    `;
+    $("#purchaseSummary").insertAdjacentElement("afterend", label);
+  }
+
+  function updatePurchaseSummary() {
+    const variant =
+      item.variants?.find(
+        candidate =>
+          candidate.id ===
+          $("#packageVariantId")?.value
+      ) ||
+      null;
+
+    const priceMinor =
+      Number(
+        variant?.price_minor ??
+        item.price_minor ??
+        0
+      );
+
+    const depositMinor =
+      Number(
+        variant?.deposit_minor ??
+        item.deposit_minor ??
+        0
+      );
+
+    $("#purchaseSummary").textContent =
+      `${item.sessions_total} sessions${
+        variant ? ` · ${variant.name}` : ""
+      } · ${money(priceMinor)}`;
+
+    $("#paymentChoice").innerHTML =
+      `<option value="full">Pay in full · ${money(priceMinor)}</option>` +
+      (
+        depositMinor > 0
+          ? `<option value="deposit">Pay deposit · ${money(depositMinor)}</option>`
+          : ""
+      );
+  }
+
+  $("#packageVariantId")?.addEventListener(
+    "change",
+    updatePurchaseSummary
+  );
+
+  updatePurchaseSummary();
 
   $("#purchasePanel").hidden = false;
   $("#status").hidden = true;
@@ -115,6 +190,9 @@ $("#purchaseForm").addEventListener("submit", async event => {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
         package_template_id: $("#packageId").value,
+        package_variant_id:
+          $("#packageVariantId")?.value ||
+          null,
         first_name: $("#firstName").value.trim(),
         last_name: $("#lastName").value.trim(),
         email: $("#email").value.trim(),
