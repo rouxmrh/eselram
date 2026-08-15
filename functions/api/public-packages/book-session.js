@@ -18,6 +18,10 @@ import {
   runServiceFormAutomation
 } from "../../../lib/form-automation.js";
 
+import {
+  hasCompletedConsultation
+} from "../../../lib/consultation-credit.js";
+
 
 export async function onRequestPost({
   request,
@@ -175,26 +179,12 @@ export async function onRequestPost({
       ) === 1
     ) {
       const completedConsultation =
-        await env.DB
-          .prepare(`
-            SELECT id
-            FROM appointments
-            WHERE
-              business_id = ?
-              AND customer_id = ?
-              AND service_id = ?
-              AND booking_kind =
-                  'consultation'
-              AND status =
-                  'completed'
-            LIMIT 1
-          `)
-          .bind(
-            business.id,
-            row.customer_id,
-            row.service_id
-          )
-          .first();
+        await hasCompletedConsultation({
+          env,
+          businessId: business.id,
+          customerId: row.customer_id,
+          serviceId: row.service_id
+        });
 
       if (!completedConsultation) {
         return Response.json(
