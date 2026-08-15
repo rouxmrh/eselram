@@ -154,6 +154,22 @@
             ></textarea>
           </label>
 
+          <label>
+            Public booking category
+
+            <input
+              id="serviceBookingGroup"
+              type="text"
+              maxlength="100"
+              placeholder="Optional, e.g. Tattoo Removal, Carbon Facial, Hair, Nails"
+            >
+
+            <small class="es-muted-copy">
+              Optional. Services with the same category are grouped together on the public booking page.
+              Leave blank if this service should appear on its own.
+            </small>
+          </label>
+
 
           <div class="es-form-grid">
 
@@ -340,6 +356,20 @@
             </label>
 
           </div>
+
+          <label id="postConsultationBookingWrap" hidden>
+            After the consultation
+
+            <select id="postConsultationBooking">
+              <option value="client_can_book">Client can book treatment online</option>
+              <option value="practitioner_managed">Practitioner manages treatment / package</option>
+            </select>
+
+            <small class="es-muted-copy">
+              Practitioner managed is ideal when you choose the exact treatment or package after assessment.
+              Client can book is ideal for services such as Carbon Facial where an established client may book online after a completed consultation.
+            </small>
+          </label>
 
 
           <div
