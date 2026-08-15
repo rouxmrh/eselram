@@ -44,6 +44,21 @@ const requiresConsultation =
     "requiresConsultation"
   );
 
+const serviceType =
+  document.getElementById(
+    "serviceType"
+  );
+
+const requiredConsultationService =
+  document.getElementById(
+    "requiredConsultationService"
+  );
+
+const requiredConsultationServiceWrap =
+  document.getElementById(
+    "requiredConsultationServiceWrap"
+  );
+
 const consultationDuration =
   document.getElementById(
     "consultationDuration"
@@ -118,6 +133,16 @@ requiresConsultation.addEventListener(
   updateConsultationFields
 );
 
+serviceType.addEventListener(
+  "change",
+  updateConsultationFields
+);
+
+requiredConsultationService.addEventListener(
+  "change",
+  updateConsultationFields
+);
+
 
 async function loadServices() {
 
@@ -182,6 +207,8 @@ async function loadServices() {
     renderProviders();
 
     renderClientForms();
+
+    renderConsultationServiceOptions();
 
 
   } catch (error) {
@@ -277,9 +304,39 @@ function renderClientForms(selectedRules = []) {
   });
 }
 
+function renderConsultationServiceOptions(selectedId = "") {
+  const currentServiceId =
+    document.getElementById("serviceId")?.value || "";
+
+  const consultationServices =
+    services.filter(
+      service =>
+        service.id !== currentServiceId &&
+        String(service.service_type || "standard") === "consultation" &&
+        Number(service.is_active) === 1
+    );
+
+  requiredConsultationService.innerHTML = `
+    <option value="">Choose consultation service</option>
+    ${consultationServices.map(service => `
+      <option
+        value="${escapeHtml(service.id)}"
+        ${service.id === selectedId ? "selected" : ""}
+      >
+        ${escapeHtml(service.name)}
+      </option>
+    `).join("")}
+  `;
+}
+
+
 function renderServiceSummary() {
   servicesActiveCount.textContent = services.filter(service => Number(service.is_active) === 1).length;
-  servicesConsultationCount.textContent = services.filter(service => Number(service.requires_consultation) === 1).length;
+  servicesConsultationCount.textContent = services.filter(
+    service =>
+      String(service.service_type || "standard") === "consultation" ||
+      Number(service.requires_consultation) === 1
+  ).length;
   servicesPatchCount.textContent = services.filter(service => Number(service.requires_patch_test) === 1).length;
   servicesFormsCount.textContent = services.reduce((total, service) => total + (service.form_rules || []).filter(rule => Number(rule.is_active ?? 1) === 1).length, 0);
 }
@@ -305,7 +362,11 @@ function renderServices() {
   const filtered = services.filter(service => {
     if (filter === "active" && Number(service.is_active) !== 1) return false;
     if (filter === "inactive" && Number(service.is_active) === 1) return false;
-    if (filter === "consultation" && Number(service.requires_consultation) !== 1) return false;
+    if (
+      filter === "consultation" &&
+      String(service.service_type || "standard") !== "consultation" &&
+      Number(service.requires_consultation) !== 1
+    ) return false;
     if (filter === "patch" && Number(service.requires_patch_test) !== 1) return false;
     if (!query) return true;
     return [service.name, service.booking_group, service.description, servicePaymentLabel(service)].filter(Boolean).join(" ").toLowerCase().includes(query);
@@ -320,7 +381,11 @@ function renderServices() {
   servicesList.className = "es-services-grid";
   servicesList.innerHTML = filtered.map(service => {
     const active = Number(service.is_active) === 1;
-    const consultation = Number(service.requires_consultation) === 1;
+    const standaloneConsultation =
+      String(service.service_type || "standard") === "consultation";
+    const consultation =
+      standaloneConsultation ||
+      Number(service.requires_consultation) === 1;
     const patch = Number(service.requires_patch_test) === 1;
     const formCount = (service.form_rules || []).filter(rule => Number(rule.is_active ?? 1) === 1).length;
     const providerCount = (service.providers || []).length;
@@ -336,7 +401,9 @@ function renderServices() {
           <div class="es-service-metric"><span>Payment</span><strong>${escapeHtml(servicePaymentLabel(service))}</strong></div>
         </div>
         <div class="es-service-card-rules">
-          <span class="es-service-rule-pill ${consultation ? "on" : ""}">Consultation ${consultation ? "required" : "not required"}</span>
+          <span class="es-service-rule-pill ${consultation ? "on" : ""}">
+            ${standaloneConsultation ? "Consultation service" : `Consultation ${consultation ? "required" : "not required"}`}
+          </span>
           <span class="es-service-rule-pill ${patch ? "on" : ""}">Patch test ${patch ? "required" : "not required"}</span>
           <span class="es-service-rule-pill ${formCount > 0 ? "on" : ""}">${formCount} client ${formCount === 1 ? "form" : "forms"}</span>
         </div>
@@ -462,9 +529,18 @@ function openForm(
         ).toFixed(2);
 
 
+    serviceType.value =
+      service.service_type ||
+      "standard";
+
     requiresConsultation.checked =
       service.requires_consultation
       === 1;
+
+    renderConsultationServiceOptions(
+      service.consultation_service_id ||
+      ""
+    );
 
     document
       .getElementById(
@@ -528,11 +604,16 @@ function openForm(
 
   } else {
 
+    serviceType.value =
+      "standard";
+
     document
       .getElementById(
         "serviceBookingGroup"
       )
       .value = "";
+
+    renderConsultationServiceOptions();
 
     document
       .getElementById(
@@ -584,15 +665,32 @@ function closeForm() {
 
 
 function updateConsultationFields() {
+  const isConsultationService =
+    serviceType.value === "consultation";
 
-  consultationBookingSection.hidden =
+  if (isConsultationService) {
+    requiresConsultation.checked = false;
+  }
+
+  requiresConsultation.disabled =
+    isConsultationService;
+
+  requiredConsultationServiceWrap.hidden =
+    isConsultationService ||
     !requiresConsultation.checked;
 
+  const hasLinkedConsultation =
+    Boolean(requiredConsultationService.value);
+
+  consultationBookingSection.hidden =
+    isConsultationService ||
+    !requiresConsultation.checked ||
+    hasLinkedConsultation;
+
   document
-    .getElementById(
-      "postConsultationBookingWrap"
-    )
+    .getElementById("postConsultationBookingWrap")
     .hidden =
+      isConsultationService ||
       !requiresConsultation.checked;
 }
 
@@ -686,6 +784,17 @@ form.addEventListener(
           .value
           .trim(),
 
+      service_type:
+        serviceType.value,
+
+      consultation_service_id:
+        (
+          serviceType.value === "standard" &&
+          requiresConsultation.checked
+        )
+          ? (requiredConsultationService.value || null)
+          : null,
+
       post_consultation_booking:
         document
           .getElementById(
@@ -730,6 +839,7 @@ form.addEventListener(
         selectedFormRules,
 
       requires_consultation:
+        serviceType.value === "standard" &&
         requiresConsultation.checked,
 
       consultation_duration_minutes:

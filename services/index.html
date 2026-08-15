@@ -144,6 +144,19 @@
             >
           </label>
 
+          <label>
+            Service type
+
+            <select id="serviceType">
+              <option value="standard">Standard service / treatment</option>
+              <option value="consultation">Consultation</option>
+            </select>
+
+            <small class="es-muted-copy">
+              Choose Consultation for a standalone consultation appointment. Treatment services can then be linked to it.
+            </small>
+          </label>
+
 
           <label>
             Description
@@ -275,6 +288,21 @@
             <div id="clientFormOptions" class="es-provider-options"></div>
           </fieldset>
 
+          <label
+            id="requiredConsultationServiceWrap"
+            hidden
+          >
+            Required consultation
+
+            <select id="requiredConsultationService">
+              <option value="">Choose consultation service</option>
+            </select>
+
+            <small class="es-muted-copy">
+              Select the consultation that qualifies the customer for this treatment. A paid consultation credit can then be applied once to the first treatment or package.
+            </small>
+          </label>
+
           <fieldset
             id="consultationBookingSection"
             class="es-fieldset"
@@ -285,7 +313,7 @@
             </legend>
 
             <p class="es-muted-copy">
-              New public clients are booked into a consultation first. Once that consultation is completed, they can book the treatment or purchase its public packages.
+              Legacy fallback: use these fields only when no standalone consultation service is linked. For new setups, create a Consultation service and select it above.
             </p>
 
             <div class="es-form-grid">
