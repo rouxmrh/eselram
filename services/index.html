@@ -47,6 +47,8 @@
     .es-service-editor-shell {border-radius:20px;box-shadow:0 14px 38px rgba(28,34,30,.065);}
     .es-service-editor-header {display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;}
     .es-service-editor-close {display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:34px;padding:0 14px;border:1px solid var(--es-border);border-radius:999px;background:var(--es-surface);color:var(--es-text);font-size:11px;font-weight:800;cursor:pointer;}
+    .es-dashboard-header-actions .es-secondary-button,
+    .es-dashboard-header-actions .es-button {min-height:44px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;line-height:1;}
     @media(max-width:900px){.es-services-summary,.es-services-grid{grid-template-columns:1fr 1fr;}}
     @media(max-width:650px){.es-services-summary,.es-services-grid,.es-services-toolbar{grid-template-columns:1fr;}.es-service-card-metrics{grid-template-columns:1fr;}}
   </style>
@@ -80,13 +82,23 @@
           </p>
         </div>
 
-        <button
-          id="newServiceButton"
-          class="es-button"
-          type="button"
-        >
-          Add service
-        </button>
+        <div class="es-dashboard-header-actions">
+          <a
+            class="es-secondary-button"
+            href="/packages/"
+            style="text-decoration:none;"
+          >
+            Packages &amp; courses
+          </a>
+
+          <button
+            id="newServiceButton"
+            class="es-button"
+            type="button"
+          >
+            Add service
+          </button>
+        </div>
 
       </header>
 
