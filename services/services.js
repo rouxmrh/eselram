@@ -308,7 +308,7 @@ function renderServices() {
     if (filter === "consultation" && Number(service.requires_consultation) !== 1) return false;
     if (filter === "patch" && Number(service.requires_patch_test) !== 1) return false;
     if (!query) return true;
-    return [service.name, service.description, servicePaymentLabel(service)].filter(Boolean).join(" ").toLowerCase().includes(query);
+    return [service.name, service.booking_group, service.description, servicePaymentLabel(service)].filter(Boolean).join(" ").toLowerCase().includes(query);
   });
 
   if (filtered.length === 0) {
@@ -418,6 +418,13 @@ function openForm(
       .value =
         service.description || "";
 
+    document
+      .getElementById(
+        "serviceBookingGroup"
+      )
+      .value =
+        service.booking_group || "";
+
 
     document
       .getElementById(
@@ -458,6 +465,14 @@ function openForm(
     requiresConsultation.checked =
       service.requires_consultation
       === 1;
+
+    document
+      .getElementById(
+        "postConsultationBooking"
+      )
+      .value =
+        service.post_consultation_booking ||
+        "client_can_book";
 
     consultationDuration.value =
       String(
@@ -515,6 +530,18 @@ function openForm(
 
     document
       .getElementById(
+        "serviceBookingGroup"
+      )
+      .value = "";
+
+    document
+      .getElementById(
+        "postConsultationBooking"
+      )
+      .value = "client_can_book";
+
+    document
+      .getElementById(
         "serviceActive"
       )
       .checked = true;
@@ -560,6 +587,13 @@ function updateConsultationFields() {
 
   consultationBookingSection.hidden =
     !requiresConsultation.checked;
+
+  document
+    .getElementById(
+      "postConsultationBookingWrap"
+    )
+    .hidden =
+      !requiresConsultation.checked;
 }
 
 
@@ -643,6 +677,21 @@ form.addEventListener(
           )
           .value
           .trim(),
+
+      booking_group:
+        document
+          .getElementById(
+            "serviceBookingGroup"
+          )
+          .value
+          .trim(),
+
+      post_consultation_booking:
+        document
+          .getElementById(
+            "postConsultationBooking"
+          )
+          .value,
 
       duration_minutes:
         Number(
