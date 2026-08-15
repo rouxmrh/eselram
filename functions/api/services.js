@@ -538,6 +538,7 @@ async function saveService({
 
   if (
     body.requires_consultation &&
+    !consultationServiceId &&
     (
       !Number.isInteger(
         consultationDuration
