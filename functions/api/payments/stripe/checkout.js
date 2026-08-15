@@ -555,10 +555,7 @@ function getChargePlan(
   if (
     appointment.payment_timing ===
     "online_deposit" &&
-    (
-      netPaid +
-      consultationCredit
-    ) < deposit
+    netPaid < deposit
   ) {
 
     return {
@@ -568,8 +565,7 @@ function getChargePlan(
         Math.max(
           0,
           deposit -
-          netPaid -
-          consultationCredit
+          netPaid
         ),
       label:
         `${appointment.service_name} deposit`
