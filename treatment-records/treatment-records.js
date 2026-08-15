@@ -104,6 +104,12 @@ const openTreatmentCustomerButton =
   );
 
 
+const deleteTreatmentButton =
+  document.getElementById(
+    "deleteTreatmentButton"
+  );
+
+
 let records = [];
 let customers = [];
 let appointments = [];
@@ -170,6 +176,85 @@ document
       );
     }
   );
+
+
+deleteTreatmentButton.addEventListener(
+  "click",
+  async () => {
+    if (!activeRecord) {
+      return;
+    }
+
+    const recordId =
+      activeRecord.id;
+
+    const confirmed =
+      window.confirm(
+        "Delete this treatment record? This cannot be undone. The appointment and customer will not be deleted."
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteTreatmentButton.disabled =
+      true;
+
+    const originalText =
+      deleteTreatmentButton.textContent;
+
+    deleteTreatmentButton.textContent =
+      "Deleting…";
+
+    try {
+      const response =
+        await fetch(
+          `/api/treatment-records?id=${encodeURIComponent(recordId)}`,
+          {
+            method:
+              "DELETE",
+
+            headers: {
+              Accept:
+                "application/json"
+            }
+          }
+        );
+
+      handleAuthentication(
+        response
+      );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.ok
+      ) {
+        throw new Error(
+          data.error ||
+          "Unable to delete treatment record."
+        );
+      }
+
+      closeTreatmentDrawer();
+
+      await loadTreatmentRecords();
+    } catch (error) {
+      window.alert(
+        error.message ||
+        "Unable to delete treatment record."
+      );
+    } finally {
+      deleteTreatmentButton.disabled =
+        false;
+
+      deleteTreatmentButton.textContent =
+        originalText;
+    }
+  }
+);
 
 
 treatmentSearch.addEventListener(
