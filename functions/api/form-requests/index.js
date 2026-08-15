@@ -50,7 +50,7 @@ function notFound(message) {
 }
 
 function requestPath(token) {
-  return `/forms/view.html?request_token=${encodeURIComponent(token)}`;
+  return `/forms/view.html#request_token=${encodeURIComponent(token)}`;
 }
 
 async function getCustomer(env, businessId, customerId) {

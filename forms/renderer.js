@@ -1,8 +1,31 @@
 const params = new URLSearchParams(location.search);
-const templateId = String(params.get("template_id") || "").trim();
-const publicToken = String(params.get("token") || "").trim();
-const requestToken = String(params.get("request_token") || "").trim();
-const mode = String(params.get("mode") || "").trim().toLowerCase();
+const hashParams = new URLSearchParams(
+  String(location.hash || "").replace(/^#/, "")
+);
+
+const templateId = String(
+  params.get("template_id") ||
+  hashParams.get("template_id") ||
+  ""
+).trim();
+
+const publicToken = String(
+  params.get("token") ||
+  hashParams.get("token") ||
+  ""
+).trim();
+
+const requestToken = String(
+  params.get("request_token") ||
+  hashParams.get("request_token") ||
+  ""
+).trim();
+
+const mode = String(
+  params.get("mode") ||
+  hashParams.get("mode") ||
+  ""
+).trim().toLowerCase();
 const isPreview = mode === "preview";
 
 const formRoot = document.getElementById("formRoot");
