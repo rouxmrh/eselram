@@ -30,6 +30,12 @@ async function load() {
 
   packages = data.packages || [];
   currency = data.business?.currency || "GBP";
+
+  document.documentElement.style.setProperty(
+    "--primary",
+    data.branding?.primary_colour ||
+    "#365178"
+  );
   $("#businessName").textContent =
     data.business?.name
       ? `${data.business.name} packages`
