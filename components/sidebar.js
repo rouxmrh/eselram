@@ -1,11 +1,72 @@
 const navItems = [
   {
-    key: "dashboard",
-    label: "Dashboard",
-    href: "/dashboard/",
+    key: "bookings",
+    label: "Bookings",
+    href: "/bookings/",
     icon: `
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5v-9.7Z"/>
+        <rect x="3" y="5" width="18" height="16" rx="2"/>
+        <path d="M7 3v4M17 3v4M3 10h18"/>
+        <path d="M7 14h3M14 14h3M7 17h3M14 17h3"/>
+      </svg>
+    `
+  },
+  {
+    key: "customers",
+    label: "Customers",
+    href: "/customers/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="9" cy="8" r="3"/>
+        <path d="M3.5 19a5.5 5.5 0 0 1 11 0"/>
+        <circle cx="17" cy="9" r="2.3"/>
+        <path d="M15 14.5a4.5 4.5 0 0 1 5.5 4.4"/>
+      </svg>
+    `
+  },
+  {
+    key: "services",
+    label: "Services",
+    href: "/services/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h16"/>
+        <circle cx="8" cy="7" r="2"/>
+        <circle cx="15" cy="12" r="2"/>
+        <circle cx="10" cy="17" r="2"/>
+      </svg>
+    `
+  },
+  {
+    key: "payments",
+    label: "Payments",
+    href: "/payments/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2"/>
+        <path d="M3 9h18M7 15h4"/>
+      </svg>
+    `
+  },
+  {
+    key: "communications",
+    label: "Communications",
+    href: "/communications/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2"/>
+        <path d="m4 7 8 6 8-6"/>
+      </svg>
+    `
+  },
+  {
+    key: "clinical-records",
+    label: "Clinical Records",
+    href: "/treatment-records/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="5" y="3" width="14" height="18" rx="2"/>
+        <path d="M9 3.5h6M8 9h8M8 13h8M8 17h5"/>
       </svg>
     `
   },

@@ -4233,6 +4233,119 @@ async function openPackageBooking(
 }
 
 
+
+async function loadBookingsOverview() {
+  try {
+    const response =
+      await fetch(
+        "/api/dashboard",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    handleAuthentication(
+      response
+    );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      return;
+    }
+
+    const currency =
+      data.business?.currency ||
+      "GBP";
+
+    const money =
+      value =>
+        new Intl.NumberFormat(
+          "en-GB",
+          {
+            style:
+              "currency",
+            currency
+          }
+        ).format(
+          Number(
+            value ||
+            0
+          ) / 100
+        );
+
+    const setText =
+      (id, value) => {
+        const element =
+          document.getElementById(
+            id
+          );
+
+        if (element) {
+          element.textContent =
+            value;
+        }
+      };
+
+    setText(
+      "bookingsTodayCount",
+      data.stats?.today_bookings ||
+      0
+    );
+
+    setText(
+      "bookingsWeekCount",
+      data.stats?.week_bookings ||
+      0
+    );
+
+    setText(
+      "bookingsMonthRevenue",
+      money(
+        data.stats
+          ?.month_revenue_minor
+      )
+    );
+
+    setText(
+      "bookingsOutstanding",
+      money(
+        data.stats
+          ?.outstanding_minor
+      )
+    );
+
+    setText(
+      "bookingsCustomerCount",
+      data.stats?.customers ||
+      0
+    );
+
+    setText(
+      "bookingsNewCustomersMonth",
+      data.stats
+        ?.new_customers_month ||
+      0
+    );
+
+  } catch (error) {
+    console.error(
+      "Unable to load bookings overview:",
+      error
+    );
+  }
+}
+
+
 async function initialiseBookingsPage() {
 
   setMinimumDate();
@@ -4240,7 +4353,8 @@ async function initialiseBookingsPage() {
   await Promise.all([
     loadServices(),
     loadBookings(),
-    loadBookingPackages()
+    loadBookingPackages(),
+    loadBookingsOverview()
   ]);
 
 
