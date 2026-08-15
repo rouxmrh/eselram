@@ -152,13 +152,21 @@ function openPurchase(id) {
         variant ? ` · ${variant.name}` : ""
       } · ${money(priceMinor)}`;
 
-    $("#paymentChoice").innerHTML =
-      `<option value="full">Pay in full · ${money(priceMinor)}</option>` +
-      (
-        depositMinor > 0
-          ? `<option value="deposit">Pay deposit · ${money(depositMinor)}</option>`
-          : ""
+    const paymentRule =
+      String(
+        variant?.payment_rule ??
+        item.payment_rule ??
+        (
+          depositMinor > 0
+            ? "deposit"
+            : "full"
+        )
       );
+
+    $("#paymentChoice").innerHTML =
+      paymentRule === "deposit"
+        ? `<option value="deposit">Pay deposit · ${money(depositMinor)}</option>`
+        : `<option value="full">Pay in full · ${money(priceMinor)}</option>`;
   }
 
   $("#packageVariantId")?.addEventListener(
