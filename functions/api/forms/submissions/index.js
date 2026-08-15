@@ -83,8 +83,8 @@ export async function onRequestPost({ request, env }) {
                   r.request_token = ?
                   AND r.status IN ('created', 'opened')
                   AND datetime(r.expires_at) > datetime('now')
-                  AND t.is_published = 1
                   AND t.is_active = 1
+                  AND t.is_client_sendable = 1
                 LIMIT 1
               `
         )
