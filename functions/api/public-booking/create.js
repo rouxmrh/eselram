@@ -317,10 +317,16 @@ export async function onRequestPost({ request, env }) {
     }
 
     const requiresOnlinePayment =
-      paymentTiming ===
-        "online_deposit" ||
-      paymentTiming ===
-        "online_full";
+      (
+        paymentTiming ===
+          "online_deposit" &&
+        effectiveDepositMinor > 0
+      ) ||
+      (
+        paymentTiming ===
+          "online_full" &&
+        outstandingAfterCreditMinor > 0
+      );
 
     let stripeIntegration = null;
 
