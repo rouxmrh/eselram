@@ -234,6 +234,7 @@ export async function onRequestGet({ request, env }) {
             pt.description,
             pt.sessions_total,
             pt.price_minor,
+            pt.payment_rule,
             pt.deposit_minor,
             pt.validity_days,
             pt.is_active,
@@ -378,6 +379,7 @@ export async function onRequestGet({ request, env }) {
             pv.service_id,
             pv.name,
             pv.price_minor,
+            pv.payment_rule,
             pv.deposit_minor,
             pv.is_active,
             pv.sort_order,
@@ -446,6 +448,13 @@ export async function onRequestPost({ request, env }) {
           ? body.variants
           : [];
 
+      const paymentRule =
+        ["full", "deposit", "pay_later"].includes(
+          String(body.payment_rule || "full")
+        )
+          ? String(body.payment_rule || "full")
+          : "full";
+
       if (!name || !serviceId) {
         return badRequest("Package name and service are required.");
       }
@@ -468,7 +477,16 @@ export async function onRequestPost({ request, env }) {
         const variantName = String(raw.name || "").trim();
         const variantServiceId = String(raw.service_id || "").trim();
         const variantPriceMinor = Number(raw.price_minor);
-        const variantDepositMinor = Number(raw.deposit_minor || 0);
+        const variantPaymentRule =
+          ["full", "deposit", "pay_later"].includes(
+            String(raw.payment_rule || "full")
+          )
+            ? String(raw.payment_rule || "full")
+            : "full";
+        const variantDepositMinor =
+          variantPaymentRule === "deposit"
+            ? Number(raw.deposit_minor || 0)
+            : 0;
 
         if (!variantName || !variantServiceId) {
           return badRequest("Every package variant needs a name and service.");
@@ -511,6 +529,7 @@ export async function onRequestPost({ request, env }) {
           name: variantName,
           service_id: variantServiceId,
           price_minor: variantPriceMinor,
+          payment_rule: variantPaymentRule,
           deposit_minor: variantDepositMinor,
           sort_order: index,
           service: variantService
@@ -592,9 +611,17 @@ export async function onRequestPost({ request, env }) {
             ) === "practitioner_managed"
         );
 
+      const variantPayLater =
+        cleanVariants.some(
+          variant =>
+            variant.payment_rule === "pay_later"
+        );
+
       const isPublic =
         practitionerManaged ||
-        allVariantsPractitionerManaged
+        allVariantsPractitionerManaged ||
+        paymentRule === "pay_later" ||
+        variantPayLater
           ? 0
           : (body.is_public === 1 ? 1 : 0);
 
@@ -624,6 +651,7 @@ export async function onRequestPost({ request, env }) {
               service_id = ?,
               sessions_total = ?,
               price_minor = ?,
+              payment_rule = ?,
               deposit_minor = ?,
               validity_days = ?,
               is_active = ?,
@@ -637,7 +665,8 @@ export async function onRequestPost({ request, env }) {
             serviceId,
             sessionsTotal,
             priceMinor,
-            depositMinor,
+            paymentRule,
+            paymentRule === "deposit" ? depositMinor : 0,
             validityDays,
             body.is_active === 0 ? 0 : 1,
             isPublic,
@@ -656,12 +685,13 @@ export async function onRequestPost({ request, env }) {
               description,
               sessions_total,
               price_minor,
+              payment_rule,
               deposit_minor,
               validity_days,
               is_active,
               is_public
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `)
           .bind(
             templateId,
@@ -671,7 +701,8 @@ export async function onRequestPost({ request, env }) {
             description || null,
             sessionsTotal,
             priceMinor,
-            depositMinor,
+            paymentRule,
+            paymentRule === "deposit" ? depositMinor : 0,
             validityDays,
             body.is_active === 0 ? 0 : 1,
             isPublic
@@ -693,11 +724,12 @@ export async function onRequestPost({ request, env }) {
             service_id,
             name,
             price_minor,
+            payment_rule,
             deposit_minor,
             is_active,
             sort_order
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
         `).bind(
           variant.id,
           user.business_id,
@@ -705,6 +737,7 @@ export async function onRequestPost({ request, env }) {
           variant.service_id,
           variant.name,
           variant.price_minor,
+          variant.payment_rule,
           variant.deposit_minor,
           variant.sort_order
         ).run();

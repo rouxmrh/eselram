@@ -84,6 +84,7 @@ export async function onRequestPost({ request, env }) {
         pt.name,
         pt.sessions_total,
         pt.price_minor,
+        pt.payment_rule,
         pt.deposit_minor,
         pt.validity_days,
         pt.is_active,
@@ -108,6 +109,7 @@ export async function onRequestPost({ request, env }) {
         pv.service_id,
         pv.name,
         pv.price_minor,
+        pv.payment_rule,
         pv.deposit_minor,
         s.requires_consultation
       FROM package_variants pv
@@ -160,6 +162,17 @@ export async function onRequestPost({ request, env }) {
         )
       );
 
+    const resolvedPaymentRule =
+      String(
+        variant?.payment_rule ??
+        template.payment_rule ??
+        (
+          resolvedDepositMinor > 0
+            ? "deposit"
+            : "full"
+        )
+      );
+
     const resolvedName =
       variant
         ? `${template.name} · ${variant.name}`
@@ -188,8 +201,31 @@ export async function onRequestPost({ request, env }) {
       }
     }
 
+    if (
+      resolvedPaymentRule === "full" &&
+      paymentChoice !== "full"
+    ) {
+      return badRequest("This package requires full payment.");
+    }
+
+    if (
+      resolvedPaymentRule === "deposit" &&
+      paymentChoice !== "deposit"
+    ) {
+      return badRequest("This package is configured for a deposit payment.");
+    }
+
+    if (resolvedPaymentRule === "pay_later") {
+      return badRequest(
+        "This package is configured for staff-managed payment. Assign it first, then record payment against the customer package."
+      );
+    }
+
     const price = resolvedPriceMinor;
-    const deposit = resolvedDepositMinor;
+    const deposit =
+      resolvedPaymentRule === "deposit"
+        ? resolvedDepositMinor
+        : 0;
 
     const availableCredit =
       await findAvailableConsultationCredit({
