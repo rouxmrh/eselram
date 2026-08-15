@@ -88,6 +88,12 @@ export async function onRequestPost({
         ""
       ).trim();
 
+    const packageSaleId =
+      String(
+        body.package_sale_id ||
+        ""
+      ).trim();
+
     const paymentId =
       String(
         body.payment_id ||
@@ -101,7 +107,10 @@ export async function onRequestPost({
       ).trim();
 
     if (
-      !appointmentId ||
+      (
+        !appointmentId &&
+        !packageSaleId
+      ) ||
       !paymentId ||
       !checkoutUrl
     ) {
@@ -109,7 +118,7 @@ export async function onRequestPost({
         {
           ok: false,
           error:
-            "Appointment, payment and checkout link are required."
+            "A booking or package sale, payment and checkout link are required."
         },
         {
           status: 400
@@ -122,7 +131,10 @@ export async function onRequestPost({
         env,
         businessId:
           user.business_id,
-        appointmentId,
+        appointmentId:
+          appointmentId || null,
+        packageSaleId:
+          packageSaleId || null,
         paymentId,
         checkoutUrl
       });

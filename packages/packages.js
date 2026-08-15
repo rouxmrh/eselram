@@ -7,6 +7,7 @@ let services = [];
 let packageVariants = [];
 let currency = "GBP";
 let activeView = "customers";
+let activePackageCheckout = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -934,6 +935,165 @@ $("#templateForm").addEventListener("submit", async event => {
   }
 });
 
+
+function openPackageCheckoutDialog(data) {
+  activePackageCheckout = data;
+
+  $("#packageCheckoutContext").textContent =
+    "Secure Stripe payment";
+
+  $("#packageCheckoutAmount").textContent =
+    `${money(data.amount_minor)} ready to collect`;
+
+  $("#packageCheckoutLink").value =
+    data.checkout_url;
+
+  $("#openPackageCheckoutLink").href =
+    data.checkout_url;
+
+  $("#packageCheckoutStatus").hidden =
+    true;
+
+  if (
+    window.EselramQr &&
+    typeof window.EselramQr.toDataUrl ===
+      "function"
+  ) {
+    $("#packageCheckoutQr").src =
+      window.EselramQr.toDataUrl(
+        data.checkout_url,
+        { quiet: 4 }
+      );
+  } else {
+    $("#packageCheckoutQr").removeAttribute(
+      "src"
+    );
+  }
+
+  $("#packageCheckoutDialog").showModal();
+}
+
+
+$("#closePackageCheckoutDialog").addEventListener(
+  "click",
+  () => {
+    $("#packageCheckoutDialog").close();
+    activePackageCheckout = null;
+  }
+);
+
+
+$("#copyPackageCheckoutLink").addEventListener(
+  "click",
+  async () => {
+    const value =
+      $("#packageCheckoutLink").value;
+
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        value
+      );
+    } catch {
+      $("#packageCheckoutLink").select();
+      document.execCommand("copy");
+    }
+
+    const status =
+      $("#packageCheckoutStatus");
+
+    status.hidden = false;
+    status.className =
+      "es-status success";
+    status.textContent =
+      "Payment link copied.";
+  }
+);
+
+
+$("#emailPackageCheckoutLink").addEventListener(
+  "click",
+  async () => {
+    if (
+      !activePackageCheckout?.payment_id ||
+      !activePackageCheckout?.checkout_url
+    ) {
+      return;
+    }
+
+    const button =
+      $("#emailPackageCheckoutLink");
+
+    const status =
+      $("#packageCheckoutStatus");
+
+    button.disabled = true;
+    status.hidden = false;
+    status.className =
+      "es-status";
+    status.textContent =
+      "Sending payment link…";
+
+    try {
+      const response =
+        await fetch(
+          "/api/payments/email-link",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              Accept:
+                "application/json"
+            },
+            body:
+              JSON.stringify({
+                payment_id:
+                  activePackageCheckout.payment_id,
+                checkout_url:
+                  activePackageCheckout.checkout_url,
+                package_sale_id:
+                  activePackageCheckout.sale_id
+              })
+          }
+        );
+
+      handleAuth(response);
+
+      const result =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !result.ok
+      ) {
+        throw new Error(
+          result.error ||
+          "Unable to email the payment link."
+        );
+      }
+
+      status.className =
+        "es-status success";
+
+      status.textContent =
+        `Payment link sent to ${result.recipient}.`;
+
+    } catch (error) {
+      status.className =
+        "es-status error";
+
+      status.textContent =
+        error.message ||
+        "Unable to email the payment link.";
+    } finally {
+      button.disabled = false;
+    }
+  }
+);
+
+
 $("#assignForm").addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -991,7 +1151,18 @@ $("#assignForm").addEventListener("submit", async event => {
       throw new Error(data.error || "Unable to start package payment.");
     }
 
-    location.href = data.checkout_url;
+    $("#assignDialog").close();
+
+    openPackageCheckoutDialog({
+      sale_id:
+        data.sale_id,
+      payment_id:
+        data.payment_id,
+      checkout_url:
+        data.checkout_url,
+      amount_minor:
+        data.amount_minor
+    });
   } catch (error) {
     status.className = "es-status error";
     status.textContent = error.message;

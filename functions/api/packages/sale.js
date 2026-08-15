@@ -478,6 +478,7 @@ export async function onRequestPost({ request, env }) {
       ok: true,
       sale_id: saleId,
       checkout_url: result.data.url,
+      payment_id: paymentId,
       amount_minor: amountMinor,
       currency: stripeCurrency,
       consultation_credit_minor: consultationCreditMinor,

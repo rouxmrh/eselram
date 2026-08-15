@@ -739,7 +739,68 @@
       }
     }
 
-  </style>
+  
+    .es-package-payment-share{
+      display:grid;
+      grid-template-columns:180px minmax(0,1fr);
+      gap:22px;
+      align-items:start;
+      margin-top:18px;
+    }
+
+    .es-package-payment-qr-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:180px;
+      border:1px solid var(--es-border);
+      border-radius:16px;
+      background:#fff;
+      padding:14px;
+      box-sizing:border-box;
+    }
+
+    .es-package-payment-qr-wrap img{
+      width:150px;
+      height:150px;
+      object-fit:contain;
+    }
+
+    .es-package-payment-share-copy{
+      display:grid;
+      gap:12px;
+    }
+
+    .es-package-payment-share-copy > strong{
+      font-size:22px;
+    }
+
+    .es-package-payment-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+    }
+
+    .es-package-payment-actions .es-button,
+    .es-package-payment-actions .es-secondary-button{
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+    }
+
+    @media(max-width:680px){
+      .es-package-payment-share{
+        grid-template-columns:1fr;
+      }
+
+      .es-package-payment-qr-wrap{
+        justify-self:start;
+      }
+    }
+
+</style>
 </head>
 
 <body class="es-dashboard-body">
@@ -1025,10 +1086,56 @@
   </div>
 </dialog>
 
+
+<dialog id="packageCheckoutDialog" class="es-package-dialog">
+  <div class="es-package-dialog-inner">
+    <h2>Collect package payment</h2>
+
+    <p id="packageCheckoutContext" class="es-muted-copy"></p>
+
+    <div class="es-package-payment-share">
+      <div class="es-package-payment-qr-wrap">
+        <img id="packageCheckoutQr" alt="Package payment QR code">
+      </div>
+
+      <div class="es-package-payment-share-copy">
+        <strong id="packageCheckoutAmount"></strong>
+        <p class="es-muted-copy">
+          Open the secure Stripe page, let the customer scan the QR code,
+          copy the link, or email it to them.
+        </p>
+
+        <input id="packageCheckoutLink" type="text" readonly>
+
+        <div class="es-package-payment-actions">
+          <a id="openPackageCheckoutLink" class="es-button" href="#" target="_blank" rel="noopener">
+            Open payment online
+          </a>
+          <button id="copyPackageCheckoutLink" class="es-secondary-button" type="button">
+            Copy link
+          </button>
+          <button id="emailPackageCheckoutLink" class="es-secondary-button" type="button">
+            Email payment link
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="packageCheckoutStatus" class="es-status" hidden></div>
+
+    <div class="es-form-actions">
+      <button id="closePackageCheckoutDialog" class="es-secondary-button" type="button">
+        Close
+      </button>
+    </div>
+  </div>
+</dialog>
+
 <script type="module">
   import { renderSidebar } from "/components/sidebar.js";
   renderSidebar("packages");
 </script>
+<script src="/components/qr-code.js"></script>
 <script src="/packages/packages.js"></script>
 </body>
 </html>
