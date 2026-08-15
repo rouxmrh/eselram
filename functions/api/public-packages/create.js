@@ -36,6 +36,7 @@ export async function onRequestPost({ request, env }) {
 
     const body = await request.json();
     const templateId = String(body.package_template_id || "").trim();
+    const variantId = String(body.package_variant_id || "").trim();
     const firstName = String(body.first_name || "").trim().slice(0, 100);
     const lastName = String(body.last_name || "").trim().slice(0, 100);
     const email = String(body.email || "").trim().toLowerCase().slice(0, 254);
@@ -76,9 +77,87 @@ export async function onRequestPost({ request, env }) {
 
     if (!template) return badRequest("That package is no longer available.");
 
+    const variantRows = await env.DB.prepare(`
+      SELECT
+        pv.id,
+        pv.service_id,
+        pv.name,
+        pv.price_minor,
+        pv.deposit_minor,
+        s.requires_consultation,
+        s.post_consultation_booking
+      FROM package_variants pv
+      JOIN services s
+        ON s.id = pv.service_id
+       AND s.business_id = pv.business_id
+      WHERE
+        pv.package_template_id = ?
+        AND pv.business_id = ?
+        AND pv.is_active = 1
+      ORDER BY pv.sort_order, pv.name COLLATE NOCASE
+    `).bind(template.id, business.id).all();
+
+    const variants = variantRows.results || [];
+
+    if (variants.length > 0 && !variantId) {
+      return badRequest("Choose a package variant.");
+    }
+
+    const variant =
+      variantId
+        ? variants.find(item => item.id === variantId)
+        : null;
+
+    if (variantId && !variant) {
+      return badRequest("Selected package variant is unavailable.");
+    }
+
+    const resolvedServiceId =
+      variant?.service_id ||
+      template.service_id;
+
+    const resolvedPriceMinor =
+      Math.max(
+        0,
+        Number(
+          variant?.price_minor ??
+          template.price_minor ??
+          0
+        )
+      );
+
+    const resolvedDepositMinor =
+      Math.max(
+        0,
+        Number(
+          variant?.deposit_minor ??
+          template.deposit_minor ??
+          0
+        )
+      );
+
+    const resolvedName =
+      variant
+        ? `${template.name} · ${variant.name}`
+        : template.name;
+
+    const requiresConsultation =
+      Number(
+        variant?.requires_consultation ??
+        template.requires_consultation ??
+        0
+      );
+
+    const postConsultationBooking =
+      String(
+        variant?.post_consultation_booking ??
+        template.post_consultation_booking ??
+        "client_can_book"
+      );
+
     if (
-      Number(template.requires_consultation || 0) === 1 &&
-      String(template.post_consultation_booking || "client_can_book") === "practitioner_managed"
+      requiresConsultation === 1 &&
+      postConsultationBooking === "practitioner_managed"
     ) {
       return Response.json(
         {
@@ -86,7 +165,7 @@ export async function onRequestPost({ request, env }) {
           error:
             "This package is selected and sold by the practitioner after consultation.",
           practitioner_managed: true,
-          service_id: template.service_id
+          service_id: resolvedServiceId
         },
         { status: 409 }
       );
@@ -106,14 +185,14 @@ export async function onRequestPost({ request, env }) {
     let consultationCreditMinor = 0;
 
     if (
-      Number(template.requires_consultation || 0) === 1
+      requiresConsultation === 1
     ) {
       const consultationCompleted =
         await hasCompletedConsultation({
           env,
           businessId: business.id,
           customerId: customer.id,
-          serviceId: template.service_id
+          serviceId: resolvedServiceId
         });
 
       if (!consultationCompleted) {
@@ -142,7 +221,7 @@ export async function onRequestPost({ request, env }) {
           env,
           businessId: business.id,
           customerId: customer.id,
-          serviceId: template.service_id
+          serviceId: resolvedServiceId
         });
 
       consultationCreditSourceAppointmentId =
@@ -151,8 +230,8 @@ export async function onRequestPost({ request, env }) {
         Number(availableCredit.available_minor || 0);
     }
 
-    const price = Math.max(0, Number(template.price_minor || 0));
-    const deposit = Math.max(0, Number(template.deposit_minor || 0));
+    const price = resolvedPriceMinor;
+    const deposit = resolvedDepositMinor;
     const appliedConsultationCreditMinor = Math.min(consultationCreditMinor, price);
     const effectivePrice = Math.max(0, price - appliedConsultationCreditMinor);
     const effectiveDeposit = Math.max(0, deposit - appliedConsultationCreditMinor);
@@ -182,12 +261,12 @@ export async function onRequestPost({ request, env }) {
 
       await env.DB.prepare(`
         INSERT INTO customer_packages (
-          id, business_id, customer_id, package_template_id, service_id,
+          id, business_id, customer_id, package_template_id, package_variant_id, service_id,
           name_snapshot, sessions_total, price_minor, status,
           starts_on, expires_on, notes
         )
         VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, 'active', date('now'),
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', date('now'),
           CASE WHEN ? > 0 THEN date('now', '+' || ? || ' days') ELSE NULL END,
           'Created automatically from consultation credit'
         )
@@ -196,8 +275,9 @@ export async function onRequestPost({ request, env }) {
         business.id,
         customer.id,
         template.id,
-        template.service_id,
-        template.name,
+        variant?.id || null,
+        resolvedServiceId,
+        resolvedName,
         template.sessions_total,
         price,
         validityDays,
@@ -206,17 +286,18 @@ export async function onRequestPost({ request, env }) {
 
       await env.DB.prepare(`
         INSERT INTO package_sales (
-          id, business_id, customer_id, package_template_id,
+          id, business_id, customer_id, package_template_id, package_variant_id,
           source, payment_choice, amount_minor, currency,
           status, payment_id, customer_package_id, paid_at,
           consultation_credit_source_appointment_id, consultation_credit_minor
         )
-        VALUES (?, ?, ?, ?, 'public', ?, 0, ?, 'paid', NULL, ?, CURRENT_TIMESTAMP, ?, ?)
+        VALUES (?, ?, ?, ?, ?, 'public', ?, 0, ?, 'paid', NULL, ?, CURRENT_TIMESTAMP, ?, ?)
       `).bind(
         saleId,
         business.id,
         customer.id,
         template.id,
+        variant?.id || null,
         paymentChoice,
         currency,
         customerPackageId,
@@ -275,7 +356,7 @@ export async function onRequestPost({ request, env }) {
         status, payment_id,
         consultation_credit_source_appointment_id, consultation_credit_minor
       )
-      VALUES (?, ?, ?, ?, 'public', ?, ?, ?, 'pending', ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 'public', ?, ?, ?, 'pending', ?, ?, ?)
     `).bind(
       saleId,
       business.id,
@@ -308,14 +389,17 @@ export async function onRequestPost({ request, env }) {
     params.set(
       "line_items[0][price_data][product_data][name]",
       paymentChoice === "deposit"
-        ? `${template.name} deposit`
-        : template.name
+        ? `${resolvedName} deposit`
+        : resolvedName
     );
     params.set("line_items[0][quantity]", "1");
     params.set("metadata[payment_id]", paymentId);
     params.set("metadata[business_id]", business.id);
     params.set("metadata[package_sale_id]", saleId);
     params.set("metadata[package_template_id]", template.id);
+    if (variant?.id) {
+      params.set("metadata[package_variant_id]", variant.id);
+    }
     params.set("metadata[package_sale_source]", "public");
     params.set("payment_intent_data[metadata][payment_id]", paymentId);
     params.set("payment_intent_data[metadata][business_id]", business.id);

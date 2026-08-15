@@ -25,13 +25,21 @@ export async function onRequestGet({ request, env }) {
         ps.customer_package_id,
         ps.customer_id,
         ps.consultation_credit_minor,
-        pt.name AS package_name,
+        ps.package_variant_id,
+        CASE
+          WHEN pv.id IS NOT NULL
+            THEN pt.name || ' · ' || pv.name
+          ELSE pt.name
+        END AS package_name,
         pt.sessions_total,
         pt.service_id,
         s.name AS service_name,
         s.requires_consultation
       FROM package_sales ps
       JOIN package_templates pt ON pt.id = ps.package_template_id
+      LEFT JOIN package_variants pv
+        ON pv.id = ps.package_variant_id
+       AND pv.package_template_id = pt.id
       JOIN services s
         ON s.id = pt.service_id
        AND s.business_id = pt.business_id
