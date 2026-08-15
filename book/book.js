@@ -490,7 +490,7 @@ function renderSelectedBookingGroup(groupName) {
 
     panel.querySelector("#bookStandaloneConsultation")?.addEventListener(
       "click",
-      () => selectServiceRoute(consultationService, "service")
+      () => selectServiceRoute(consultationService, "consultation")
     );
 
     if (clientBookable.length) {

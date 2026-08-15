@@ -483,11 +483,24 @@ async function updatePaymentFromSession({
 
 
     try {
-      await sendPaymentReceipt({
-        env,
-        businessId,
-        paymentId
-      });
+      const receiptResult =
+        await sendPaymentReceipt({
+          env,
+          businessId,
+          paymentId
+        });
+
+      if (
+        receiptResult &&
+        receiptResult.ok === false
+      ) {
+        console.error(
+          "Automatic Stripe payment receipt failed:",
+          receiptResult.error ||
+          receiptResult.reason ||
+          "Unknown receipt error"
+        );
+      }
     } catch (emailError) {
       console.error(
         "Automatic Stripe payment receipt failed:",
@@ -535,39 +548,74 @@ async function updatePaymentFromSession({
         .run();
 
 
-      await sendAppointmentCommunication({
-        env,
-        businessId,
-        appointmentId,
-        type:
-          "booking_confirmation",
-        uniqueKey:
-          `booking_confirmation:${appointmentId}`,
-        baseUrl
-      });
+      try {
+        const confirmationResult =
+          await sendAppointmentCommunication({
+            env,
+            businessId,
+            appointmentId,
+            type:
+              "booking_confirmation",
+            uniqueKey:
+              `booking_confirmation:${appointmentId}`,
+            baseUrl
+          });
 
-      // A successful public Stripe payment also confirms the appointment.
-      // Run booking-confirmed form rules first so consultation forms configured
-      // to send on confirmation behave the same for paid and non-paid bookings.
-      await runServiceFormAutomation({
-        env,
-        businessId,
-        appointmentId,
-        triggerEvent:
-          "booking_confirmed",
-        baseUrl
-      });
+        if (
+          confirmationResult &&
+          confirmationResult.ok === false
+        ) {
+          console.error(
+            "Automatic booking confirmation failed:",
+            appointmentId,
+            confirmationResult.error ||
+            confirmationResult.reason ||
+            "Unknown confirmation error"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Automatic booking confirmation failed:",
+          appointmentId,
+          error
+        );
+      }
 
-      // Preserve payment-specific form automation for businesses that have
-      // deliberately configured a form to send when payment is received.
-      await runServiceFormAutomation({
-        env,
-        businessId,
-        appointmentId,
-        triggerEvent:
-          "payment_received",
-        baseUrl
-      });
+      // These two form triggers are deliberately independent. A failed booking
+      // confirmation email must never prevent a required consultation form.
+      try {
+        await runServiceFormAutomation({
+          env,
+          businessId,
+          appointmentId,
+          triggerEvent:
+            "booking_confirmed",
+          baseUrl
+        });
+      } catch (error) {
+        console.error(
+          "Booking-confirmed form automation failed:",
+          appointmentId,
+          error
+        );
+      }
+
+      try {
+        await runServiceFormAutomation({
+          env,
+          businessId,
+          appointmentId,
+          triggerEvent:
+            "payment_received",
+          baseUrl
+        });
+      } catch (error) {
+        console.error(
+          "Payment-received form automation failed:",
+          appointmentId,
+          error
+        );
+      }
     }
 
   } else {

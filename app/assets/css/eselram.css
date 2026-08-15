@@ -4086,3 +4086,178 @@ input:focus,textarea:focus{border-color:var(--es-primary);box-shadow:0 0 0 3px c
   opacity: .72;
   background: #fafafa;
 }
+
+
+/* =======================================================
+   Global mobile containment hardening
+   ======================================================= */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+.es-app,
+.es-main,
+.es-page,
+.es-content,
+.es-card,
+.es-panel,
+.es-section,
+.es-form,
+.es-form-grid,
+.es-toolbar,
+.es-table-wrap,
+.es-bookings-list,
+.es-finance-list,
+.es-customer-profile,
+.es-customer-section,
+.es-package-card,
+.es-service-card,
+.es-dialog-inner,
+.es-package-dialog-inner {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 700px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .es-main,
+  .es-page,
+  .es-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .es-page-header,
+  .es-toolbar,
+  .es-section-header,
+  .es-card-header,
+  .es-actions,
+  .es-form-actions {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .es-grid,
+  .es-form-grid,
+  .es-kpi-grid,
+  .es-stats-grid,
+  .es-dashboard-grid {
+    min-width: 0;
+  }
+
+  input,
+  select,
+  textarea,
+  button,
+  .es-button,
+  .es-secondary-button {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  select,
+  input,
+  textarea {
+    min-width: 0;
+  }
+
+  dialog,
+  .es-dialog,
+  .es-package-dialog {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 20px);
+    margin: 10px auto !important;
+  }
+
+  .es-dialog-inner,
+  .es-package-dialog-inner {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: calc(100dvh - 20px);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  table {
+    max-width: 100%;
+  }
+
+  .es-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .es-booking-row,
+  .es-finance-row,
+  .es-finance-outstanding-row,
+  .es-service-row,
+  .es-package-row {
+    min-width: 0;
+  }
+
+  .booking-shell {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .booking-card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .booking-category-pills,
+  .booking-service-pills,
+  .es-bookings-view-switcher {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .booking-category-panel,
+  .booking-service-summary,
+  .review-card,
+  .message {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 480px) {
+  .es-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .es-form-actions > *,
+  .es-actions > .es-button,
+  .es-actions > .es-secondary-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

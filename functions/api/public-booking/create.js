@@ -34,6 +34,60 @@ import {
   stripeErrorMessage
 } from "../../../lib/stripe-business.js";
 
+
+async function runConfirmedBookingAutomation({
+  env,
+  businessId,
+  appointmentId,
+  baseUrl
+}) {
+  const results = {
+    booking_confirmation: null,
+    form_automation: null
+  };
+
+  try {
+    results.booking_confirmation =
+      await sendAppointmentCommunication({
+        env,
+        businessId,
+        appointmentId,
+        type:
+          "booking_confirmation",
+        uniqueKey:
+          `booking_confirmation:${appointmentId}`,
+        baseUrl
+      });
+  } catch (error) {
+    console.error(
+      "Booking confirmation automation failed:",
+      appointmentId,
+      error
+    );
+  }
+
+  try {
+    results.form_automation =
+      await runServiceFormAutomation({
+        env,
+        businessId,
+        appointmentId,
+        triggerEvent:
+          "booking_confirmed",
+        baseUrl
+      });
+  } catch (error) {
+    console.error(
+      "Booking form automation failed:",
+      appointmentId,
+      error
+    );
+  }
+
+  return results;
+}
+
+
 function clean(value, max = 300) {
   return String(value || "").trim().slice(0, max);
 }
@@ -503,26 +557,11 @@ export async function onRequestPost({ request, env }) {
     };
 
     if (!requiresOnlinePayment || outstandingAfterCreditMinor <= 0 || paymentTiming === "free") {
-      await sendAppointmentCommunication({
+      await runConfirmedBookingAutomation({
         env,
         businessId:
           business.id,
         appointmentId,
-        type:
-          "booking_confirmation",
-        uniqueKey:
-          `booking_confirmation:${appointmentId}`,
-        baseUrl:
-          new URL(request.url).origin
-      });
-
-      await runServiceFormAutomation({
-        env,
-        businessId:
-          business.id,
-        appointmentId,
-        triggerEvent:
-          "booking_confirmed",
         baseUrl:
           new URL(request.url).origin
       });
@@ -551,26 +590,11 @@ export async function onRequestPost({ request, env }) {
 
       booking.status = "confirmed";
 
-      await sendAppointmentCommunication({
+      await runConfirmedBookingAutomation({
         env,
         businessId:
           business.id,
         appointmentId,
-        type:
-          "booking_confirmation",
-        uniqueKey:
-          `booking_confirmation:${appointmentId}`,
-        baseUrl:
-          new URL(request.url).origin
-      });
-
-      await runServiceFormAutomation({
-        env,
-        businessId:
-          business.id,
-        appointmentId,
-        triggerEvent:
-          "booking_confirmed",
         baseUrl:
           new URL(request.url).origin
       });
