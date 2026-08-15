@@ -91,7 +91,9 @@ const servicesFormsCount = document.getElementById("servicesFormsCount");
 const serviceSearch = document.getElementById("serviceSearch");
 const serviceStatusFilter = document.getElementById("serviceStatusFilter");
 const closeServiceEditorButton = document.getElementById("closeServiceEditorButton");
+const serviceFamilyPills = document.getElementById("serviceFamilyPills");
 
+let selectedServiceFamily = "";
 
 let services = [];
 let providers = [];
@@ -356,92 +358,343 @@ function serviceConsultationLabel(service) {
   return `${Number(service.consultation_duration_minutes || 30)} min · ${formatMoney(service.consultation_price_minor || 0)}`;
 }
 
+function serviceFamilyName(service) {
+  const configured =
+    String(
+      service.booking_group ||
+      ""
+    ).trim();
+
+  if (configured) {
+    return configured;
+  }
+
+  const name =
+    String(
+      service.name ||
+      "Other"
+    ).trim();
+
+  if (
+    String(
+      service.service_type ||
+      "standard"
+    ) === "consultation"
+  ) {
+    return (
+      name.replace(
+        /\s+consultation$/i,
+        ""
+      ).trim() ||
+      name
+    );
+  }
+
+  return name;
+}
+
+
 function renderServices() {
-  const query = String(serviceSearch?.value || "").trim().toLowerCase();
-  const filter = serviceStatusFilter?.value || "all";
-  const filtered = services.filter(service => {
-    if (filter === "active" && Number(service.is_active) !== 1) return false;
-    if (filter === "inactive" && Number(service.is_active) === 1) return false;
-    if (
-      filter === "consultation" &&
-      String(service.service_type || "standard") !== "consultation" &&
-      Number(service.requires_consultation) !== 1
-    ) return false;
-    if (filter === "patch" && Number(service.requires_patch_test) !== 1) return false;
-    if (!query) return true;
-    return [service.name, service.booking_group, service.description, servicePaymentLabel(service)].filter(Boolean).join(" ").toLowerCase().includes(query);
-  });
+  const query =
+    String(
+      serviceSearch?.value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const filter =
+    serviceStatusFilter?.value ||
+    "all";
+
+  const filtered =
+    services.filter(service => {
+      if (
+        filter === "active" &&
+        Number(service.is_active) !== 1
+      ) return false;
+
+      if (
+        filter === "inactive" &&
+        Number(service.is_active) === 1
+      ) return false;
+
+      if (
+        filter === "consultation" &&
+        String(
+          service.service_type ||
+          "standard"
+        ) !== "consultation" &&
+        Number(
+          service.requires_consultation
+        ) !== 1
+      ) return false;
+
+      if (
+        filter === "patch" &&
+        Number(
+          service.requires_patch_test
+        ) !== 1
+      ) return false;
+
+      if (!query) return true;
+
+      return [
+        service.name,
+        service.booking_group,
+        service.description,
+        servicePaymentLabel(service)
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
 
   if (filtered.length === 0) {
-    servicesList.className = "es-empty-state";
-    servicesList.innerHTML = `<strong>No matching services.</strong><span>Try changing the search or filter.</span>`;
+    if (serviceFamilyPills) {
+      serviceFamilyPills.innerHTML = "";
+    }
+
+    servicesList.className =
+      "es-empty-state";
+
+    servicesList.innerHTML =
+      `<strong>No matching services.</strong><span>Try changing the search or filter.</span>`;
+
     return;
   }
 
-  servicesList.className = "es-services-grid";
-  servicesList.innerHTML = filtered.map(service => {
-    const active = Number(service.is_active) === 1;
-    const standaloneConsultation =
-      String(service.service_type || "standard") === "consultation";
-    const consultation =
-      standaloneConsultation ||
-      Number(service.requires_consultation) === 1;
-    const patch = Number(service.requires_patch_test) === 1;
-    const formCount = (service.form_rules || []).filter(rule => Number(rule.is_active ?? 1) === 1).length;
-    const providerCount = (service.providers || []).length;
-    return `
-      <article class="es-service-card ${active ? "" : "is-inactive"}">
-        <div class="es-service-card-header">
-          <div class="es-service-card-title"><h3>${escapeHtml(service.name)}</h3><p>${escapeHtml(service.description || "No description added.")}</p></div>
-          <span class="es-service-status ${active ? "" : "inactive"}">${active ? "Active" : "Inactive"}</span>
-        </div>
-        <div class="es-service-card-metrics">
-          <div class="es-service-metric"><span>Duration</span><strong>${Number(service.duration_minutes)} min</strong></div>
-          <div class="es-service-metric"><span>Price</span><strong>${formatMoney(service.price_minor)}</strong></div>
-          <div class="es-service-metric"><span>Payment</span><strong>${escapeHtml(servicePaymentLabel(service))}</strong></div>
-        </div>
-        <div class="es-service-card-rules">
-          <span class="es-service-rule-pill ${consultation ? "on" : ""}">
-            ${standaloneConsultation ? "Consultation service" : `Consultation ${consultation ? "required" : "not required"}`}
-          </span>
-          <span class="es-service-rule-pill ${patch ? "on" : ""}">Patch test ${patch ? "required" : "not required"}</span>
-          <span class="es-service-rule-pill ${formCount > 0 ? "on" : ""}">${formCount} client ${formCount === 1 ? "form" : "forms"}</span>
-        </div>
-        <div class="es-service-card-footer">
-          <small>${consultation ? `Consultation: ${escapeHtml(serviceConsultationLabel(service))}` : (providerCount > 0 ? `${providerCount} online payment ${providerCount === 1 ? "provider" : "providers"}` : "No consultation workflow")}</small>
-          <button class="es-secondary-button es-service-edit" type="button" data-edit="${escapeHtml(service.id)}">Edit service</button>
-        </div>
-      </article>`;
-  }).join("");
+  const families =
+    [...new Set(
+      filtered.map(
+        service =>
+          serviceFamilyName(service)
+      )
+    )]
+      .sort(
+        (a, b) =>
+          a.localeCompare(
+            b,
+            undefined,
+            {
+              sensitivity: "base"
+            }
+          )
+      );
 
+  if (
+    !selectedServiceFamily ||
+    !families.includes(
+      selectedServiceFamily
+    )
+  ) {
+    selectedServiceFamily =
+      families[0];
+  }
 
+  if (serviceFamilyPills) {
+    serviceFamilyPills.innerHTML =
+      families
+        .map(
+          family => `
+            <button
+              class="es-service-family-pill ${
+                family ===
+                selectedServiceFamily
+                  ? "is-active"
+                  : ""
+              }"
+              type="button"
+              data-service-family="${escapeHtml(family)}"
+            >
+              ${escapeHtml(family)}
+            </button>
+          `
+        )
+        .join("");
+
+    serviceFamilyPills
+      .querySelectorAll(
+        "[data-service-family]"
+      )
+      .forEach(button => {
+        button.addEventListener(
+          "click",
+          () => {
+            selectedServiceFamily =
+              button.dataset
+                .serviceFamily ||
+              "";
+
+            renderServices();
+          }
+        );
+      });
+  }
+
+  const visible =
+    filtered.filter(
+      service =>
+        serviceFamilyName(service) ===
+        selectedServiceFamily
+    );
+
+  servicesList.className = "";
+
+  servicesList.innerHTML = `
+    <div class="es-service-family-heading">
+      <strong>${escapeHtml(selectedServiceFamily)}</strong>
+      <span>${visible.length} ${
+        visible.length === 1
+          ? "service"
+          : "services"
+      }</span>
+    </div>
+
+    <div class="es-services-grid">
+      ${visible.map(service => {
+        const active =
+          Number(
+            service.is_active
+          ) === 1;
+
+        const standaloneConsultation =
+          String(
+            service.service_type ||
+            "standard"
+          ) ===
+            "consultation";
+
+        const consultation =
+          standaloneConsultation ||
+          Number(
+            service.requires_consultation
+          ) === 1;
+
+        const patch =
+          Number(
+            service.requires_patch_test
+          ) === 1;
+
+        const formCount =
+          (
+            service.form_rules ||
+            []
+          )
+            .filter(
+              rule =>
+                Number(
+                  rule.is_active ??
+                  1
+                ) === 1
+            )
+            .length;
+
+        const providerCount =
+          (
+            service.providers ||
+            []
+          ).length;
+
+        return `
+          <article class="es-service-card ${active ? "" : "is-inactive"}">
+            <div class="es-service-card-header">
+              <div class="es-service-card-title">
+                <h3>${escapeHtml(service.name)}</h3>
+                <p>${escapeHtml(service.description || "No description added.")}</p>
+              </div>
+
+              <span class="es-service-status ${active ? "" : "inactive"}">
+                ${active ? "Active" : "Inactive"}
+              </span>
+            </div>
+
+            <div class="es-service-card-metrics">
+              <div class="es-service-metric">
+                <span>Duration</span>
+                <strong>${Number(service.duration_minutes)} min</strong>
+              </div>
+
+              <div class="es-service-metric">
+                <span>Price</span>
+                <strong>${formatMoney(service.price_minor)}</strong>
+              </div>
+
+              <div class="es-service-metric">
+                <span>Payment</span>
+                <strong>${escapeHtml(servicePaymentLabel(service))}</strong>
+              </div>
+            </div>
+
+            <div class="es-service-card-rules">
+              <span class="es-service-rule-pill ${consultation ? "on" : ""}">
+                ${
+                  standaloneConsultation
+                    ? "Consultation service"
+                    : `Consultation ${consultation ? "required" : "not required"}`
+                }
+              </span>
+
+              <span class="es-service-rule-pill ${patch ? "on" : ""}">
+                Patch test ${patch ? "required" : "not required"}
+              </span>
+
+              <span class="es-service-rule-pill ${formCount > 0 ? "on" : ""}">
+                ${formCount} client ${formCount === 1 ? "form" : "forms"}
+              </span>
+            </div>
+
+            <div class="es-service-card-footer">
+              <small>
+                ${
+                  consultation
+                    ? `Consultation: ${escapeHtml(serviceConsultationLabel(service))}`
+                    : (
+                        providerCount > 0
+                          ? `${providerCount} online payment ${providerCount === 1 ? "provider" : "providers"}`
+                          : "No consultation workflow"
+                      )
+                }
+              </small>
+
+              <button
+                class="es-secondary-button es-service-edit"
+                type="button"
+                data-edit="${escapeHtml(service.id)}"
+              >
+                Edit service
+              </button>
+            </div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
 
   document
     .querySelectorAll(
       "[data-edit]"
     )
-    .forEach(
-      (button) => {
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          const service =
+            services.find(
+              item =>
+                item.id ===
+                button.dataset.edit
+            );
 
-        button.addEventListener(
-          "click",
-          () => {
-
-            const service =
-              services.find(
-                (item) =>
-                  item.id ===
-                  button.dataset.edit
-              );
-
-            if (service) {
-              openForm(service);
-            }
+          if (service) {
+            openForm(service);
           }
-        );
-      }
-    );
+        }
+      );
+    });
 }
+
 
 
 function openForm(
