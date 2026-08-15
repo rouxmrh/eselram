@@ -432,8 +432,8 @@ export async function onRequestPost({ request, env }) {
       const description = String(body.description || "").trim();
       const serviceId = String(body.service_id || "").trim();
       const sessionsTotal = Number(body.sessions_total);
-      const priceMinor = Number(body.price_minor);
-      const depositMinor = Number(body.deposit_minor || 0);
+      let priceMinor = Number(body.price_minor);
+      let depositMinor = Number(body.deposit_minor || 0);
       const validityDays =
         body.validity_days === null ||
         body.validity_days === "" ||
@@ -452,18 +452,6 @@ export async function onRequestPost({ request, env }) {
 
       if (!Number.isInteger(sessionsTotal) || sessionsTotal <= 0) {
         return badRequest("Sessions must be a positive whole number.");
-      }
-
-      if (!Number.isInteger(priceMinor) || priceMinor < 0) {
-        return badRequest("Enter a valid package price.");
-      }
-
-      if (!Number.isInteger(depositMinor) || depositMinor < 0) {
-        return badRequest("Enter a valid deposit amount.");
-      }
-
-      if (depositMinor > priceMinor) {
-        return badRequest("Deposit cannot exceed the package price.");
       }
 
       if (
@@ -527,6 +515,28 @@ export async function onRequestPost({ request, env }) {
           sort_order: index,
           service: variantService
         });
+      }
+
+      if (cleanVariants.length > 0) {
+        priceMinor = Math.min(
+          ...cleanVariants.map(variant => variant.price_minor)
+        );
+
+        depositMinor = Math.min(
+          ...cleanVariants.map(variant => variant.deposit_minor)
+        );
+      } else {
+        if (!Number.isInteger(priceMinor) || priceMinor < 0) {
+          return badRequest("Enter a valid package price.");
+        }
+
+        if (!Number.isInteger(depositMinor) || depositMinor < 0) {
+          return badRequest("Enter a valid deposit amount.");
+        }
+
+        if (depositMinor > priceMinor) {
+          return badRequest("Deposit cannot exceed the package price.");
+        }
       }
 
 
@@ -664,7 +674,7 @@ export async function onRequestPost({ request, env }) {
             depositMinor,
             validityDays,
             body.is_active === 0 ? 0 : 1,
-            body.is_public === 1 ? 1 : 0
+            isPublic
           )
           .run();
       }
