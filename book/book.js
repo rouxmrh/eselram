@@ -379,37 +379,59 @@ function renderSelectedBookingGroup(groupName) {
   });
 
   const panel = container.querySelector("#bookingGroupPanel");
-  const consultationServices = group.services.filter(
-    service => Number(service.requires_consultation || 0) === 1
+  if (!panel) return;
+
+  const consultationService =
+    group.services.find(
+      service => String(service.service_type || "standard") === "consultation"
+    ) || null;
+
+  const treatmentServices = group.services.filter(
+    service => String(service.service_type || "standard") !== "consultation"
   );
 
-  if (consultationServices.length) {
-    const representative = consultationServices[0];
-    const clientBookable = consultationServices.filter(
+  if (consultationService) {
+    const linkedTreatments = treatmentServices.filter(
+      service => service.consultation_service_id === consultationService.id
+    );
+
+    const clientBookable = linkedTreatments.filter(
       service => String(service.post_consultation_booking || "client_can_book") === "client_can_book"
     );
-    let selectedService = clientBookable[0] || representative;
-    const patchRequired = consultationServices.some(
+
+    const practitionerManaged = linkedTreatments.some(
+      service => String(service.post_consultation_booking || "") === "practitioner_managed"
+    );
+
+    let selectedService = clientBookable[0] || null;
+    const patchRequired = linkedTreatments.some(
       service => Number(service.requires_patch_test || 0) === 1
     );
 
     panel.innerHTML = `
       <h3>${escapeHtml(group.name)}</h3>
       <p class="booking-category-copy">
-        New clients start with a consultation so the practitioner can assess suitability and recommend the right treatment or package.
-        The consultation is ${Number(representative.consultation_duration_minutes || 30)} minutes and ${escapeHtml(consultationPaymentText(representative))}.
-        ${patchRequired ? "A patch test is also required before treatment." : ""}
+        New clients start with a consultation. The consultation is
+        ${Number(consultationService.duration_minutes || 0)} minutes and
+        ${escapeHtml(paymentText(consultationService))}.
+        ${patchRequired ? "A patch test is required before treatment." : ""}
         ${
-          clientBookable.length
-            ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
-            : "After the consultation, your practitioner will agree the correct treatment or package with you and manage the treatment bookings."
+          practitionerManaged && !clientBookable.length
+            ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
+            : clientBookable.length
+              ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
+              : ""
         }
       </p>
 
       ${clientBookable.length ? `
         <div class="booking-service-pills">
           ${clientBookable.map(service => `
-            <button class="booking-service-pill ${service.id === selectedService.id ? "active" : ""}" type="button" data-existing-service="${escapeHtml(service.id)}">
+            <button
+              class="booking-service-pill ${service.id === selectedService?.id ? "active" : ""}"
+              type="button"
+              data-existing-service="${escapeHtml(service.id)}"
+            >
               ${escapeHtml(serviceDisplayName(service.name))}
             </button>
           `).join("")}
@@ -418,7 +440,12 @@ function renderSelectedBookingGroup(groupName) {
       ` : ""}
 
       <div class="service-choice-actions">
-        <button class="primary-button service-choice-button" type="button" id="bookSelectedConsultation" ${representative.online_booking_available ? "" : "disabled"}>
+        <button
+          class="primary-button service-choice-button"
+          type="button"
+          id="bookStandaloneConsultation"
+          ${consultationService.online_booking_available ? "" : "disabled"}
+        >
           Book consultation
         </button>
         ${clientBookable.length ? `
@@ -429,9 +456,9 @@ function renderSelectedBookingGroup(groupName) {
       </div>
     `;
 
-    panel.querySelector("#bookSelectedConsultation")?.addEventListener(
+    panel.querySelector("#bookStandaloneConsultation")?.addEventListener(
       "click",
-      () => selectServiceRoute(representative, "consultation")
+      () => selectServiceRoute(consultationService, "service")
     );
 
     if (clientBookable.length) {
@@ -461,13 +488,48 @@ function renderSelectedBookingGroup(groupName) {
     return;
   }
 
-  let selectedService = group.services[0];
+  // Backward-compatible legacy consultation-first service.
+  const legacyConsultation = treatmentServices.find(
+    service => Number(service.requires_consultation || 0) === 1 && !service.consultation_service_id
+  );
+
+  if (legacyConsultation) {
+    const clientBookable = treatmentServices.filter(
+      service =>
+        Number(service.requires_consultation || 0) === 1 &&
+        !service.consultation_service_id &&
+        String(service.post_consultation_booking || "client_can_book") === "client_can_book"
+    );
+    const selectedService = clientBookable[0] || legacyConsultation;
+    panel.innerHTML = `
+      <h3>${escapeHtml(group.name)}</h3>
+      <p class="booking-category-copy">
+        New clients start with a consultation. The consultation is
+        ${Number(legacyConsultation.consultation_duration_minutes || 30)} minutes and
+        ${escapeHtml(consultationPaymentText(legacyConsultation))}.
+      </p>
+      <div class="service-choice-actions">
+        <button class="primary-button service-choice-button" type="button" id="bookLegacyConsultation">Book consultation</button>
+        ${clientBookable.length ? `<button class="text-button service-choice-button" type="button" id="bookLegacyTreatment">Existing client · Book treatment</button>` : ""}
+      </div>
+    `;
+    panel.querySelector("#bookLegacyConsultation")?.addEventListener("click", () => selectServiceRoute(legacyConsultation, "consultation"));
+    panel.querySelector("#bookLegacyTreatment")?.addEventListener("click", () => selectServiceRoute(selectedService, "service"));
+    return;
+  }
+
+  let selectedService = treatmentServices[0];
+  if (!selectedService) {
+    panel.innerHTML = `<div class="message">No bookable services are available.</div>`;
+    return;
+  }
+
   panel.innerHTML = `
     <h3>${escapeHtml(group.name)}</h3>
-    ${group.services.length > 1 ? `
+    ${treatmentServices.length > 1 ? `
       <p class="booking-category-copy">Choose the service you would like to book.</p>
       <div class="booking-service-pills">
-        ${group.services.map(service => `
+        ${treatmentServices.map(service => `
           <button class="booking-service-pill ${service.id === selectedService.id ? "active" : ""}" type="button" data-direct-service="${escapeHtml(service.id)}">
             ${escapeHtml(serviceDisplayName(service.name))}
           </button>
@@ -498,7 +560,7 @@ function renderSelectedBookingGroup(groupName) {
 
   panel.querySelectorAll("[data-direct-service]").forEach(button => {
     button.addEventListener("click", () => {
-      const service = group.services.find(item => item.id === button.dataset.directService);
+      const service = treatmentServices.find(item => item.id === button.dataset.directService);
       if (service) updateDirectService(service);
     });
   });
@@ -532,7 +594,6 @@ function renderServices() {
   container.querySelectorAll("[data-booking-group]").forEach(button => {
     button.addEventListener("click", () => renderSelectedBookingGroup(button.dataset.bookingGroup));
   });
-
   renderSelectedBookingGroup(groups[0].name);
 }
 
