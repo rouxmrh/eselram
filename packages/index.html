@@ -402,6 +402,9 @@
       }
     }
 
+    .es-package-derived-field{background:#f3f5f2!important;color:var(--es-muted)!important;cursor:not-allowed}
+    .es-package-derived-field::placeholder{color:var(--es-muted);opacity:1}
+
     .es-package-form-actions {
       display:flex;
       align-items:center;
@@ -620,15 +623,17 @@
         </label>
 
         <label>
-          Package price
+          <span id="templatePriceLabel">Package price</span>
           <input id="templatePrice" type="number" min="0" step="0.01" required>
+          <small id="templatePriceHint" class="es-muted-copy" hidden>Set by package variants.</small>
         </label>
       </div>
 
       <div class="es-package-form-grid">
         <label>
-          Suggested deposit
+          <span id="templateDepositLabel">Suggested deposit</span>
           <input id="templateDeposit" type="number" min="0" step="0.01" value="0">
+          <small id="templateDepositHint" class="es-muted-copy" hidden>Set by package variants.</small>
         </label>
 
         <label>

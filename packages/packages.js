@@ -571,8 +571,13 @@ function addVariantRow(variant = null) {
     <label>Deposit<input data-v-deposit type="number" min="0" step="0.01" value="${variant ? (Number(variant.deposit_minor || 0)/100).toFixed(2) : "0.00"}"></label>
     <button class="es-secondary-button" type="button" data-v-remove>Remove</button>
   `;
-  row.querySelector("[data-v-remove]").addEventListener("click", () => { row.remove(); renderVariantEmpty(); });
+  row.querySelector("[data-v-remove]").addEventListener("click", () => {
+    row.remove();
+    renderVariantEmpty();
+    updateVariantPricingMode();
+  });
   wrap.append(row);
+  updateVariantPricingMode();
 }
 
 function readVariants() {
@@ -596,6 +601,38 @@ function updateAssignVariantOptions() {
     ? `<option value="">Choose variant</option>` + variants.map(v => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.name)} · ${escapeHtml(v.service_name)} · ${money(v.price_minor)}</option>`).join("")
     : "";
 }
+
+function updateVariantPricingMode() {
+  const variants = readVariants();
+  const hasVariants = variants.length > 0;
+  const price = $("#templatePrice");
+  const deposit = $("#templateDeposit");
+
+  price.disabled = hasVariants;
+  deposit.disabled = hasVariants;
+  price.required = !hasVariants;
+
+  price.classList.toggle("es-package-derived-field", hasVariants);
+  deposit.classList.toggle("es-package-derived-field", hasVariants);
+
+  $("#templatePriceHint").hidden = !hasVariants;
+  $("#templateDepositHint").hidden = !hasVariants;
+
+  if (hasVariants) {
+    price.value = "";
+    deposit.value = "";
+    price.placeholder = "Set by package variants";
+    deposit.placeholder = "Set by package variants";
+  } else {
+    price.placeholder = "";
+    deposit.placeholder = "";
+
+    if (!deposit.value) {
+      deposit.value = "0.00";
+    }
+  }
+}
+
 
 function updatePackagePublicAvailability() {
   const service =
@@ -681,6 +718,7 @@ function openTemplateDialog(template = null) {
   $("#packageVariantRows").innerHTML = "";
   for (const variant of template?.variants || []) addVariantRow(variant);
   renderVariantEmpty();
+  updateVariantPricingMode();
 
   updatePackagePublicAvailability();
 
@@ -731,7 +769,10 @@ $("#templateService").addEventListener(
   "change",
   updatePackagePublicAvailability
 );
-$("#addPackageVariant").addEventListener("click", () => addVariantRow());
+$("#addPackageVariant").addEventListener("click", () => {
+  addVariantRow();
+  updateVariantPricingMode();
+});
 $("#assignTemplate").addEventListener("change", updateAssignVariantOptions);
 
 $("#newTemplateButton").addEventListener("click", () => openTemplateDialog());
@@ -762,19 +803,27 @@ $("#templateForm").addEventListener("submit", async event => {
   status.textContent = "Saving package…";
 
   try {
+    const variants = readVariants();
+    const derivedPriceMinor = variants.length
+      ? Math.min(...variants.map(variant => Number(variant.price_minor || 0)))
+      : Math.round(Number($("#templatePrice").value) * 100);
+    const derivedDepositMinor = variants.length
+      ? Math.min(...variants.map(variant => Number(variant.deposit_minor || 0)))
+      : Math.round(Number($("#templateDeposit").value || 0) * 100);
+
     await postPackage({
       action: "save_template",
       id: $("#templateId").value || undefined,
       name: $("#templateName").value.trim(),
       service_id: $("#templateService").value,
       sessions_total: Number($("#templateSessions").value),
-      price_minor: Math.round(Number($("#templatePrice").value) * 100),
-      deposit_minor: Math.round(Number($("#templateDeposit").value || 0) * 100),
+      price_minor: derivedPriceMinor,
+      deposit_minor: derivedDepositMinor,
       validity_days: $("#templateValidity").value || null,
       description: $("#templateDescription").value.trim(),
       is_active: $("#templateActive").checked ? 1 : 0,
       is_public: $("#templatePublic").checked ? 1 : 0,
-      variants: readVariants()
+      variants
     });
 
     $("#templateDialog").close();
