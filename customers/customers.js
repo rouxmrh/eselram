@@ -2139,14 +2139,36 @@ function renderCustomerPayments(
               ${
                 payment.appointment_id
                   ? `
-                    <a
-                      class="es-customer-action"
-                      href="/bookings/?booking=${encodeURIComponent(
-                        payment.appointment_id
-                      )}"
-                    >
-                      Booking
-                    </a>
+                    <div class="es-customer-payment-actions">
+                      ${
+                        payment.status === "pending" &&
+                        !payment.customer_package_id &&
+                        Number(
+                          payment.service_requires_consultation ||
+                          0
+                        ) !== 1
+                          ? `
+                            <a
+                              class="es-customer-action es-customer-take-payment"
+                              href="/payments/?take=1&appointment_id=${encodeURIComponent(
+                                payment.appointment_id
+                              )}"
+                            >
+                              Take payment
+                            </a>
+                          `
+                          : ""
+                      }
+
+                      <a
+                        class="es-customer-action"
+                        href="/bookings/?booking=${encodeURIComponent(
+                          payment.appointment_id
+                        )}"
+                      >
+                        Booking
+                      </a>
+                    </div>
                   `
                   : ""
               }

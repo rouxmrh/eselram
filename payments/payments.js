@@ -505,6 +505,12 @@ async function loadPayments() {
 
     renderCurrentView();
 
+    if (
+      !applyTakePaymentQuery()
+    ) {
+      applyPaymentQueryPrefill();
+    }
+
 
   } catch (error) {
 
@@ -619,6 +625,53 @@ function openPaymentFormForAppointment(
     appointment.id;
 
   prefillOutstandingAmount();
+
+  return true;
+}
+
+
+function applyTakePaymentQuery() {
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const appointmentId =
+    String(
+      params.get(
+        "appointment_id"
+      ) ||
+      ""
+    ).trim();
+
+  if (
+    !appointmentId ||
+    params.get("take") !==
+      "1"
+  ) {
+    return false;
+  }
+
+  const appointment =
+    appointments.find(
+      item =>
+        item.id ===
+        appointmentId
+    );
+
+  if (!appointment) {
+    return false;
+  }
+
+  createTakePaymentCheckout(
+    appointment
+  );
+
+  window.history.replaceState(
+    {},
+    "",
+    window.location.pathname
+  );
 
   return true;
 }
