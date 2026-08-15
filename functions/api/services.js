@@ -1083,3 +1083,104 @@ export async function onRequestPut(
     );
   }
 }
+
+
+export async function onRequestDelete({ request, env }) {
+  try {
+    const user = await getUserContext(request, env);
+    if (!user) return unauthorised();
+
+    const serviceId = String(new URL(request.url).searchParams.get("id") || "").trim();
+    if (!serviceId) {
+      return Response.json({ok:false,error:"Service id is required."},{status:400});
+    }
+
+    const service = await env.DB.prepare(`
+      SELECT id FROM services
+      WHERE id = ? AND business_id = ?
+      LIMIT 1
+    `).bind(serviceId,user.business_id).first();
+
+    if (!service) {
+      return Response.json({ok:false,error:"Service not found."},{status:404});
+    }
+
+    const consultationLink = await env.DB.prepare(`
+      SELECT id FROM services
+      WHERE business_id = ? AND consultation_service_id = ?
+      LIMIT 1
+    `).bind(user.business_id,serviceId).first();
+
+    if (consultationLink) {
+      return Response.json({
+        ok:false,
+        error:"This consultation is linked to another service. Remove that consultation link before deleting it."
+      },{status:409});
+    }
+
+    const packageTemplate = await env.DB.prepare(`
+      SELECT id FROM package_templates
+      WHERE business_id = ? AND service_id = ?
+      LIMIT 1
+    `).bind(user.business_id,serviceId).first();
+
+    if (packageTemplate) {
+      return Response.json({
+        ok:false,
+        error:"This service is used by a package. Remove or change the package first."
+      },{status:409});
+    }
+
+    const packageVariant = await env.DB.prepare(`
+      SELECT id FROM package_variants
+      WHERE business_id = ? AND service_id = ?
+      LIMIT 1
+    `).bind(user.business_id,serviceId).first();
+
+    if (packageVariant) {
+      return Response.json({
+        ok:false,
+        error:"This service is used by a package variant. Remove or change that package variant first."
+      },{status:409});
+    }
+
+    const appointment = await env.DB.prepare(`
+      SELECT id FROM appointments
+      WHERE business_id = ? AND service_id = ?
+      LIMIT 1
+    `).bind(user.business_id,serviceId).first();
+
+    if (appointment) {
+      return Response.json({
+        ok:false,
+        error:"This service has booking history, so it cannot be permanently deleted. Turn off Service is active instead."
+      },{status:409});
+    }
+
+    const customerPackage = await env.DB.prepare(`
+      SELECT id FROM customer_packages
+      WHERE business_id = ? AND service_id = ?
+      LIMIT 1
+    `).bind(user.business_id,serviceId).first();
+
+    if (customerPackage) {
+      return Response.json({
+        ok:false,
+        error:"This service is linked to a customer package, so it cannot be permanently deleted. Turn off Service is active instead."
+      },{status:409});
+    }
+
+    await env.DB.prepare(`
+      DELETE FROM services
+      WHERE id = ? AND business_id = ?
+    `).bind(serviceId,user.business_id).run();
+
+    return Response.json({ok:true,deleted_service_id:serviceId});
+  } catch (error) {
+    console.error("Service deletion failed:",error);
+    return Response.json({
+      ok:false,
+      error:"This service cannot be deleted because other records still depend on it. Remove those links first, or turn off Service is active."
+    },{status:409});
+  }
+}
