@@ -90,6 +90,7 @@ export async function onRequestPost({ request, env }) {
 
     if (
       bookingIntent === "service" &&
+      String(service.service_type || "standard") !== "consultation" &&
       Number(service.requires_consultation || 0) === 1 &&
       String(service.post_consultation_booking || "client_can_book") === "practitioner_managed"
     ) {
@@ -107,6 +108,7 @@ export async function onRequestPost({ request, env }) {
     let verifiedExistingCustomer = null;
 
     if (
+      String(service.service_type || "standard") !== "consultation" &&
       Number(service.requires_consultation || 0) === 1 &&
       bookingIntent === "service"
     ) {
@@ -150,6 +152,7 @@ export async function onRequestPost({ request, env }) {
     let consultationCreditMinor = 0;
 
     if (
+      String(service.service_type || "standard") !== "consultation" &&
       Number(service.requires_consultation || 0) === 1
     ) {
       consultationCompleted =
@@ -161,9 +164,16 @@ export async function onRequestPost({ request, env }) {
         });
     }
 
-    let bookingKind = "service";
+    const standaloneConsultation =
+      String(service.service_type || "standard") === "consultation";
+
+    let bookingKind =
+      standaloneConsultation
+        ? "consultation"
+        : "service";
 
     if (
+      !standaloneConsultation &&
       Number(service.requires_consultation || 0) === 1
     ) {
       if (bookingIntent === "consultation") {
@@ -213,46 +223,25 @@ export async function onRequestPost({ request, env }) {
     }
 
     const bookingDuration =
-      bookingKind ===
-        "consultation"
-        ? Number(
-            service.consultation_duration_minutes ||
-            30
-          )
-        : Number(
-            service.duration_minutes ||
-            0
-          );
+      standaloneConsultation
+        ? Number(service.duration_minutes || 0)
+        : bookingKind === "consultation"
+          ? Number(service.consultation_duration_minutes || 30)
+          : Number(service.duration_minutes || 0);
 
     const paymentTiming =
-      bookingKind ===
-        "consultation"
-        ? String(
-            service.consultation_payment_timing ||
-            "free"
-          )
-        : String(
-            service.payment_timing ||
-            "pay_at_appointment"
-          );
+      standaloneConsultation
+        ? String(service.payment_timing || "pay_at_appointment")
+        : bookingKind === "consultation"
+          ? String(service.consultation_payment_timing || "free")
+          : String(service.payment_timing || "pay_at_appointment");
 
     const priceMinor =
-      bookingKind ===
-        "consultation"
-        ? Math.max(
-            0,
-            Number(
-              service.consultation_price_minor ||
-              0
-            )
-          )
-        : Math.max(
-            0,
-            Number(
-              service.price_minor ||
-              0
-            )
-          );
+      standaloneConsultation
+        ? Math.max(0, Number(service.price_minor || 0))
+        : bookingKind === "consultation"
+          ? Math.max(0, Number(service.consultation_price_minor || 0))
+          : Math.max(0, Number(service.price_minor || 0));
 
     const depositMinor =
       bookingKind ===
@@ -498,10 +487,11 @@ export async function onRequestPost({ request, env }) {
       booking_kind:
         bookingKind,
       booking_label:
-        bookingKind ===
-          "consultation"
-          ? `Consultation · ${service.name}`
-          : service.name,
+        standaloneConsultation
+          ? service.name
+          : bookingKind === "consultation"
+            ? `Consultation · ${service.name}`
+            : service.name,
       requires_consultation: Number(service.requires_consultation || 0),
       requires_patch_test: Number(service.requires_patch_test || 0)
     };

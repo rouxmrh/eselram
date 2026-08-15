@@ -53,6 +53,8 @@ export async function onRequestGet({ env }) {
             s.name,
             s.description,
             s.booking_group,
+            s.service_type,
+            s.consultation_service_id,
             s.post_consultation_booking,
             s.duration_minutes,
             s.price_minor,
@@ -135,6 +137,12 @@ export async function onRequestGet({ env }) {
         description: service.description,
         booking_group:
           String(service.booking_group || "").trim(),
+        service_type:
+          service.service_type ||
+          "standard",
+        consultation_service_id:
+          service.consultation_service_id ||
+          null,
         post_consultation_booking:
           service.post_consultation_booking ||
           "client_can_book",

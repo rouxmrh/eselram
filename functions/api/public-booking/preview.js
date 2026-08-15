@@ -49,6 +49,7 @@ export async function onRequestPost({ request, env }) {
 
     if (
       bookingIntent === "service" &&
+      String(service.service_type || "standard") !== "consultation" &&
       Number(service.requires_consultation || 0) === 1 &&
       String(service.post_consultation_booking || "client_can_book") === "practitioner_managed"
     ) {
@@ -67,6 +68,7 @@ export async function onRequestPost({ request, env }) {
 
     if (
       bookingIntent === "service" &&
+      String(service.service_type || "standard") !== "consultation" &&
       Number(service.requires_consultation || 0) === 1
     ) {
       customer =
@@ -84,6 +86,7 @@ export async function onRequestPost({ request, env }) {
     const depositMinor = Math.max(0, Number(service.deposit_minor || 0));
 
     if (
+      String(service.service_type || "standard") === "consultation" ||
       bookingIntent !== "service" ||
       Number(service.requires_consultation || 0) !== 1 ||
       !customer
