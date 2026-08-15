@@ -260,14 +260,22 @@ async function finalizePackageSale({
       ps.customer_package_id,
       ps.status,
       ps.consultation_credit_minor,
-      pt.service_id,
-      pt.name,
+      ps.package_variant_id,
+      COALESCE(pv.service_id, pt.service_id) AS service_id,
+      CASE
+        WHEN pv.id IS NOT NULL
+          THEN pt.name || ' · ' || pv.name
+        ELSE pt.name
+      END AS name,
       pt.sessions_total,
-      pt.price_minor,
+      COALESCE(pv.price_minor, pt.price_minor) AS price_minor,
       pt.validity_days
     FROM package_sales ps
     JOIN package_templates pt
       ON pt.id = ps.package_template_id
+    LEFT JOIN package_variants pv
+      ON pv.id = ps.package_variant_id
+     AND pv.package_template_id = pt.id
     WHERE ps.id = ? AND ps.business_id = ?
     LIMIT 1
   `).bind(saleId, businessId).first();
@@ -305,6 +313,7 @@ async function finalizePackageSale({
       business_id,
       customer_id,
       package_template_id,
+      package_variant_id,
       service_id,
       name_snapshot,
       sessions_total,
@@ -315,7 +324,7 @@ async function finalizePackageSale({
       notes
     )
     VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, 'active',
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active',
       date('now'),
       CASE
         WHEN ? > 0 THEN date('now', '+' || ? || ' days')
@@ -328,6 +337,7 @@ async function finalizePackageSale({
     businessId,
     sale.customer_id,
     sale.package_template_id,
+    sale.package_variant_id || null,
     sale.service_id,
     sale.name,
     sale.sessions_total,
