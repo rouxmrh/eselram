@@ -321,30 +321,90 @@ function setupConditionalLogic() {
 }
 
 function evaluateConditions() {
-  document.querySelectorAll("[data-condition]").forEach(element => {
-    let condition = null;
+  const conditionalElements = [
+    ...document.querySelectorAll(
+      "[data-condition]"
+    )
+  ];
 
-    try {
-      condition = JSON.parse(element.dataset.condition || "null");
-    } catch {}
+  const evaluateElement =
+    (element) => {
+      let condition = null;
 
-    if (!condition?.field_key) {
-      element.classList.remove("es-form-render-hidden");
-      setDescendantRequiredState(element, true);
-      return;
+      try {
+        condition =
+          JSON.parse(
+            element.dataset.condition ||
+            "null"
+          );
+      } catch {}
+
+      let show = true;
+
+      if (condition?.field_key) {
+        const currentValue =
+          getFieldValue(
+            condition.field_key
+          );
+
+        const expected =
+          String(
+            condition.value ??
+            ""
+          );
+
+        show =
+          condition.operator ===
+          "not_equals"
+            ? String(currentValue) !==
+              expected
+            : String(currentValue) ===
+              expected;
+      }
+
+      element.classList.toggle(
+        "es-form-render-hidden",
+        !show
+      );
+    };
+
+  // Sections determine whether all child fields are available.
+  conditionalElements
+    .filter(
+      element =>
+        element.matches(
+          ".es-form-render-section"
+        )
+    )
+    .forEach(evaluateElement);
+
+  // Field conditions are evaluated after their parent section.
+  conditionalElements
+    .filter(
+      element =>
+        !element.matches(
+          ".es-form-render-section"
+        )
+    )
+    .forEach(evaluateElement);
+
+  // Required fields are enabled only when the field is genuinely visible.
+  conditionalElements.forEach(
+    element => {
+      const visible =
+        !element.classList.contains(
+          "es-form-render-hidden"
+        ) &&
+        !element.parentElement?.closest(
+          ".es-form-render-hidden"
+        );
+
+      setDescendantRequiredState(
+        element,
+        visible
+      );
     }
-
-    const currentValue = getFieldValue(condition.field_key);
-    const expected = String(condition.value ?? "");
-
-    const show =
-      condition.operator === "not_equals"
-        ? String(currentValue) !== expected
-        : String(currentValue) === expected;
-
-    element.classList.toggle("es-form-render-hidden", !show);
-    setDescendantRequiredState(element, show);
-  });
+  );
 }
 
 function getFieldValue(fieldKey) {
@@ -490,8 +550,37 @@ async function submitForm(event) {
   });
 
   if (visibleInvalid) {
+    const wrapper =
+      visibleInvalid.closest(
+        "[data-field-wrapper]"
+      );
+
+    const label =
+      wrapper
+        ?.querySelector(
+          ":scope > label"
+        )
+        ?.textContent
+        ?.replace("*", "")
+        ?.trim() ||
+      wrapper
+        ?.querySelector(
+          ".es-form-render-check-tile span:last-of-type"
+        )
+        ?.textContent
+        ?.trim() ||
+      visibleInvalid.name ||
+      "Required field";
+
     errorBox.hidden = false;
-    errorBox.textContent = "Please complete all required fields.";
+    errorBox.textContent =
+      `Please complete "${label}".`;
+
+    wrapper?.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
     visibleInvalid.focus?.();
     return;
   }
@@ -508,7 +597,11 @@ async function submitForm(event) {
     for (const field of section.fields || []) {
       const wrapper = form.querySelector(`[data-field-wrapper="${cssEscape(field.field_key)}"]`);
 
-      if (wrapper?.classList.contains("es-form-render-hidden")) {
+      if (
+        wrapper?.closest(
+          ".es-form-render-hidden"
+        )
+      ) {
         continue;
       }
 
@@ -595,28 +688,43 @@ async function submitForm(event) {
         formDefinition?.request?.customer_id || ""
       ).trim();
 
-      if (window.opener) {
-        window.opener.postMessage(
-          { type: "eselram:clinical-record-saved" },
-          location.origin
-        );
+      if (customerId) {
+        const customerUrl =
+          `/customers/?customer=${encodeURIComponent(
+            customerId
+          )}`;
 
-        setTimeout(() => {
-          try {
-            window.opener.focus();
-            window.close();
-          } catch {}
+        if (
+          window.opener &&
+          !window.opener.closed
+        ) {
+          window.opener.postMessage(
+            {
+              type:
+                "eselram:clinical-record-saved",
+              customer_id:
+                customerId
+            },
+            location.origin
+          );
 
-          if (!window.closed && customerId) {
+          setTimeout(() => {
+            try {
+              window.opener.location.href =
+                customerUrl;
+              window.opener.focus();
+              window.close();
+            } catch {
+              window.location.href =
+                customerUrl;
+            }
+          }, 450);
+        } else {
+          setTimeout(() => {
             window.location.href =
-              `/customers/?customer=${encodeURIComponent(customerId)}`;
-          }
-        }, 600);
-      } else if (customerId) {
-        setTimeout(() => {
-          window.location.href =
-            `/customers/?customer=${encodeURIComponent(customerId)}`;
-        }, 600);
+              customerUrl;
+          }, 450);
+        }
       }
     }
   } catch (error) {
