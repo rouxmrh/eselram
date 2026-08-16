@@ -41,6 +41,144 @@ function badRequest(message) {
   return Response.json({ ok: false, error: message }, { status: 400 });
 }
 
+async function cancelPendingPackageSale({
+  env,
+  integration,
+  businessId,
+  sale
+}) {
+  if (
+    !sale ||
+    sale.status !== "pending"
+  ) {
+    return false;
+  }
+
+  const providerReference =
+    String(
+      sale.provider_reference ||
+      ""
+    ).trim();
+
+  if (providerReference) {
+    try {
+      const result =
+        await stripeRequest({
+          secretKey:
+            integration.secretKey,
+          path:
+            `/v1/checkout/sessions/${encodeURIComponent(providerReference)}/expire`,
+          method:
+            "POST"
+        });
+
+      if (
+        !result.response.ok
+      ) {
+        // If Stripe refuses to expire it because it has already completed,
+        // leave the local sale untouched. The webhook remains authoritative.
+        return false;
+      }
+    } catch (error) {
+      console.error(
+        "Unable to expire superseded package checkout:",
+        error
+      );
+
+      return false;
+    }
+  }
+
+  await env.DB.prepare(`
+    UPDATE package_sales
+    SET
+      status = 'failed',
+      updated_at = CURRENT_TIMESTAMP
+    WHERE
+      id = ?
+      AND business_id = ?
+      AND status = 'pending'
+  `).bind(
+    sale.id,
+    businessId
+  ).run();
+
+  if (sale.payment_id) {
+    await env.DB.prepare(`
+      UPDATE payments
+      SET
+        status = 'failed',
+        notes =
+          'Package checkout cancelled before payment',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE
+        id = ?
+        AND business_id = ?
+        AND status = 'pending'
+    `).bind(
+      sale.payment_id,
+      businessId
+    ).run();
+  }
+
+  return true;
+}
+
+
+async function cancelSupersededPackageSales({
+  env,
+  integration,
+  businessId,
+  customerId,
+  templateId,
+  variantId
+}) {
+  const rows =
+    await env.DB.prepare(`
+      SELECT
+        ps.id,
+        ps.payment_id,
+        ps.provider_reference,
+        ps.status
+      FROM package_sales ps
+      LEFT JOIN payments p
+        ON p.id = ps.payment_id
+       AND p.business_id = ps.business_id
+      WHERE
+        ps.business_id = ?
+        AND ps.customer_id = ?
+        AND ps.package_template_id = ?
+        AND (
+          (? IS NULL AND ps.package_variant_id IS NULL)
+          OR ps.package_variant_id = ?
+        )
+        AND ps.source = 'staff'
+        AND ps.status = 'pending'
+        AND COALESCE(p.status, 'pending') = 'pending'
+      ORDER BY datetime(ps.created_at) DESC
+    `).bind(
+      businessId,
+      customerId,
+      templateId,
+      variantId || null,
+      variantId || null
+    ).all();
+
+  for (
+    const sale of
+      rows.results ||
+      []
+  ) {
+    await cancelPendingPackageSale({
+      env,
+      integration,
+      businessId,
+      sale
+    });
+  }
+}
+
+
 export async function onRequestPost({ request, env }) {
   try {
     const user = await getUserContext(request, env);
@@ -231,6 +369,45 @@ export async function onRequestPost({ request, env }) {
         ? resolvedDepositMinor
         : 0;
 
+    const integration =
+      await getBusinessStripeIntegration(
+        env,
+        user.business_id
+      );
+
+    if (integration.error) {
+      return Response.json(
+        { ok: false, error: integration.error },
+        { status: 503 }
+      );
+    }
+
+    if (
+      integration.row.status !==
+      "verified"
+    ) {
+      return badRequest(
+        "Test the Stripe connection in Settings → Payments before taking package payments."
+      );
+    }
+
+    // Starting a new staff checkout for the same package supersedes any
+    // unfinished checkout. An abandoned pending sale must not permanently
+    // reserve the customer's one-time consultation credit.
+    await cancelSupersededPackageSales({
+      env,
+      integration,
+      businessId:
+        user.business_id,
+      customerId:
+        customer.id,
+      templateId:
+        template.id,
+      variantId:
+        variant?.id ||
+        null
+    });
+
     const availableCredit =
       await findAvailableConsultationCredit({
         env,
@@ -335,24 +512,6 @@ export async function onRequestPost({ request, env }) {
         consultation_credit_minor: consultationCreditMinor,
         currency
       });
-    }
-
-    const integration = await getBusinessStripeIntegration(
-      env,
-      user.business_id
-    );
-
-    if (integration.error) {
-      return Response.json(
-        { ok: false, error: integration.error },
-        { status: 503 }
-      );
-    }
-
-    if (integration.row.status !== "verified") {
-      return badRequest(
-        "Test the Stripe connection in Settings → Payments before taking package payments."
-      );
     }
 
     const paymentId = `pay_${crypto.randomUUID()}`;
@@ -489,6 +648,138 @@ export async function onRequestPost({ request, env }) {
     return Response.json(
       { ok: false, error: "Unable to start package sale." },
       { status: 500 }
+    );
+  }
+}
+
+
+export async function onRequestDelete({
+  request,
+  env
+}) {
+  try {
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
+
+    if (!user) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Authentication required."
+        },
+        {
+          status: 401
+        }
+      );
+    }
+
+    const body =
+      await request.json();
+
+    const saleId =
+      String(
+        body.sale_id ||
+        ""
+      ).trim();
+
+    if (!saleId) {
+      return badRequest(
+        "Package sale is required."
+      );
+    }
+
+    const sale =
+      await env.DB.prepare(`
+        SELECT
+          id,
+          payment_id,
+          provider_reference,
+          status
+        FROM package_sales
+        WHERE
+          id = ?
+          AND business_id = ?
+          AND source = 'staff'
+        LIMIT 1
+      `).bind(
+        saleId,
+        user.business_id
+      ).first();
+
+    if (!sale) {
+      return Response.json({
+        ok: true,
+        already_closed: true
+      });
+    }
+
+    if (
+      sale.status !==
+      "pending"
+    ) {
+      return Response.json({
+        ok: true,
+        already_closed: true
+      });
+    }
+
+    const integration =
+      await getBusinessStripeIntegration(
+        env,
+        user.business_id
+      );
+
+    if (
+      integration.error ||
+      integration.row.status !==
+        "verified"
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            integration.error ||
+            "Stripe is unavailable."
+        },
+        {
+          status: 503
+        }
+      );
+    }
+
+    const cancelled =
+      await cancelPendingPackageSale({
+        env,
+        integration,
+        businessId:
+          user.business_id,
+        sale
+      });
+
+    return Response.json({
+      ok: true,
+      cancelled
+    });
+
+  } catch (error) {
+    console.error(
+      "Package sale cancellation failed:",
+      error
+    );
+
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to cancel package checkout."
+      },
+      {
+        status: 500
+      }
     );
   }
 }

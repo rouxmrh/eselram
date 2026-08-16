@@ -976,9 +976,52 @@ function openPackageCheckoutDialog(data) {
 
 $("#closePackageCheckoutDialog").addEventListener(
   "click",
-  () => {
+  async () => {
+    const saleId =
+      activePackageCheckout?.sale_id ||
+      null;
+
     $("#packageCheckoutDialog").close();
     activePackageCheckout = null;
+
+    if (!saleId) {
+      return;
+    }
+
+    try {
+      const response =
+        await fetch(
+          "/api/packages/sale",
+          {
+            method:
+              "DELETE",
+            headers: {
+              "Content-Type":
+                "application/json",
+              Accept:
+                "application/json"
+            },
+            body:
+              JSON.stringify({
+                sale_id:
+                  saleId
+              })
+          }
+        );
+
+      handleAuth(response);
+
+      if (!response.ok) {
+        console.error(
+          "Unable to release cancelled package checkout."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Unable to release cancelled package checkout:",
+        error
+      );
+    }
   }
 );
 
