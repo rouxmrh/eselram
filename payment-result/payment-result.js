@@ -73,10 +73,12 @@
       "Payment complete";
 
     title.textContent =
-      "Payment successful";
+      "Thank you for your payment";
 
     message.textContent =
-      "Thank you. Your payment has been submitted successfully.";
+      website
+        ? `Payment received. Returning you to ${business}...`
+        : "Payment received successfully.";
   }
 
 
@@ -93,6 +95,20 @@
       `Return to ${
         business
       }`;
+
+    if (
+      status !==
+      "cancelled"
+    ) {
+      window.setTimeout(
+        () => {
+          window.location.replace(
+            website
+          );
+        },
+        2000
+      );
+    }
   }
 
 

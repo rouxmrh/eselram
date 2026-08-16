@@ -23,6 +23,8 @@ async function getUserContext(request, env) {
     SELECT
       u.id AS user_id,
       u.business_id,
+      b.name AS business_name,
+      b.website,
       b.currency
     FROM user_sessions s
     JOIN users u ON u.id = s.user_id
@@ -39,6 +41,53 @@ async function getUserContext(request, env) {
 function badRequest(message) {
   return Response.json({ ok: false, error: message }, { status: 400 });
 }
+
+
+function safeBusinessWebsite(
+  value
+) {
+  const raw =
+    String(
+      value ||
+      ""
+    ).trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  let parsed;
+
+  try {
+    parsed =
+      new URL(
+        raw
+      );
+  } catch {
+    try {
+      parsed =
+        new URL(
+          `https://${raw}`
+        );
+    } catch {
+      return "";
+    }
+  }
+
+  if (
+    ![
+      "http:",
+      "https:"
+    ].includes(
+      parsed.protocol
+    )
+  ) {
+    return "";
+  }
+
+  return parsed.toString();
+}
+
 
 async function cancelPendingPackageSale({
   env,
@@ -536,13 +585,28 @@ export async function onRequestPost({ request, env }) {
     const origin = new URL(request.url).origin;
     const params = new URLSearchParams();
     params.set("mode", "payment");
+
+    const businessWebsite =
+      safeBusinessWebsite(
+        user.website
+      );
+
+    const returnQuery =
+      new URLSearchParams({
+        business:
+          user.business_name ||
+          "the business",
+        website:
+          businessWebsite
+      });
+
     params.set(
       "success_url",
-      `${origin}/packages/?package_sale=success&sale_id=${encodeURIComponent(saleId)}&session_id={CHECKOUT_SESSION_ID}`
+      `${origin}/payment-result/?status=success&${returnQuery.toString()}`
     );
     params.set(
       "cancel_url",
-      `${origin}/packages/?package_sale=cancelled&sale_id=${encodeURIComponent(saleId)}`
+      `${origin}/payment-result/?status=cancelled&${returnQuery.toString()}`
     );
     params.set("customer_email", customer.email);
     params.set("client_reference_id", saleId);

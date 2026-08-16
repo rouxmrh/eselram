@@ -24,6 +24,8 @@ async function getUserContext(request, env) {
   return await env.DB.prepare(`
     SELECT
       u.business_id,
+      b.name AS business_name,
+      b.website,
       b.currency
     FROM user_sessions s
     JOIN users u ON u.id = s.user_id
@@ -43,6 +45,53 @@ function badRequest(message) {
     { ok:false, error:message },
     { status:400 }
   );
+}
+
+
+
+function safeBusinessWebsite(
+  value
+) {
+  const raw =
+    String(
+      value ||
+      ""
+    ).trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  let parsed;
+
+  try {
+    parsed =
+      new URL(
+        raw
+      );
+  } catch {
+    try {
+      parsed =
+        new URL(
+          `https://${raw}`
+        );
+    } catch {
+      return "";
+    }
+  }
+
+  if (
+    ![
+      "http:",
+      "https:"
+    ].includes(
+      parsed.protocol
+    )
+  ) {
+    return "";
+  }
+
+  return parsed.toString();
 }
 
 
@@ -252,14 +301,28 @@ export async function onRequestPost({request, env}) {
       "payment"
     );
 
+    const businessWebsite =
+      safeBusinessWebsite(
+        user.website
+      );
+
+    const returnQuery =
+      new URLSearchParams({
+        business:
+          user.business_name ||
+          "the business",
+        website:
+          businessWebsite
+      });
+
     params.set(
       "success_url",
-      `${origin}/payments/?package_payment=success&session_id={CHECKOUT_SESSION_ID}`
+      `${origin}/payment-result/?status=success&${returnQuery.toString()}`
     );
 
     params.set(
       "cancel_url",
-      `${origin}/payments/?package_payment=cancelled`
+      `${origin}/payment-result/?status=cancelled&${returnQuery.toString()}`
     );
 
     params.set(
