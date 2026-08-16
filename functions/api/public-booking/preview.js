@@ -8,8 +8,7 @@ import {
 } from "../../../lib/public-booking.js";
 
 import {
-  findAvailableConsultationCredit,
-  hasCompletedConsultation
+  findAvailableConsultationCredit
 } from "../../../lib/consultation-credit.js";
 
 function clean(value, max = 300) {
@@ -108,25 +107,22 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
-    const completed = await hasCompletedConsultation({
-      env,
-      businessId: business.id,
-      customerId: customer.id,
-      serviceId: service.id
-    });
-
-    let availableMinor = 0;
-
-    if (completed) {
-      const credit = await findAvailableConsultationCredit({
+    const credit =
+      await findAvailableConsultationCredit({
         env,
         businessId: business.id,
         customerId: customer.id,
         serviceId: service.id
       });
 
-      availableMinor = Math.max(0, Number(credit.available_minor || 0));
-    }
+    const availableMinor =
+      Math.max(
+        0,
+        Number(
+          credit.available_minor ||
+          0
+        )
+      );
 
     const appliedCredit = Math.min(availableMinor, priceMinor);
     const remainingMinor = Math.max(0, priceMinor - appliedCredit);
@@ -145,7 +141,7 @@ export async function onRequestPost({ request, env }) {
     return Response.json({
       ok: true,
       existing_customer: true,
-      consultation_completed: completed,
+      consultation_completed: null,
       consultation_credit_minor: appliedCredit,
       price_minor: priceMinor,
       deposit_minor: depositMinor,

@@ -10,8 +10,7 @@ import {
 } from "../../../lib/stripe-business.js";
 
 import {
-  findAvailableConsultationCredit,
-  hasCompletedConsultation
+  findAvailableConsultationCredit
 } from "../../../lib/consultation-credit.js";
 
 
@@ -318,22 +317,6 @@ export async function onRequestPost({ request, env }) {
         template.requires_consultation ??
         0
       );
-
-    if (requiresConsultation === 1) {
-      const consultationCompleted =
-        await hasCompletedConsultation({
-          env,
-          businessId: user.business_id,
-          customerId: customer.id,
-          serviceId: resolvedServiceId
-        });
-
-      if (!consultationCompleted) {
-        return badRequest(
-          "Complete the required consultation before selling this package."
-        );
-      }
-    }
 
     if (
       resolvedPaymentRule === "full" &&

@@ -20,8 +20,7 @@ import {
 } from "../../../lib/form-automation.js";
 
 import {
-  findAvailableConsultationCredit,
-  hasCompletedConsultation
+  findAvailableConsultationCredit
 } from "../../../lib/consultation-credit.js";
 
 import {
@@ -201,22 +200,8 @@ export async function onRequestPost({ request, env }) {
 
     createdCustomerId = customer.created ? customer.id : null;
 
-    let consultationCompleted = false;
     let consultationCreditSourceAppointmentId = null;
     let consultationCreditMinor = 0;
-
-    if (
-      String(service.service_type || "standard") !== "consultation" &&
-      Number(service.requires_consultation || 0) === 1
-    ) {
-      consultationCompleted =
-        await hasCompletedConsultation({
-          env,
-          businessId: business.id,
-          customerId: customer.id,
-          serviceId: service.id
-        });
-    }
 
     const standaloneConsultation =
       String(service.service_type || "standard") === "consultation";
@@ -233,31 +218,12 @@ export async function onRequestPost({ request, env }) {
       if (bookingIntent === "consultation") {
         bookingKind = "consultation";
       } else if (bookingIntent === "service") {
-        if (!consultationCompleted) {
-          if (createdCustomerId) {
-            await deleteUnusedCustomer(
-              env,
-              business.id,
-              createdCustomerId
-            );
-          }
-
-          return Response.json(
-            {
-              ok: false,
-              error:
-                "Your customer details were recognised, but we could not find a completed consultation for this treatment. Please choose Book consultation.",
-              consultation_required: true
-            },
-            { status: 409 }
-          );
-        }
-
+        // Existing-client identity was verified above. Consultation status
+        // remains visible to staff but does not hard-block the booking.
         bookingKind = "service";
       } else {
-        bookingKind = consultationCompleted
-          ? "service"
-          : "consultation";
+        // New/unspecified public journey stays consultation-first.
+        bookingKind = "consultation";
       }
     }
 
@@ -309,9 +275,9 @@ export async function onRequestPost({ request, env }) {
             )
           );
 
-    // A paid completed consultation is a one-time credit against the first
-    // later treatment for the same service. Keep the appointment value at
-    // the full treatment price and record the credit separately.
+    // A valid paid consultation is a one-time credit against the first
+    // later treatment for the same service. Clinical completion remains
+    // advisory and does not control the financial credit.
     const appliedConsultationCreditMinor =
       bookingKind === "service"
         ? Math.min(consultationCreditMinor, priceMinor)

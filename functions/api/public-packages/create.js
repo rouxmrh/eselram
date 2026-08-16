@@ -1,6 +1,7 @@
 import {
   getPublicBusiness,
   findOrCreatePublicCustomer,
+  findVerifiedExistingPublicCustomer,
   deleteUnusedCustomer,
   validEmail
 } from "../../../lib/public-booking.js";
@@ -12,8 +13,7 @@ import {
 } from "../../../lib/stripe-business.js";
 
 import {
-  findAvailableConsultationCredit,
-  hasCompletedConsultation
+  findAvailableConsultationCredit
 } from "../../../lib/consultation-credit.js";
 
 
@@ -202,15 +202,55 @@ export async function onRequestPost({ request, env }) {
       return badRequest("This package requires the configured deposit.");
     }
 
-    const customer = await findOrCreatePublicCustomer({
-      env,
-      businessId: business.id,
-      firstName,
-      lastName,
-      email,
-      phone,
-      marketingConsent: false
-    });
+    let customer = null;
+
+    if (requiresConsultation === 1) {
+      const existingCustomer =
+        await findVerifiedExistingPublicCustomer({
+          env,
+          businessId:
+            business.id,
+          firstName,
+          lastName,
+          email,
+          phone
+        });
+
+      if (!existingCustomer) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "We could not verify you as an existing client for this package. Please book the required consultation first.",
+            consultation_required:
+              true,
+            service_id:
+              resolvedServiceId
+          },
+          {
+            status: 409
+          }
+        );
+      }
+
+      customer = {
+        ...existingCustomer,
+        created: false
+      };
+    } else {
+      customer =
+        await findOrCreatePublicCustomer({
+          env,
+          businessId:
+            business.id,
+          firstName,
+          lastName,
+          email,
+          phone,
+          marketingConsent:
+            false
+        });
+    }
 
     let consultationCreditSourceAppointmentId = null;
     let consultationCreditMinor = 0;
@@ -218,47 +258,25 @@ export async function onRequestPost({ request, env }) {
     if (
       requiresConsultation === 1
     ) {
-      const consultationCompleted =
-        await hasCompletedConsultation({
-          env,
-          businessId: business.id,
-          customerId: customer.id,
-          serviceId: resolvedServiceId
-        });
-
-      if (!consultationCompleted) {
-        if (customer.created) {
-          await deleteUnusedCustomer(
-            env,
-            business.id,
-            customer.id
-          );
-        }
-
-        return Response.json(
-          {
-            ok: false,
-            error:
-              "A consultation must be completed before this package can be purchased.",
-            consultation_required: true,
-            service_id: template.service_id
-          },
-          { status: 409 }
-        );
-      }
-
       const availableCredit =
         await findAvailableConsultationCredit({
           env,
-          businessId: business.id,
-          customerId: customer.id,
-          serviceId: resolvedServiceId
+          businessId:
+            business.id,
+          customerId:
+            customer.id,
+          serviceId:
+            resolvedServiceId
         });
 
       consultationCreditSourceAppointmentId =
         availableCredit.source_appointment_id;
+
       consultationCreditMinor =
-        Number(availableCredit.available_minor || 0);
+        Number(
+          availableCredit.available_minor ||
+          0
+        );
     }
 
     const price = resolvedPriceMinor;

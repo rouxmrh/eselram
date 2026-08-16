@@ -3,10 +3,6 @@ import {
   hashSessionToken
 } from "../../../lib/auth.js";
 
-import {
-  hasCompletedConsultation
-} from "../../../lib/consultation-credit.js";
-
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
   if (!token) return null;
@@ -909,22 +905,6 @@ export async function onRequestPost({ request, env }) {
         : template.name;
       const requiresConsultation =
         Number(variant?.requires_consultation ?? template.requires_consultation ?? 0);
-
-      if (requiresConsultation === 1) {
-        const consultationCompleted =
-          await hasCompletedConsultation({
-            env,
-            businessId: user.business_id,
-            customerId,
-            serviceId
-          });
-
-        if (!consultationCompleted) {
-          return badRequest(
-            "Complete the required consultation before assigning this package."
-          );
-        }
-      }
 
       let expiresOn = null;
 

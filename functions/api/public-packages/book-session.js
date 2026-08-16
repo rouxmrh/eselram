@@ -18,10 +18,6 @@ import {
   runServiceFormAutomation
 } from "../../../lib/form-automation.js";
 
-import {
-  hasCompletedConsultation
-} from "../../../lib/consultation-credit.js";
-
 
 export async function onRequestPost({
   request,
@@ -170,34 +166,6 @@ export async function onRequestPost({
       return badRequest(
         "The selected date is after this package expires."
       );
-    }
-
-    if (
-      Number(
-        row.requires_consultation ||
-        0
-      ) === 1
-    ) {
-      const completedConsultation =
-        await hasCompletedConsultation({
-          env,
-          businessId: business.id,
-          customerId: row.customer_id,
-          serviceId: row.service_id
-        });
-
-      if (!completedConsultation) {
-        return Response.json(
-          {
-            ok: false,
-            error:
-              "The consultation must be completed before a package session can be booked."
-          },
-          {
-            status: 409
-          }
-        );
-      }
     }
 
     const committed =

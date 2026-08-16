@@ -7,10 +7,6 @@ import {
   serverError
 } from "../../../lib/public-booking.js";
 
-import {
-  hasCompletedConsultation
-} from "../../../lib/consultation-credit.js";
-
 
 export async function onRequestGet({
   request,
@@ -192,36 +188,6 @@ export async function onRequestGet({
       return badRequest(
         "There are no package sessions remaining to book."
       );
-    }
-
-    if (
-      Number(
-        row.requires_consultation ||
-        0
-      ) === 1
-    ) {
-      const completedConsultation =
-        await hasCompletedConsultation({
-          env,
-          businessId: business.id,
-          customerId: row.customer_id,
-          serviceId: row.service_id
-        });
-
-      if (!completedConsultation) {
-        return Response.json(
-          {
-            ok: false,
-            error:
-              "The consultation must be completed before a package session can be booked.",
-            consultation_required:
-              true
-          },
-          {
-            status: 409
-          }
-        );
-      }
     }
 
     const availability =
