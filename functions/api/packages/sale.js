@@ -129,9 +129,7 @@ async function cancelSupersededPackageSales({
   env,
   integration,
   businessId,
-  customerId,
-  templateId,
-  variantId
+  customerId
 }) {
   const rows =
     await env.DB.prepare(`
@@ -147,21 +145,19 @@ async function cancelSupersededPackageSales({
       WHERE
         ps.business_id = ?
         AND ps.customer_id = ?
-        AND ps.package_template_id = ?
-        AND (
-          (? IS NULL AND ps.package_variant_id IS NULL)
-          OR ps.package_variant_id = ?
-        )
         AND ps.source = 'staff'
         AND ps.status = 'pending'
-        AND COALESCE(p.status, 'pending') = 'pending'
-      ORDER BY datetime(ps.created_at) DESC
+        AND COALESCE(
+          p.status,
+          'pending'
+        ) = 'pending'
+      ORDER BY
+        datetime(
+          ps.created_at
+        ) DESC
     `).bind(
       businessId,
-      customerId,
-      templateId,
-      variantId || null,
-      variantId || null
+      customerId
     ).all();
 
   for (
@@ -400,12 +396,7 @@ export async function onRequestPost({ request, env }) {
       businessId:
         user.business_id,
       customerId:
-        customer.id,
-      templateId:
-        template.id,
-      variantId:
-        variant?.id ||
-        null
+        customer.id
     });
 
     const availableCredit =

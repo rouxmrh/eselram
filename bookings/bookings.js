@@ -1643,8 +1643,9 @@ function renderBookings() {
 
               <span>
                 ${escapeHtml(
-                  booking.booking_kind ===
-                    "consultation"
+                  isConsultationBooking(
+                    booking
+                  )
                     ? `Consultation · ${
                         booking.service_name
                       }`
@@ -1673,8 +1674,9 @@ function renderBookings() {
 
               ${
                 booking.status !== "cancelled" &&
-                booking.booking_kind ===
-                  "consultation" &&
+                isConsultationBooking(
+                  booking
+                ) &&
                 Number(
                   booking.paid_minor ||
                   0
@@ -1692,8 +1694,9 @@ function renderBookings() {
 
               ${
                 booking.status !== "cancelled" &&
-                booking.booking_kind !==
-                  "consultation" &&
+                !isConsultationBooking(
+                  booking
+                ) &&
                 Number(
                   booking.consultation_credit_minor ||
                   0
@@ -4076,6 +4079,22 @@ function formatTime(value) {
         "2-digit"
     }
   ).format(date);
+}
+
+
+function isConsultationBooking(
+  booking
+) {
+  return (
+    String(
+      booking?.booking_kind ||
+      ""
+    ) === "consultation" ||
+    String(
+      booking?.service_type ||
+      ""
+    ) === "consultation"
+  );
 }
 
 

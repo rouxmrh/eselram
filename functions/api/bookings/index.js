@@ -1040,6 +1040,7 @@ export async function onRequestGet({
 
             s.id AS service_id,
             s.name AS service_name,
+            s.service_type,
             s.duration_minutes,
 
             cp.id AS customer_package_id,
