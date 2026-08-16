@@ -2087,7 +2087,14 @@ function renderCustomerPayments(
                         payment.appointment_booking_kind === "consultation" &&
                         payment.service_name
                           ? `Consultation · ${payment.service_name}`
-                          : (payment.service_name || "Customer payment")
+                          : (
+                              payment.service_name ||
+                              (
+                                payment.payment_type === "refund"
+                                  ? "Customer refund"
+                                  : "Customer payment"
+                              )
+                            )
                       )
                 )}
               </strong>
