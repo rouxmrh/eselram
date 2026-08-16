@@ -1679,7 +1679,7 @@ function renderBookings() {
                 ) > 0
                   ? `
                     <small>
-                      Consultation credit:
+                      Deposit:
                       ${formatMoney(
                         booking.consultation_credit_minor
                       )}
