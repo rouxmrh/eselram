@@ -1673,6 +1673,27 @@ function renderBookings() {
 
               ${
                 booking.status !== "cancelled" &&
+                booking.booking_kind ===
+                  "consultation" &&
+                Number(
+                  booking.paid_minor ||
+                  0
+                ) > 0
+                  ? `
+                    <small>
+                      Consultation credit:
+                      ${formatMoney(
+                        booking.paid_minor
+                      )}
+                    </small>
+                  `
+                  : ""
+              }
+
+              ${
+                booking.status !== "cancelled" &&
+                booking.booking_kind !==
+                  "consultation" &&
                 Number(
                   booking.consultation_credit_minor ||
                   0
