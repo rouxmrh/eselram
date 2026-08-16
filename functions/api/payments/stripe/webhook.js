@@ -488,8 +488,7 @@ async function updatePaymentFromSession({
           env,
           businessId,
           paymentId,
-          baseUrl:
-            new URL(request.url).origin
+          baseUrl
         });
 
       if (
