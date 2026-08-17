@@ -4449,3 +4449,60 @@ body {
   }
 }
 
+
+
+/* =======================================================
+   Cosmetic form alignment refinements
+   ======================================================= */
+
+/* General Consultation: keep the leading Accutane question separate,
+   then let the medication checkbox tiles begin as a clean paired grid. */
+.es-form-render-field[data-field-wrapper="accutane"] {
+  grid-column:1 / -1;
+}
+
+.es-form-render-field[data-field-wrapper="smoke_vape"] > label,
+.es-form-render-field[data-field-wrapper="smoke_vape_frequency"] > label {
+  min-height:25px;
+  display:flex;
+  align-items:flex-end;
+}
+
+.es-form-render-field[data-field-wrapper="other_blood_borne"] {
+  grid-column:1;
+}
+
+/* Treatment Record: Laser Settings uses two clean columns with the third
+   machine setting on a full-width line before the cooling choices. */
+.es-form-render-section[data-section-title="Laser Settings"]
+.es-form-render-field[data-field-wrapper="treatment_fluence"] {
+  grid-column:1 / -1;
+}
+
+.es-form-render-section[data-section-title="Laser Settings"]
+.es-form-render-field[data-field-wrapper="treatment_machine"] > label,
+.es-form-render-section[data-section-title="Laser Settings"]
+.es-form-render-field[data-field-wrapper="treatment_wavelength"] > label,
+.es-form-render-section[data-section-title="Laser Settings"]
+.es-form-render-field[data-field-wrapper="treatment_fluence"] > label {
+  min-height:24px;
+  display:flex;
+  align-items:flex-end;
+}
+
+/* Incident / Accident Log: keep date fields visually level. */
+.es-form-render-field[data-field-wrapper="incident_log_start_date"] > label,
+.es-form-render-field[data-field-wrapper="incident_review_date"] > label {
+  min-height:24px;
+  display:flex;
+  align-items:flex-end;
+}
+
+@media(max-width:650px) {
+  .es-form-render-field[data-field-wrapper="accutane"],
+  .es-form-render-field[data-field-wrapper="other_blood_borne"],
+  .es-form-render-section[data-section-title="Laser Settings"]
+  .es-form-render-field[data-field-wrapper="treatment_fluence"] {
+    grid-column:1 !important;
+  }
+}

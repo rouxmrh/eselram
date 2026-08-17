@@ -190,7 +190,37 @@
         width: 100%;
       }
     }
-  </style>
+  
+    /* Cosmetic polish: Fitzpatrick action pills. */
+    .es-dashboard-header > .es-secondary-button,
+    .es-fitz-actions .es-button,
+    .es-fitz-actions .es-secondary-button {
+      min-width:132px !important;
+      height:40px !important;
+      min-height:40px !important;
+      padding:0 14px !important;
+      margin:0 !important;
+      border-radius:10px !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      box-sizing:border-box !important;
+      text-align:center !important;
+      text-decoration:none !important;
+      font-size:11px !important;
+      font-weight:800 !important;
+      line-height:1 !important;
+    }
+
+    @media(max-width:760px) {
+      .es-dashboard-header > .es-secondary-button,
+      .es-fitz-actions .es-button,
+      .es-fitz-actions .es-secondary-button {
+        width:100% !important;
+      }
+    }
+
+</style>
 </head>
 
 <body class="es-dashboard-body">

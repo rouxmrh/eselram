@@ -35,7 +35,50 @@
       line-height: 1;
       white-space: nowrap;
     }
-  </style>
+  
+    /* Cosmetic polish: treatment-record actions. */
+    #treatmentFormPanel .es-form-actions,
+    .es-treatment-drawer-actions {
+      display:flex !important;
+      flex-wrap:wrap !important;
+      align-items:center !important;
+      gap:8px !important;
+    }
+
+    #treatmentFormPanel .es-form-actions .es-button,
+    #treatmentFormPanel .es-form-actions .es-secondary-button,
+    .es-treatment-drawer-actions .es-button,
+    .es-treatment-drawer-actions .es-secondary-button {
+      width:124px !important;
+      min-width:124px !important;
+      height:40px !important;
+      min-height:40px !important;
+      margin:0 !important;
+      padding:0 10px !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      box-sizing:border-box !important;
+      border-radius:10px !important;
+      text-align:center !important;
+      text-decoration:none !important;
+      font-size:11px !important;
+      font-weight:800 !important;
+      line-height:1 !important;
+      white-space:nowrap !important;
+    }
+
+    @media(max-width:600px) {
+      #treatmentFormPanel .es-form-actions .es-button,
+      #treatmentFormPanel .es-form-actions .es-secondary-button,
+      .es-treatment-drawer-actions .es-button,
+      .es-treatment-drawer-actions .es-secondary-button {
+        width:100% !important;
+        min-width:0 !important;
+      }
+    }
+
+</style>
 </head>
 
 <body class="es-dashboard-body">
@@ -410,6 +453,14 @@
               type="button"
             >
               Close
+            </button>
+
+            <button
+              id="resetTreatmentFormButton"
+              class="es-secondary-button"
+              type="reset"
+            >
+              Reset
             </button>
 
           </div>

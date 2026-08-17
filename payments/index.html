@@ -321,6 +321,79 @@
         grid-template-columns:1fr;
       }
     }
+
+    /* Cosmetic polish: consistent payment action pills. */
+    .es-finance-actions {
+      gap:8px !important;
+    }
+
+    .es-finance-actions .es-payment-action,
+    .es-finance-actions .es-secondary-button,
+    .es-finance-actions .es-button {
+      width:112px !important;
+      min-width:112px !important;
+      height:40px !important;
+      min-height:40px !important;
+      padding:0 10px !important;
+      margin:0 !important;
+      border-radius:10px !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      text-align:center !important;
+      text-decoration:none !important;
+      white-space:nowrap !important;
+      font-size:11px !important;
+      font-weight:800 !important;
+      line-height:1 !important;
+    }
+
+    .es-finance-outstanding-row .es-finance-actions {
+      grid-template-columns:repeat(3,112px) !important;
+    }
+
+    #paymentFormPanel .es-form-actions {
+      display:flex !important;
+      flex-wrap:wrap !important;
+      align-items:center !important;
+      gap:8px !important;
+    }
+
+    #paymentFormPanel .es-form-actions #savePaymentButton,
+    #paymentFormPanel .es-form-actions #closePaymentFormButton {
+      width:118px !important;
+      min-width:118px !important;
+      height:40px !important;
+      min-height:40px !important;
+      margin:0 !important;
+      padding:0 12px !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      box-sizing:border-box !important;
+      border-radius:10px !important;
+      text-align:center !important;
+      font-size:11px !important;
+      font-weight:800 !important;
+      line-height:1 !important;
+    }
+
+    @media(max-width:600px) {
+      .es-finance-actions .es-payment-action,
+      .es-finance-actions .es-secondary-button,
+      .es-finance-actions .es-button,
+      #paymentFormPanel .es-form-actions #savePaymentButton,
+      #paymentFormPanel .es-form-actions #closePaymentFormButton {
+        width:100% !important;
+        min-width:0 !important;
+      }
+
+      .es-finance-outstanding-row .es-finance-actions {
+        grid-template-columns:1fr !important;
+      }
+    }
+
 </style>
 
 </head>

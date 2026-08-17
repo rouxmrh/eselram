@@ -800,6 +800,40 @@
       }
     }
 
+
+    #templateForm .es-package-form-grid:first-of-type {
+      align-items:start !important;
+    }
+
+    #templateForm .es-package-form-grid:first-of-type > label {
+      display:grid !important;
+      grid-template-rows:22px 44px auto !important;
+      align-content:start !important;
+      gap:6px !important;
+      min-width:0 !important;
+    }
+
+    #templateSessions,
+    #templatePrice {
+      width:100% !important;
+      height:44px !important;
+      min-height:44px !important;
+      box-sizing:border-box !important;
+      margin:0 !important;
+    }
+
+    #templatePriceLabel {
+      display:flex !important;
+      align-items:flex-end !important;
+      min-height:22px !important;
+    }
+
+    @media(max-width:650px) {
+      #templateForm .es-package-form-grid:first-of-type > label {
+        grid-template-rows:auto 44px auto !important;
+      }
+    }
+
 </style>
 </head>
 

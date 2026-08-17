@@ -1,12 +1,53 @@
 const params = new URLSearchParams(location.search);
-const hashParams = new URLSearchParams(
-  String(location.hash || "").replace(/^#/, "")
-);
+const rawHash =
+  String(
+    location.hash ||
+    ""
+  ).replace(
+    /^#/,
+    ""
+  );
+
+const hashParams =
+  new URLSearchParams(
+    rawHash
+  );
+
+const shortPreview =
+  rawHash ===
+  "preview";
+
+const requestedTemplateId =
+  String(
+    params.get("template_id") ||
+    hashParams.get("template_id") ||
+    ""
+  ).trim();
+
+if (requestedTemplateId) {
+  try {
+    sessionStorage.setItem(
+      "eselram.preview.template_id",
+      requestedTemplateId
+    );
+  } catch {}
+}
 
 const templateId = String(
-  params.get("template_id") ||
-  hashParams.get("template_id") ||
-  ""
+  requestedTemplateId ||
+  (
+    shortPreview
+      ? (() => {
+          try {
+            return sessionStorage.getItem(
+              "eselram.preview.template_id"
+            ) || "";
+          } catch {
+            return "";
+          }
+        })()
+      : ""
+  )
 ).trim();
 
 const publicToken = String(
@@ -24,9 +65,16 @@ const requestToken = String(
 const mode = String(
   params.get("mode") ||
   hashParams.get("mode") ||
-  ""
+  (
+    shortPreview
+      ? "preview"
+      : ""
+  )
 ).trim().toLowerCase();
-const isPreview = mode === "preview";
+
+const isPreview =
+  mode ===
+  "preview";
 
 const formRoot = document.getElementById("formRoot");
 const previewBanner = document.getElementById("previewBanner");
@@ -37,6 +85,18 @@ let signatures = new Map();
 
 if (isPreview) {
   previewBanner.hidden = false;
+
+  /*
+   * Cosmetic only: hide the long template identifier from the visible
+   * preview URL after it has already been read above.
+   */
+  try {
+    history.replaceState(
+      null,
+      "",
+      `${location.pathname}#preview`
+    );
+  } catch {}
 }
 
 closePreviewButton?.addEventListener("click", () => {
@@ -168,6 +228,7 @@ function renderSection(section) {
     <section
       class="es-form-render-section"
       data-section-id="${escapeHtml(section.id)}"
+      data-section-title="${escapeAttribute(section.title || "")}"
       data-condition='${escapeAttribute(JSON.stringify(section.condition || null))}'
     >
       <h2>${escapeHtml(section.title)}</h2>
