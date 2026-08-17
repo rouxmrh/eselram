@@ -610,6 +610,60 @@
       }
     }
 
+
+    /* Settings-only cosmetic alignment refinements. */
+    #tab-notifications .es-form-actions,
+    #tab-email .es-settings-actions,
+    #tab-payments .es-settings-actions {
+      display:flex; align-items:center; flex-wrap:wrap; gap:9px;
+    }
+    #tab-notifications .es-form-actions .es-button,
+    #tab-notifications .es-form-actions .es-secondary-button,
+    #tab-email .es-settings-actions .es-button,
+    #tab-email .es-settings-actions .es-secondary-button,
+    #tab-payments .es-settings-actions .es-button,
+    #tab-payments .es-settings-actions .es-secondary-button {
+      min-width:154px; height:42px; min-height:42px; margin:0; padding:0 14px;
+      display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
+      border-radius:10px; text-align:center; text-decoration:none; font-size:12px;
+      font-weight:800; line-height:1; white-space:nowrap;
+    }
+    #tab-payments .es-checkbox-row,
+    #tab-hours .es-checkbox-row {
+      display:flex; align-items:center; gap:10px; min-height:42px; margin:0;
+    }
+    #tab-payments .es-checkbox-row input[type="checkbox"],
+    #tab-hours .es-checkbox-row input[type="checkbox"] {
+      flex:0 0 auto; width:16px; height:16px; margin:0;
+    }
+    #tab-payments .es-checkbox-row span,
+    #tab-hours .es-checkbox-row span {
+      display:flex; align-items:center; min-height:20px; line-height:1.3;
+    }
+    #tab-payments .es-copy-field {
+      display:grid; grid-template-columns:minmax(0,1fr) 92px; gap:8px; align-items:stretch;
+    }
+    #stripeWebhookUrl, #copyStripeWebhookUrl {
+      height:44px; min-height:44px; margin:0; box-sizing:border-box;
+    }
+    #copyStripeWebhookUrl {
+      width:92px; min-width:92px; padding:0 12px; display:inline-flex;
+      align-items:center; justify-content:center; text-align:center; border-radius:10px;
+    }
+    #tab-payments a[href="/payments/"] {
+      text-decoration:none !important; display:inline-flex; align-items:center; justify-content:center;
+    }
+    @media(max-width:600px) {
+      #tab-notifications .es-form-actions .es-button,
+      #tab-notifications .es-form-actions .es-secondary-button,
+      #tab-email .es-settings-actions .es-button,
+      #tab-email .es-settings-actions .es-secondary-button,
+      #tab-payments .es-settings-actions .es-button,
+      #tab-payments .es-settings-actions .es-secondary-button { width:100%; min-width:0; }
+      #tab-payments .es-copy-field { grid-template-columns:minmax(0,1fr) 82px; }
+      #copyStripeWebhookUrl { width:82px; min-width:82px; }
+    }
+
 </style>
 
 </head>
@@ -1759,7 +1813,7 @@
                 <a
                   class="es-secondary-button"
                   href="/communications/"
-                  style="text-decoration:none;display:inline-flex;align-items:center;"
+                 
                 >
                   View communication log
                 </a>
