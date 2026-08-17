@@ -816,6 +816,146 @@
       }
     }
 
+
+    /* Final booking page alignment polish. */
+    .es-bookings-header-actions {
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:10px;
+      flex-wrap:nowrap;
+    }
+
+    .es-bookings-header-actions .es-header-booking-button {
+      height:44px;
+      min-height:44px;
+      padding:0 18px;
+      border-radius:9px;
+      font-size:13px;
+      font-weight:700;
+      line-height:1;
+      box-sizing:border-box;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+    }
+
+    /* Make Create booking and Close visually identical in size/typography. */
+    .es-booking-form-actions #saveBookingButton,
+    .es-booking-form-actions #cancelBookingButton {
+      width:132px;
+      min-width:132px;
+      height:44px !important;
+      min-height:44px !important;
+      padding:0 14px !important;
+      border-radius:9px !important;
+      font-size:13px !important;
+      font-weight:700 !important;
+      line-height:1 !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      margin:0 !important;
+      white-space:nowrap;
+    }
+
+    /* Fixed column tracks keep every booking row vertically aligned. */
+    .es-manage-booking-row {
+      display:grid;
+      grid-template-columns:
+        130px
+        minmax(180px, 1fr)
+        105px
+        90px
+        260px;
+      column-gap:12px;
+      align-items:center;
+      width:100%;
+    }
+
+    .es-manage-booking-row > * {
+      min-width:0;
+    }
+
+    .es-manage-booking-row .es-booking-date,
+    .es-manage-booking-row .es-booking-customer,
+    .es-manage-booking-row .es-booking-money {
+      justify-self:stretch;
+    }
+
+    .es-manage-booking-row .es-booking-status {
+      justify-self:start;
+      white-space:nowrap;
+    }
+
+    .es-manage-booking-row .es-booking-actions {
+      justify-self:end;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:6px;
+      flex-wrap:nowrap;
+      width:260px;
+      white-space:nowrap;
+    }
+
+    .es-manage-booking-row .es-booking-action {
+      flex:0 0 auto;
+      height:36px;
+      min-height:36px;
+      padding:0 9px;
+      border-radius:8px;
+      font-size:11px;
+      font-weight:700;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      white-space:nowrap;
+    }
+
+    @media(max-width:1050px) {
+      .es-manage-booking-row {
+        grid-template-columns:
+          115px
+          minmax(160px, 1fr)
+          95px
+          82px
+          242px;
+        column-gap:9px;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        width:242px;
+        gap:4px;
+      }
+
+      .es-manage-booking-row .es-booking-action {
+        padding:0 7px;
+        font-size:10px;
+      }
+    }
+
+    @media(max-width:860px) {
+      .es-bookings-header-actions {
+        flex-wrap:wrap;
+      }
+
+      .es-manage-booking-row {
+        grid-template-columns:1fr;
+        row-gap:8px;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        justify-self:start;
+        width:auto;
+        flex-wrap:wrap;
+      }
+    }
+
 </style>
 </head>
 
@@ -846,13 +986,24 @@
 
         </div>
 
-        <button
-          id="newBookingButton"
-          class="es-button"
-          type="button"
-        >
-          New booking
-        </button>
+        <div class="es-bookings-header-actions">
+          <button
+            id="bookingsListViewButton"
+            class="es-secondary-button es-header-booking-button"
+            type="button"
+            aria-selected="false"
+          >
+            Manage bookings
+          </button>
+
+          <button
+            id="newBookingButton"
+            class="es-button es-header-booking-button"
+            type="button"
+          >
+            New booking
+          </button>
+        </div>
 
       </header>
 
@@ -870,16 +1021,6 @@
           aria-selected="true"
         >
           Calendar
-        </button>
-
-        <button
-          id="bookingsListViewButton"
-          class="es-bookings-view-button"
-          type="button"
-          role="tab"
-          aria-selected="false"
-        >
-          Manage bookings
         </button>
 
         <a
