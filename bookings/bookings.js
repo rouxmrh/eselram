@@ -1759,6 +1759,22 @@ function renderBookings() {
               </button>
 
               ${
+                booking.customer_id
+                  ? `
+                    <a
+                      class="es-booking-action"
+                      href="/customers/?customer=${encodeURIComponent(
+                        booking.customer_id
+                      )}"
+                      style="text-decoration:none;display:inline-flex;align-items:center;"
+                    >
+                      Customer
+                    </a>
+                  `
+                  : ""
+              }
+
+              ${
                 booking.status ===
                   "confirmed"
                   ? `
@@ -1806,6 +1822,73 @@ function renderBookings() {
   bindBookingRowActions();
 }
 
+
+
+async function loadBookingsBusinessPulse() {
+  const totalElement =
+    document.getElementById(
+      "bookingsPulseTotalCustomers"
+    );
+
+  const newElement =
+    document.getElementById(
+      "bookingsPulseNewCustomers"
+    );
+
+  if (
+    !totalElement ||
+    !newElement
+  ) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/dashboard",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    handleAuthentication(
+      response
+    );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      return;
+    }
+
+    totalElement.textContent =
+      Number(
+        data.stats?.customers ||
+        0
+      );
+
+    newElement.textContent =
+      Number(
+        data.stats?.new_customers_month ||
+        0
+      );
+
+  } catch (error) {
+    console.error(
+      "Unable to load booking business pulse:",
+      error
+    );
+  }
+}
 
 
 function renderUpcomingWeek() {
@@ -4281,7 +4364,8 @@ async function initialiseBookingsPage() {
   await Promise.all([
     loadServices(),
     loadBookings(),
-    loadBookingPackages()
+    loadBookingPackages(),
+    loadBookingsBusinessPulse()
   ]);
 
 

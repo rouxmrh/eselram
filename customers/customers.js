@@ -2148,12 +2148,15 @@ function renderCustomerPayments(
                   ? `
                     <div class="es-customer-payment-actions">
                       ${
-                        payment.status === "pending" &&
                         !payment.customer_package_id &&
                         Number(
                           payment.service_requires_consultation ||
                           0
-                        ) !== 1
+                        ) !== 1 &&
+                        Number(
+                          payment.appointment_outstanding_minor ||
+                          0
+                        ) > 0
                           ? `
                             <a
                               class="es-customer-action es-customer-take-payment"

@@ -567,6 +567,64 @@
       }
     }
 
+
+    .es-bookings-pulse {
+      margin-top:auto;
+      padding-top:22px;
+      border-top:1px solid var(--es-border);
+    }
+
+    .es-bookings-pulse-heading {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .es-bookings-pulse-heading h3 {
+      margin:4px 0 0;
+      font-size:18px;
+      line-height:1.2;
+    }
+
+    .es-bookings-pulse-grid {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .es-bookings-pulse-stat {
+      min-width:0;
+      padding:14px;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:var(--es-surface);
+    }
+
+    .es-bookings-pulse-stat strong,
+    .es-bookings-pulse-stat span {
+      display:block;
+    }
+
+    .es-bookings-pulse-stat strong {
+      font-size:18px;
+      line-height:1.2;
+    }
+
+    .es-bookings-pulse-stat span {
+      margin-top:5px;
+      color:var(--es-muted);
+      font-size:11px;
+      line-height:1.35;
+    }
+
+    @media(max-width:900px) {
+      .es-bookings-pulse {
+        margin-top:18px;
+      }
+    }
+
 </style>
 </head>
 
@@ -673,6 +731,35 @@
             <div id="bookingsWeekList" class="es-bookings-week-list">
               <div class="es-empty-state">
                 Loading appointments…
+              </div>
+            </div>
+
+            <div class="es-bookings-pulse">
+              <div class="es-bookings-pulse-heading">
+                <div>
+                  <p class="es-eyebrow">Customers</p>
+                  <h3>Business pulse</h3>
+                </div>
+
+                <a
+                  class="es-booking-action"
+                  href="/customers/"
+                  style="text-decoration:none;"
+                >
+                  Customers
+                </a>
+              </div>
+
+              <div class="es-bookings-pulse-grid">
+                <div class="es-bookings-pulse-stat">
+                  <strong id="bookingsPulseTotalCustomers">0</strong>
+                  <span>Total customers</span>
+                </div>
+
+                <div class="es-bookings-pulse-stat">
+                  <strong id="bookingsPulseNewCustomers">0</strong>
+                  <span>New this month</span>
+                </div>
               </div>
             </div>
 

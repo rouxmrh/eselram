@@ -552,6 +552,40 @@ export async function onRequestGet({
                 a.booking_kind AS appointment_booking_kind,
                 a.start_at AS appointment_start_at,
 
+                CASE
+                  WHEN a.id IS NULL
+                    THEN 0
+                  ELSE MAX(
+                    0,
+                    COALESCE(a.price_minor, 0)
+                    - COALESCE(a.consultation_credit_minor, 0)
+                    - COALESCE(
+                        (
+                          SELECT SUM(
+                            CASE
+                              WHEN ap.payment_type = 'refund'
+                                   AND ap.status = 'paid'
+                                THEN -ABS(ap.amount_minor)
+                              WHEN ap.payment_type != 'refund'
+                                   AND ap.status IN (
+                                     'paid',
+                                     'partially_refunded',
+                                     'refunded'
+                                   )
+                                THEN ABS(ap.amount_minor)
+                              ELSE 0
+                            END
+                          )
+                          FROM payments ap
+                          WHERE
+                            ap.business_id = a.business_id
+                            AND ap.appointment_id = a.id
+                        ),
+                        0
+                      )
+                  )
+                END AS appointment_outstanding_minor,
+
                 cp.id AS customer_package_id,
                 cp.name_snapshot AS package_name,
                 cp.service_id AS package_service_id,
