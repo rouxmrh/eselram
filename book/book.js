@@ -435,25 +435,74 @@ function renderSelectedBookingGroup(groupName) {
         0
       ) === 1;
 
+    const defaultConsultationCopy = `
+      New clients start with a consultation. The consultation is
+      ${Number(consultationService.duration_minutes || 0)} minutes and
+      ${paymentText(consultationService)}.
+      ${
+        Number(consultationService.price_minor || 0) > 0
+          ? "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase."
+          : ""
+      }
+      ${patchRequired ? "A patch test is required before treatment." : ""}
+      ${
+        practitionerManaged && !hasClientBookableTreatment
+          ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
+          : hasClientBookableTreatment
+            ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
+            : ""
+      }
+    `.replace(/\s+/g, " ").trim();
+
+    const configuredConsultationCopy =
+      bookingCopyForGroup(
+        group.name
+      );
+
+    const consultationCopy =
+      configuredConsultationCopy
+        ? renderBookingCopy(
+            configuredConsultationCopy,
+            {
+              group_name:
+                group.name,
+              consultation_duration:
+                Number(
+                  consultationService.duration_minutes ||
+                  0
+                ),
+              consultation_payment:
+                paymentText(
+                  consultationService
+                ),
+              consultation_credit_sentence:
+                Number(
+                  consultationService.price_minor ||
+                  0
+                ) > 0
+                  ? "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase."
+                  : "",
+              patch_test_sentence:
+                patchRequired
+                  ? "A patch test is required before treatment."
+                  : "",
+              post_consultation_sentence:
+                practitionerManaged &&
+                !hasClientBookableTreatment
+                  ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
+                  : hasClientBookableTreatment
+                    ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
+                    : ""
+            }
+          )
+        : defaultConsultationCopy;
+
     panel.innerHTML = `
       <h3>${escapeHtml(group.name)}</h3>
       <p class="booking-category-copy">
-        New clients start with a consultation. The consultation is
-        ${Number(consultationService.duration_minutes || 0)} minutes and
-        ${escapeHtml(paymentText(consultationService))}.
-        ${
-          Number(consultationService.price_minor || 0) > 0
-            ? "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase."
-            : ""
-        }
-        ${patchRequired ? "A patch test is required before treatment." : ""}
-        ${
-          practitionerManaged && !hasClientBookableTreatment
-            ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
-            : hasClientBookableTreatment
-              ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
-              : ""
-        }
+        ${escapeHtml(
+          consultationCopy
+        )}
       </p>
 
       ${clientBookable.length ? `
@@ -533,12 +582,55 @@ function renderSelectedBookingGroup(groupName) {
         String(service.post_consultation_booking || "client_can_book") === "client_can_book"
     );
     const selectedService = clientBookable[0] || legacyConsultation;
+    const legacyDefaultCopy =
+      `New clients start with a consultation. The consultation is ${
+        Number(
+          legacyConsultation.consultation_duration_minutes ||
+          30
+        )
+      } minutes and ${
+        consultationPaymentText(
+          legacyConsultation
+        )
+      }.`;
+
+    const legacyConfiguredCopy =
+      bookingCopyForGroup(
+        group.name
+      );
+
+    const legacyCopy =
+      legacyConfiguredCopy
+        ? renderBookingCopy(
+            legacyConfiguredCopy,
+            {
+              group_name:
+                group.name,
+              consultation_duration:
+                Number(
+                  legacyConsultation.consultation_duration_minutes ||
+                  30
+                ),
+              consultation_payment:
+                consultationPaymentText(
+                  legacyConsultation
+                ),
+              consultation_credit_sentence:
+                "",
+              patch_test_sentence:
+                "",
+              post_consultation_sentence:
+                ""
+            }
+          )
+        : legacyDefaultCopy;
+
     panel.innerHTML = `
       <h3>${escapeHtml(group.name)}</h3>
       <p class="booking-category-copy">
-        New clients start with a consultation. The consultation is
-        ${Number(legacyConsultation.consultation_duration_minutes || 30)} minutes and
-        ${escapeHtml(consultationPaymentText(legacyConsultation))}.
+        ${escapeHtml(
+          legacyCopy
+        )}
       </p>
       <div class="service-choice-actions">
         <button class="primary-button service-choice-button" type="button" id="bookLegacyConsultation">Book consultation</button>
@@ -559,7 +651,23 @@ function renderSelectedBookingGroup(groupName) {
   panel.innerHTML = `
     <h3>${escapeHtml(group.name)}</h3>
     ${treatmentServices.length > 1 ? `
-      <p class="booking-category-copy">Choose the service you would like to book.</p>
+      <p class="booking-category-copy">${
+        escapeHtml(
+          bookingCopyForGroup(
+            group.name
+          )
+            ? renderBookingCopy(
+                bookingCopyForGroup(
+                  group.name
+                ),
+                {
+                  group_name:
+                    group.name
+                }
+              )
+            : "Choose the service you would like to book."
+        )
+      }</p>
       <div class="booking-service-pills">
         ${treatmentServices.map(service => `
           <button class="booking-service-pill ${service.id === selectedService.id ? "active" : ""}" type="button" data-direct-service="${escapeHtml(service.id)}">
@@ -600,6 +708,54 @@ function renderSelectedBookingGroup(groupName) {
   bookButton.addEventListener("click", () => selectServiceRoute(selectedService, "service"));
   updateDirectService(selectedService);
 }
+
+
+function bookingCopyForGroup(
+  groupName
+) {
+  return String(
+    state.config
+      ?.booking_copy
+      ?.[groupName] ||
+    ""
+  ).trim();
+}
+
+
+function renderBookingCopy(
+  template,
+  variables
+) {
+  return String(
+    template ||
+    ""
+  )
+    .replace(
+      /\{\{\s*([a-z0-9_]+)\s*\}\}/gi,
+      (
+        match,
+        key
+      ) => (
+        Object.prototype
+          .hasOwnProperty
+          .call(
+            variables,
+            key
+          )
+          ? String(
+              variables[key] ??
+              ""
+            )
+          : match
+      )
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+}
+
 
 function renderServices() {
   const container = $("#services");

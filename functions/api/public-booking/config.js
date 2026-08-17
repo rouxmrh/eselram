@@ -5,6 +5,10 @@ import {
   serverError
 } from "../../../lib/public-booking.js";
 
+import {
+  getPublicBookingCopyOverrides
+} from "../../../lib/customer-content.js";
+
 export async function onRequestGet({ env }) {
   try {
     const business = await getPublicBusiness(env);
@@ -148,6 +152,12 @@ export async function onRequestGet({ env }) {
         .first()
     ]);
 
+    const publicBookingCopy =
+      await getPublicBookingCopyOverrides(
+        env,
+        business.id
+      );
+
     const stripeReady = stripeIntegration?.status === "verified";
 
     const publicServices = (services.results || []).map((service) => {
@@ -248,6 +258,9 @@ export async function onRequestGet({ env }) {
         max_advance_days:
           publicBookingRules.max_advance_days
       },
+
+      booking_copy:
+        publicBookingCopy,
 
       services:
         publicBookingRules.enabled

@@ -58,6 +58,42 @@ const aftercareStatus =
 const aftercareTabs =
   document.getElementById("aftercareTabs");
 
+const emailTemplateTabs =
+  document.getElementById(
+    "emailTemplateTabs"
+  );
+
+const emailTemplateEditor =
+  document.getElementById(
+    "emailTemplateEditor"
+  );
+
+const emailTemplateStatus =
+  document.getElementById(
+    "emailTemplateStatus"
+  );
+
+const bookingCopyTabs =
+  document.getElementById(
+    "bookingCopyTabs"
+  );
+
+const bookingCopyEditor =
+  document.getElementById(
+    "bookingCopyEditor"
+  );
+
+const bookingCopyStatus =
+  document.getElementById(
+    "bookingCopyStatus"
+  );
+
+let contentData = null;
+let selectedEmailKey =
+  "booking_confirmation";
+let selectedBookingGroup =
+  "";
+
 let aftercareTemplates = {};
 let selectedAftercareKey =
   "tattoo_removal";
@@ -600,6 +636,1028 @@ function closeDrawer() {
   drawer.setAttribute("aria-hidden", "true");
 }
 
+
+
+
+function showContentStatus(
+  element,
+  message,
+  type = "success"
+) {
+  if (!element) {
+    return;
+  }
+
+  element.hidden =
+    false;
+
+  element.className =
+    `es-status es-content-status ${type}`;
+
+  element.textContent =
+    message;
+}
+
+
+function sampleVariables() {
+  return {
+    customer_name:
+      "Alex",
+    business_name:
+      "Your Business",
+    service_name:
+      "Treatment",
+    appointment_date:
+      "21 August 2026 at 18:00",
+    package_name:
+      "Treatment Package",
+    form_name:
+      "Consultation Form",
+    amount:
+      "£30.00",
+    default_subject:
+      "Eselram smart subject",
+    default_title:
+      "Eselram smart heading",
+    default_intro:
+      "Eselram smart introduction",
+    default_closing:
+      "Eselram keeps any booking-specific wording here automatically."
+  };
+}
+
+
+function previewTemplateText(
+  value,
+  extra = {}
+) {
+  const vars = {
+    ...sampleVariables(),
+    ...extra
+  };
+
+  return String(
+    value ||
+    ""
+  ).replace(
+    /\{\{\s*([a-z0-9_]+)\s*\}\}/gi,
+    (
+      match,
+      key
+    ) => (
+      Object.prototype
+        .hasOwnProperty
+        .call(
+          vars,
+          key
+        )
+        ? String(
+            vars[key] ??
+            ""
+          )
+        : match
+    )
+  );
+}
+
+
+function renderEmailTabs() {
+  if (
+    !emailTemplateTabs ||
+    !contentData
+  ) {
+    return;
+  }
+
+  const templates =
+    contentData.email_templates ||
+    {};
+
+  const customised =
+    new Set(
+      contentData.email_customised ||
+      []
+    );
+
+  emailTemplateTabs.innerHTML =
+    Object.entries(
+      templates
+    )
+      .map(
+        ([
+          key,
+          template
+        ]) => `
+          <button
+            class="es-content-tab ${
+              key ===
+                selectedEmailKey
+                ? "active"
+                : ""
+            }"
+            type="button"
+            data-email-template="${escapeHtml(
+              key
+            )}"
+          >
+            ${escapeHtml(
+              template.label ||
+              key
+            )}${
+              customised.has(
+                key
+              )
+                ? " · Custom"
+                : ""
+            }
+          </button>
+        `
+      )
+      .join("");
+
+  emailTemplateTabs
+    .querySelectorAll(
+      "[data-email-template]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            selectedEmailKey =
+              button.dataset
+                .emailTemplate;
+
+            renderEmailTabs();
+            renderEmailEditor();
+          }
+        );
+      }
+    );
+}
+
+
+function currentEmailEditorValue() {
+  if (!emailTemplateEditor) {
+    return null;
+  }
+
+  return {
+    subject:
+      String(
+        emailTemplateEditor
+          .querySelector(
+            "[data-email-subject]"
+          )?.value ||
+        ""
+      ).trim(),
+
+    title:
+      String(
+        emailTemplateEditor
+          .querySelector(
+            "[data-email-title]"
+          )?.value ||
+        ""
+      ).trim(),
+
+    intro:
+      String(
+        emailTemplateEditor
+          .querySelector(
+            "[data-email-intro]"
+          )?.value ||
+        ""
+      ).trim(),
+
+    closing:
+      String(
+        emailTemplateEditor
+          .querySelector(
+            "[data-email-closing]"
+          )?.value ||
+        ""
+      ).trim()
+  };
+}
+
+
+function updateEmailPreview() {
+  const values =
+    currentEmailEditorValue();
+
+  if (!values) return;
+
+  const subject =
+    emailTemplateEditor
+      .querySelector(
+        "[data-preview-subject]"
+      );
+
+  const title =
+    emailTemplateEditor
+      .querySelector(
+        "[data-preview-title]"
+      );
+
+  const intro =
+    emailTemplateEditor
+      .querySelector(
+        "[data-preview-intro]"
+      );
+
+  const closing =
+    emailTemplateEditor
+      .querySelector(
+        "[data-preview-closing]"
+      );
+
+  if (subject) {
+    subject.textContent =
+      previewTemplateText(
+        values.subject
+      );
+  }
+
+  if (title) {
+    title.textContent =
+      previewTemplateText(
+        values.title
+      );
+  }
+
+  if (intro) {
+    intro.textContent =
+      previewTemplateText(
+        values.intro
+      );
+  }
+
+  if (closing) {
+    closing.textContent =
+      previewTemplateText(
+        values.closing
+      );
+  }
+}
+
+
+function renderEmailEditor() {
+  if (
+    !emailTemplateEditor ||
+    !contentData
+  ) {
+    return;
+  }
+
+  const template =
+    contentData
+      .email_templates?.[
+        selectedEmailKey
+      ];
+
+  if (!template) {
+    emailTemplateEditor.innerHTML = `
+      <div class="es-empty-state">
+        <strong>Email template unavailable.</strong>
+      </div>
+    `;
+    return;
+  }
+
+  emailTemplateEditor.innerHTML = `
+    <div class="es-content-fields">
+      <div>
+        <strong>${escapeHtml(
+          template.label ||
+          "Customer email"
+        )}</strong>
+        <p class="es-content-help">
+          ${escapeHtml(
+            template.description ||
+            ""
+          )}
+          Secure links, payment amounts, appointment details and system buttons remain controlled by Eselram.
+        </p>
+      </div>
+
+      <label>
+        Subject
+        <input
+          type="text"
+          maxlength="240"
+          data-email-subject
+          value="${escapeHtml(
+            template.subject ||
+            ""
+          )}"
+        >
+      </label>
+
+      <label>
+        Heading
+        <input
+          type="text"
+          maxlength="240"
+          data-email-title
+          value="${escapeHtml(
+            template.title ||
+            ""
+          )}"
+        >
+      </label>
+
+      <label>
+        Main message
+        <textarea
+          maxlength="3000"
+          data-email-intro
+        >${escapeHtml(
+          template.intro ||
+          ""
+        )}</textarea>
+      </label>
+
+      <label>
+        Closing message
+        <textarea
+          maxlength="3000"
+          data-email-closing
+        >${escapeHtml(
+          template.closing ||
+          ""
+        )}</textarea>
+      </label>
+
+      <p class="es-content-help">
+        Useful variables: {{customer_name}}, {{business_name}}, {{service_name}},
+        {{form_name}}, {{amount}}. {{default_closing}} keeps Eselram's smart
+        booking-specific closing where applicable.
+      </p>
+
+      <div class="es-content-actions">
+        <button
+          id="saveEmailTemplateButton"
+          class="es-button"
+          type="button"
+        >
+          Save wording
+        </button>
+
+        <button
+          id="restoreEmailTemplateButton"
+          class="es-secondary-button"
+          type="button"
+        >
+          Restore Eselram default
+        </button>
+      </div>
+    </div>
+
+    <aside class="es-content-preview">
+      <p class="es-content-preview-label">
+        Preview
+      </p>
+      <span
+        class="es-content-preview-subject"
+        data-preview-subject
+      ></span>
+      <h3 data-preview-title></h3>
+      <p data-preview-intro></p>
+      <div
+        style="height:44px;border-radius:9px;background:var(--es-primary);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin:16px 0;"
+      >
+        Protected Eselram content / button
+      </div>
+      <p data-preview-closing></p>
+    </aside>
+  `;
+
+  emailTemplateEditor
+    .querySelectorAll(
+      "input, textarea"
+    )
+    .forEach(
+      field =>
+        field.addEventListener(
+          "input",
+          updateEmailPreview
+        )
+    );
+
+  document
+    .getElementById(
+      "saveEmailTemplateButton"
+    )
+    ?.addEventListener(
+      "click",
+      saveEmailTemplate
+    );
+
+  document
+    .getElementById(
+      "restoreEmailTemplateButton"
+    )
+    ?.addEventListener(
+      "click",
+      restoreEmailTemplate
+    );
+
+  updateEmailPreview();
+}
+
+
+async function saveEmailTemplate() {
+  const template =
+    currentEmailEditorValue();
+
+  if (!template) return;
+
+  try {
+    const response =
+      await fetch(
+        "/api/communications/content",
+        {
+          method:
+            "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              kind:
+                "email",
+              key:
+                selectedEmailKey,
+              template
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to save email wording."
+      );
+    }
+
+    await loadContentManager();
+
+    showContentStatus(
+      emailTemplateStatus,
+      "Email wording saved. Future emails will use this version."
+    );
+  } catch (error) {
+    showContentStatus(
+      emailTemplateStatus,
+      error.message ||
+      "Unable to save email wording.",
+      "error"
+    );
+  }
+}
+
+
+async function restoreEmailTemplate() {
+  if (
+    !window.confirm(
+      "Restore the Eselram default wording for this email?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `/api/communications/content?kind=email&key=${encodeURIComponent(
+          selectedEmailKey
+        )}`,
+        {
+          method:
+            "DELETE",
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to restore email wording."
+      );
+    }
+
+    await loadContentManager();
+
+    showContentStatus(
+      emailTemplateStatus,
+      "Eselram default email wording restored."
+    );
+  } catch (error) {
+    showContentStatus(
+      emailTemplateStatus,
+      error.message ||
+      "Unable to restore email wording.",
+      "error"
+    );
+  }
+}
+
+
+function renderBookingTabs() {
+  if (
+    !bookingCopyTabs ||
+    !contentData
+  ) {
+    return;
+  }
+
+  const groups =
+    contentData.booking_groups ||
+    [];
+
+  if (
+    !selectedBookingGroup &&
+    groups.length
+  ) {
+    selectedBookingGroup =
+      groups[0].name;
+  }
+
+  bookingCopyTabs.innerHTML =
+    groups
+      .map(
+        group => `
+          <button
+            class="es-content-tab ${
+              group.name ===
+                selectedBookingGroup
+                ? "active"
+                : ""
+            }"
+            type="button"
+            data-booking-copy-group="${escapeHtml(
+              group.name
+            )}"
+          >
+            ${escapeHtml(
+              group.name
+            )}${
+              group.customised
+                ? " · Custom"
+                : ""
+            }
+          </button>
+        `
+      )
+      .join("");
+
+  bookingCopyTabs
+    .querySelectorAll(
+      "[data-booking-copy-group]"
+    )
+    .forEach(
+      button =>
+        button.addEventListener(
+          "click",
+          () => {
+            selectedBookingGroup =
+              button.dataset
+                .bookingCopyGroup;
+
+            renderBookingTabs();
+            renderBookingCopyEditor();
+          }
+        )
+    );
+}
+
+
+function selectedBookingCopy() {
+  return (
+    contentData
+      ?.booking_groups
+      ?.find(
+        item =>
+          item.name ===
+          selectedBookingGroup
+      ) ||
+    null
+  );
+}
+
+
+function renderBookingCopyEditor() {
+  if (
+    !bookingCopyEditor ||
+    !contentData
+  ) {
+    return;
+  }
+
+  const group =
+    selectedBookingCopy();
+
+  if (!group) {
+    bookingCopyEditor.innerHTML = `
+      <div class="es-empty-state">
+        <strong>No public booking groups found.</strong>
+        <span>Add active services in Services first.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const variables =
+    contentData
+      .booking_variables?.[
+        group.kind
+      ] ||
+    [];
+
+  bookingCopyEditor.innerHTML = `
+    <div class="es-booking-copy-card">
+      <div>
+        <strong>${escapeHtml(
+          group.name
+        )}</strong>
+        <p class="es-content-help">
+          This wording appears on /book for this service group. The variables
+          below keep prices, consultation duration and booking rules linked to
+          the actual service configuration.
+        </p>
+      </div>
+
+      <label>
+        Customer-facing booking message
+        <textarea
+          id="bookingCopyText"
+          maxlength="4000"
+        >${escapeHtml(
+          group.copy ||
+          ""
+        )}</textarea>
+      </label>
+
+      ${
+        variables.length
+          ? `
+            <div class="es-variable-chips">
+              ${variables
+                .map(
+                  variable => `
+                    <span class="es-variable-chip">
+                      ${escapeHtml(
+                        variable
+                      )}
+                    </span>
+                  `
+                )
+                .join("")}
+            </div>
+          `
+          : ""
+      }
+
+      <div class="es-content-preview">
+        <p class="es-content-preview-label">
+          Booking page preview
+        </p>
+        <h3>${escapeHtml(
+          group.name
+        )}</h3>
+        <p id="bookingCopyPreview"></p>
+      </div>
+
+      <div class="es-content-actions">
+        <button
+          id="saveBookingCopyButton"
+          class="es-button"
+          type="button"
+        >
+          Save wording
+        </button>
+
+        <button
+          id="restoreBookingCopyButton"
+          class="es-secondary-button"
+          type="button"
+        >
+          Restore Eselram default
+        </button>
+      </div>
+    </div>
+  `;
+
+  const field =
+    document.getElementById(
+      "bookingCopyText"
+    );
+
+  const updatePreview =
+    () => {
+      const preview =
+        document.getElementById(
+          "bookingCopyPreview"
+        );
+
+      if (!preview) return;
+
+      preview.textContent =
+        previewTemplateText(
+          field?.value ||
+          "",
+          {
+            group_name:
+              group.name,
+            consultation_duration:
+              "30",
+            consultation_payment:
+              "£30.00 online",
+            consultation_credit_sentence:
+              "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase.",
+            patch_test_sentence:
+              "A patch test is required before treatment.",
+            post_consultation_sentence:
+              "Existing clients can book an eligible treatment online using the same customer details held by the business."
+          }
+        );
+    };
+
+  field?.addEventListener(
+    "input",
+    updatePreview
+  );
+
+  document
+    .getElementById(
+      "saveBookingCopyButton"
+    )
+    ?.addEventListener(
+      "click",
+      saveBookingCopy
+    );
+
+  document
+    .getElementById(
+      "restoreBookingCopyButton"
+    )
+    ?.addEventListener(
+      "click",
+      restoreBookingCopy
+    );
+
+  updatePreview();
+}
+
+
+async function saveBookingCopy() {
+  const group =
+    selectedBookingCopy();
+
+  const field =
+    document.getElementById(
+      "bookingCopyText"
+    );
+
+  if (
+    !group ||
+    !field
+  ) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/communications/content",
+        {
+          method:
+            "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Accept:
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              kind:
+                "booking_copy",
+              group:
+                group.name,
+              copy:
+                field.value
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to save booking wording."
+      );
+    }
+
+    await loadContentManager();
+
+    showContentStatus(
+      bookingCopyStatus,
+      "Booking wording saved. /book will use this version."
+    );
+  } catch (error) {
+    showContentStatus(
+      bookingCopyStatus,
+      error.message ||
+      "Unable to save booking wording.",
+      "error"
+    );
+  }
+}
+
+
+async function restoreBookingCopy() {
+  const group =
+    selectedBookingCopy();
+
+  if (!group) return;
+
+  if (
+    !window.confirm(
+      "Restore the Eselram default booking wording for this service group?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `/api/communications/content?kind=booking_copy&group=${encodeURIComponent(
+          group.name
+        )}`,
+        {
+          method:
+            "DELETE",
+          headers: {
+            Accept:
+              "application/json"
+          }
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to restore booking wording."
+      );
+    }
+
+    await loadContentManager();
+
+    showContentStatus(
+      bookingCopyStatus,
+      "Eselram default booking wording restored."
+    );
+  } catch (error) {
+    showContentStatus(
+      bookingCopyStatus,
+      error.message ||
+      "Unable to restore booking wording.",
+      "error"
+    );
+  }
+}
+
+
+async function loadContentManager() {
+  if (
+    !emailTemplateEditor ||
+    !bookingCopyEditor
+  ) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/communications/content",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    if (
+      response.status ===
+      401
+    ) {
+      window.location.href =
+        "/auth/login.html";
+      return;
+    }
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to load communication content."
+      );
+    }
+
+    contentData =
+      data;
+
+    if (
+      !contentData
+        .email_templates?.[
+          selectedEmailKey
+        ]
+    ) {
+      selectedEmailKey =
+        Object.keys(
+          contentData
+            .email_templates ||
+          {}
+        )[0] ||
+        "";
+    }
+
+    if (
+      selectedBookingGroup &&
+      !contentData
+        .booking_groups
+        ?.some(
+          item =>
+            item.name ===
+            selectedBookingGroup
+        )
+    ) {
+      selectedBookingGroup =
+        "";
+    }
+
+    renderEmailTabs();
+    renderEmailEditor();
+    renderBookingTabs();
+    renderBookingCopyEditor();
+  } catch (error) {
+    emailTemplateEditor.innerHTML = `
+      <div class="es-empty-state">
+        <strong>Unable to load email templates.</strong>
+        <span>${escapeHtml(
+          error.message ||
+          "Please refresh the page."
+        )}</span>
+      </div>
+    `;
+
+    bookingCopyEditor.innerHTML = `
+      <div class="es-empty-state">
+        <strong>Unable to load booking messages.</strong>
+      </div>
+    `;
+  }
+}
 
 
 function showAftercareStatus(
@@ -1232,4 +2290,5 @@ runButton
 
 
 loadCommunications();
+loadContentManager();
 loadAftercare();

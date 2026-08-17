@@ -475,7 +475,246 @@
       }
     }
 
-  </style>
+  
+    /* Customer content manager */
+    .es-comms-editor-section {
+      margin-bottom:18px;
+      padding:0;
+      overflow:hidden;
+    }
+
+    .es-comms-editor-section > summary {
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      gap:14px;
+      align-items:center;
+      min-height:76px;
+      padding:18px 22px;
+      cursor:pointer;
+      list-style:none;
+      user-select:none;
+    }
+
+    .es-comms-editor-section > summary::-webkit-details-marker {
+      display:none;
+    }
+
+    .es-comms-editor-section > summary::after {
+      content:"⌄";
+      color:var(--es-muted);
+      font-size:20px;
+      line-height:1;
+      transition:transform .16s ease;
+    }
+
+    .es-comms-editor-section[open] > summary::after {
+      transform:rotate(180deg);
+    }
+
+    .es-comms-editor-summary-copy {
+      min-width:0;
+    }
+
+    .es-comms-editor-summary-copy h2 {
+      margin:3px 0 4px;
+      font-size:21px;
+    }
+
+    .es-comms-editor-summary-copy p:not(.es-eyebrow) {
+      margin:0;
+      color:var(--es-muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .es-comms-editor-body {
+      padding:0 22px 22px;
+      border-top:1px solid var(--es-border);
+    }
+
+    .es-content-tabs {
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      margin:18px 0;
+    }
+
+    .es-content-tab {
+      min-height:36px;
+      padding:0 13px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:var(--es-surface);
+      color:var(--es-text);
+      font-size:11px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .es-content-tab.active {
+      border-color:var(--es-primary);
+      background:#edf2ee;
+      color:var(--es-primary);
+    }
+
+    .es-content-editor {
+      display:grid;
+      grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);
+      gap:18px;
+      align-items:start;
+    }
+
+    .es-content-fields {
+      display:grid;
+      gap:12px;
+      min-width:0;
+    }
+
+    .es-content-fields label {
+      margin:0;
+    }
+
+    .es-content-fields textarea {
+      min-height:92px;
+      line-height:1.5;
+      resize:vertical;
+    }
+
+    .es-content-preview {
+      min-width:0;
+      padding:18px;
+      border:1px solid var(--es-border);
+      border-radius:16px;
+      background:#fafbf8;
+    }
+
+    .es-content-preview-label {
+      margin:0 0 12px;
+      color:var(--es-primary);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .es-content-preview h3 {
+      margin:0 0 10px;
+      font-size:20px;
+      line-height:1.2;
+    }
+
+    .es-content-preview p {
+      margin:0 0 12px;
+      color:var(--es-muted);
+      font-size:13px;
+      line-height:1.55;
+      overflow-wrap:anywhere;
+    }
+
+    .es-content-preview-subject {
+      display:block;
+      margin-bottom:12px;
+      padding-bottom:10px;
+      border-bottom:1px solid var(--es-border);
+      font-size:11px;
+      overflow-wrap:anywhere;
+    }
+
+    .es-content-help {
+      margin:6px 0 0;
+      color:var(--es-muted);
+      font-size:10px;
+      line-height:1.5;
+    }
+
+    .es-content-actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:2px;
+    }
+
+    .es-content-actions .es-button {
+      margin-top:0;
+    }
+
+    .es-content-status {
+      margin-top:12px;
+    }
+
+    .es-booking-copy-card {
+      display:grid;
+      gap:12px;
+    }
+
+    .es-booking-copy-card textarea {
+      min-height:150px;
+      line-height:1.55;
+      resize:vertical;
+    }
+
+    .es-variable-chips {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+
+    .es-variable-chip {
+      display:inline-flex;
+      align-items:center;
+      min-height:28px;
+      padding:0 9px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:#f7f8f5;
+      color:var(--es-muted);
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:10px;
+    }
+
+    .es-delivery-details .es-comms-toolbar {
+      margin-top:18px;
+    }
+
+    @media(max-width:860px) {
+      .es-content-editor {
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media(max-width:700px) {
+      .es-comms-editor-section > summary {
+        min-height:68px;
+        padding:16px;
+      }
+
+      .es-comms-editor-body {
+        padding:0 16px 16px;
+      }
+
+      .es-content-tabs {
+        flex-wrap:nowrap;
+        overflow-x:auto;
+        padding-bottom:4px;
+      }
+
+      .es-content-tab {
+        flex:0 0 auto;
+      }
+
+      .es-content-actions {
+        display:grid;
+        grid-template-columns:1fr;
+      }
+
+      .es-content-actions .es-button,
+      .es-content-actions .es-secondary-button {
+        width:100%;
+        margin:0;
+      }
+    }
+
+</style>
 </head>
 
 <body class="es-dashboard-body">
@@ -541,16 +780,56 @@
         ></div>
       </section>
 
-      <section class="es-dashboard-panel es-aftercare-manager" style="margin-bottom:18px;">
-        <div class="es-panel-header">
-          <div>
+      <details class="es-dashboard-panel es-comms-editor-section">
+        <summary>
+          <div class="es-comms-editor-summary-copy">
+            <p class="es-eyebrow">Customer emails</p>
+            <h2>Emails</h2>
+            <p>Edit the wording customers receive while Eselram keeps secure links, amounts, appointment details and buttons protected.</p>
+          </div>
+        </summary>
+
+        <div class="es-comms-editor-body">
+          <div id="emailTemplateTabs" class="es-content-tabs" aria-label="Email templates"></div>
+          <div id="emailTemplateEditor" class="es-content-editor">
+            <div class="es-empty-state">
+              Loading email templates…
+            </div>
+          </div>
+          <div id="emailTemplateStatus" class="es-status es-content-status" hidden></div>
+        </div>
+      </details>
+
+      <details class="es-dashboard-panel es-comms-editor-section">
+        <summary>
+          <div class="es-comms-editor-summary-copy">
+            <p class="es-eyebrow">Public booking</p>
+            <h2>Booking messages</h2>
+            <p>Control the customer-facing guidance shown on /book while booking rules continue to come from Services and Settings.</p>
+          </div>
+        </summary>
+
+        <div class="es-comms-editor-body">
+          <div id="bookingCopyTabs" class="es-content-tabs" aria-label="Booking groups"></div>
+          <div id="bookingCopyEditor">
+            <div class="es-empty-state">
+              Loading booking messages…
+            </div>
+          </div>
+          <div id="bookingCopyStatus" class="es-status es-content-status" hidden></div>
+        </div>
+      </details>
+
+      <details class="es-dashboard-panel es-comms-editor-section es-aftercare-manager">
+        <summary>
+          <div class="es-comms-editor-summary-copy">
             <p class="es-eyebrow">Aftercare</p>
             <h2>Treatment aftercare</h2>
-            <p class="es-muted-copy">
-              Review and customise the instructions automatically emailed when a treatment is completed.
-            </p>
+            <p>Review and customise the instructions automatically emailed when a treatment is completed.</p>
           </div>
-        </div>
+        </summary>
+
+        <div class="es-comms-editor-body">
 
         <div
           id="aftercareStatus"
@@ -592,16 +871,20 @@
         <div id="aftercareEditor" class="es-aftercare-editor">
           Loading aftercare…
         </div>
-      </section>
+        </div>
+      </details>
 
-      <section class="es-dashboard-panel">
-        <div class="es-panel-header">
-          <div>
+      <details class="es-dashboard-panel es-comms-editor-section es-delivery-details">
+        <summary>
+          <div class="es-comms-editor-summary-copy">
             <p class="es-eyebrow">Communication centre</p>
             <h2>Delivery history</h2>
+            <p>Search sent, pending and failed customer communications.</p>
           </div>
+        </summary>
 
-          <div class="es-form-actions" style="margin-top:0;">
+        <div class="es-comms-editor-body">
+          <div class="es-form-actions" style="margin-top:18px;">
             <button id="runRemindersButton" class="es-secondary-button" type="button">
               Run reminder check
             </button>
@@ -610,7 +893,6 @@
               Refresh
             </button>
           </div>
-        </div>
 
         <div id="communicationsStatus" class="es-status" hidden></div>
 
@@ -663,7 +945,8 @@
         </div>
 
         <div id="communicationsList" class="es-comms-list"></div>
-      </section>
+        </div>
+      </details>
     </main>
   </div>
 
