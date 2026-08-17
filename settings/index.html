@@ -127,7 +127,144 @@
         position:static;
       }
     }
-  </style>
+  
+    /* Mobile-only premium layout for Hours & availability / Blocked dates. */
+    @media (max-width:700px) {
+      #tab-hours .es-settings-panel,
+      #tab-hours {
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+
+      #tab-hours .es-panel-header {
+        align-items:flex-start !important;
+        gap:10px !important;
+      }
+
+      #tab-hours .es-panel-header h2 {
+        font-size:22px !important;
+        line-height:1.1 !important;
+      }
+
+      #tab-hours .es-muted-copy,
+      #tab-hours .es-field-help {
+        max-width:100% !important;
+        overflow-wrap:anywhere !important;
+      }
+
+      /* From / To become clean stacked fields on phone. */
+      #tab-hours .es-form-grid {
+        grid-template-columns:1fr !important;
+        gap:0 !important;
+      }
+
+      #tab-hours label {
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+
+      #settingsBlockedFromDate,
+      #settingsBlockedToDate,
+      #settingsBlockedReason {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        box-sizing:border-box !important;
+      }
+
+      #addBlockedDateButton,
+      #saveWorkingHoursButton {
+        width:100% !important;
+        min-width:0 !important;
+        min-height:44px !important;
+        margin-top:12px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        box-sizing:border-box !important;
+      }
+
+      #blockedDatesList {
+        display:grid !important;
+        gap:10px !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        margin-top:16px !important;
+      }
+
+      /* Each blocked date becomes its own tidy mobile card. */
+      #blockedDatesList .es-service-row {
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:12px !important;
+        align-items:start !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        padding:14px !important;
+        box-sizing:border-box !important;
+        border:1px solid var(--es-border) !important;
+        border-radius:14px !important;
+        background:#fafbf8 !important;
+      }
+
+      #blockedDatesList .es-service-main {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        display:grid !important;
+        gap:4px !important;
+      }
+
+      #blockedDatesList .es-service-main strong,
+      #blockedDatesList .es-service-main span {
+        display:block !important;
+        max-width:100% !important;
+        overflow-wrap:anywhere !important;
+        white-space:normal !important;
+      }
+
+      #blockedDatesList .es-service-main strong {
+        font-size:14px !important;
+        line-height:1.3 !important;
+      }
+
+      #blockedDatesList .es-service-main span {
+        font-size:12px !important;
+        color:var(--es-muted) !important;
+      }
+
+      #blockedDatesList .es-secondary-button {
+        width:100% !important;
+        min-width:0 !important;
+        min-height:40px !important;
+        margin:0 !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        box-sizing:border-box !important;
+      }
+
+      #blockedDatesList .es-empty-state {
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+        box-sizing:border-box !important;
+        padding:22px 16px !important;
+        margin-top:0 !important;
+      }
+
+      #workingHoursStatus {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        box-sizing:border-box !important;
+        overflow-wrap:anywhere !important;
+      }
+    }
+
+</style>
 
 </head>
 
