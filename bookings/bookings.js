@@ -1610,7 +1610,7 @@ function renderBookings() {
     filtered
       .map(
         (booking) => `
-          <article class="es-booking-row">
+          <article class="es-booking-row es-manage-booking-row">
 
             <div class="es-booking-date">
 

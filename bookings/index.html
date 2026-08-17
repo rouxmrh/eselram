@@ -710,6 +710,112 @@
       }
     }
 
+
+    /* Final cosmetic alignment for New Booking controls. */
+    .es-booking-form-actions {
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .es-booking-form-actions #saveBookingButton,
+    .es-booking-form-actions #cancelBookingButton {
+      min-height:44px;
+      height:44px;
+      padding:0 18px;
+      border-radius:9px;
+      font-size:13px;
+      font-weight:700;
+      line-height:1;
+      box-sizing:border-box;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+    }
+
+    /* Keep status and all Manage Booking actions in separate columns. */
+    .es-manage-booking-row {
+      display:grid;
+      grid-template-columns:
+        minmax(135px, .85fr)
+        minmax(210px, 1.55fr)
+        minmax(105px, .65fr)
+        minmax(92px, .55fr)
+        max-content;
+      gap:12px;
+      align-items:center;
+    }
+
+    .es-manage-booking-row > * {
+      min-width:0;
+    }
+
+    .es-manage-booking-row .es-booking-status {
+      justify-self:start;
+      white-space:nowrap;
+    }
+
+    .es-manage-booking-row .es-booking-actions {
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:nowrap;
+      gap:6px;
+      width:max-content;
+      white-space:nowrap;
+    }
+
+    .es-manage-booking-row .es-booking-action {
+      flex:0 0 auto;
+      min-height:36px;
+      height:36px;
+      padding:0 11px;
+      border-radius:8px;
+      font-size:12px;
+      font-weight:700;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      white-space:nowrap;
+    }
+
+    @media(max-width:1050px) {
+      .es-manage-booking-row {
+        grid-template-columns:
+          minmax(120px, .8fr)
+          minmax(180px, 1.3fr)
+          minmax(95px, .6fr)
+          minmax(88px, .5fr)
+          max-content;
+        gap:9px;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        gap:5px;
+      }
+
+      .es-manage-booking-row .es-booking-action {
+        padding:0 9px;
+        font-size:11px;
+      }
+    }
+
+    @media(max-width:860px) {
+      .es-manage-booking-row {
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        justify-self:start;
+        width:auto;
+        flex-wrap:wrap;
+      }
+    }
+
 </style>
 </head>
 
