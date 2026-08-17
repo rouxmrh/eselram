@@ -1889,7 +1889,7 @@ function renderAftercareEditor() {
             id="aftercareEnabledToggle"
             type="checkbox"
           >
-          Enable aftercare
+          Send automatically when treatment is marked complete
         </label>
       </div>
 
@@ -1940,7 +1940,7 @@ function renderAftercareEditor() {
           type="checkbox"
           checked
         >
-        Send aftercare
+        Send automatically when treatment is marked complete
       </label>
     </div>
 
