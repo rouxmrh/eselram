@@ -9,7 +9,7 @@ import {
   genericAftercareTemplate,
   getBusinessAftercareForService,
   getBusinessAftercareTemplates,
-  serviceAftercareKey
+  groupAftercareKey
 } from "../../../lib/communications.js";
 
 
@@ -67,15 +67,15 @@ function unauthorized() {
 
 
 function cleanTemplate(
-  serviceName,
+  groupName,
   input
 ) {
   const fallback =
     aftercareContentFor(
-      serviceName
+      groupName
     ) ||
     genericAftercareTemplate(
-      serviceName
+      groupName
     );
 
   const source =
@@ -157,11 +157,11 @@ function cleanTemplate(
       String(
         source.serviceLabel ||
         fallback.serviceLabel ||
-        serviceName
+        groupName
       )
         .trim()
         .slice(0, 120) ||
-      serviceName,
+      groupName,
     sections:
       cleanSections,
     note:
@@ -175,40 +175,153 @@ function cleanTemplate(
 }
 
 
-async function serviceFor(
+async function groupRows(
   env,
-  businessId,
-  serviceId
+  businessId
 ) {
-  return await env.DB
-    .prepare(`
-      SELECT
-        id,
-        name,
-        service_type,
-        is_active,
-        sort_order
+  const rows =
+    await env.DB
+      .prepare(`
+        SELECT
+          COALESCE(
+            NULLIF(
+              TRIM(
+                booking_group
+              ),
+              ''
+            ),
+            name
+          ) AS group_name,
 
-      FROM services
+          MIN(sort_order) AS group_sort,
 
-      WHERE
-        id = ?
-        AND business_id = ?
+          MIN(id) AS representative_service_id
 
-      LIMIT 1
-    `)
-    .bind(
-      serviceId,
-      businessId
-    )
-    .first();
+        FROM services
+
+        WHERE
+          business_id = ?
+          AND is_active = 1
+          AND COALESCE(
+            service_type,
+            'standard'
+          ) != 'consultation'
+
+        GROUP BY
+          COALESCE(
+            NULLIF(
+              TRIM(
+                booking_group
+              ),
+              ''
+            ),
+            name
+          )
+
+        ORDER BY
+          group_sort ASC,
+          group_name COLLATE NOCASE ASC
+      `)
+      .bind(
+        businessId
+      )
+      .all();
+
+  return rows.results || [];
 }
 
 
-async function upsertServiceSetting({
+async function validGroup(
   env,
   businessId,
-  serviceId,
+  groupName
+) {
+  const groups =
+    await groupRows(
+      env,
+      businessId
+    );
+
+  return groups.find(
+    item =>
+      String(
+        item.group_name ||
+        ""
+      ) ===
+      groupName
+  ) || null;
+}
+
+
+async function storedGroupSettings(
+  env,
+  businessId
+) {
+  const rows =
+    await env.DB
+      .prepare(`
+        SELECT
+          setting_key,
+          setting_value
+
+        FROM business_settings
+
+        WHERE
+          business_id = ?
+          AND setting_key LIKE
+            'communications.aftercare.group.%'
+      `)
+      .bind(
+        businessId
+      )
+      .all();
+
+  const map = {};
+
+  for (
+    const row of
+    rows.results || []
+  ) {
+    const encoded =
+      String(
+        row.setting_key ||
+        ""
+      ).replace(
+        "communications.aftercare.group.",
+        ""
+      );
+
+    let groupName = "";
+
+    try {
+      groupName =
+        decodeURIComponent(
+          encoded
+        );
+    } catch {
+      groupName =
+        encoded;
+    }
+
+    try {
+      map[groupName] =
+        JSON.parse(
+          row.setting_value
+        );
+    } catch {
+      map[groupName] =
+        null;
+    }
+  }
+
+  return map;
+}
+
+
+async function upsertGroupSetting({
+  env,
+  businessId,
+  groupName,
   value
 }) {
   await env.DB
@@ -238,103 +351,14 @@ async function upsertServiceSetting({
     .bind(
       `set_${crypto.randomUUID()}`,
       businessId,
-      serviceAftercareKey(
-        serviceId
+      groupAftercareKey(
+        groupName
       ),
       JSON.stringify(
         value
       )
     )
     .run();
-}
-
-
-async function serviceRows(
-  env,
-  businessId
-) {
-  const rows =
-    await env.DB
-      .prepare(`
-        SELECT
-          id,
-          name,
-          service_type,
-          sort_order
-
-        FROM services
-
-        WHERE
-          business_id = ?
-          AND is_active = 1
-          AND COALESCE(
-            service_type,
-            'standard'
-          ) != 'consultation'
-
-        ORDER BY
-          sort_order ASC,
-          name COLLATE NOCASE ASC
-      `)
-      .bind(
-        businessId
-      )
-      .all();
-
-  return rows.results || [];
-}
-
-
-async function storedServiceSettings(
-  env,
-  businessId
-) {
-  const rows =
-    await env.DB
-      .prepare(`
-        SELECT
-          setting_key,
-          setting_value
-
-        FROM business_settings
-
-        WHERE
-          business_id = ?
-          AND setting_key LIKE
-            'communications.aftercare.service.%'
-      `)
-      .bind(
-        businessId
-      )
-      .all();
-
-  const map = {};
-
-  for (
-    const row of
-    rows.results || []
-  ) {
-    const serviceId =
-      String(
-        row.setting_key ||
-        ""
-      ).replace(
-        "communications.aftercare.service.",
-        ""
-      );
-
-    try {
-      map[serviceId] =
-        JSON.parse(
-          row.setting_value
-        );
-    } catch {
-      map[serviceId] =
-        null;
-    }
-  }
-
-  return map;
 }
 
 
@@ -354,16 +378,16 @@ export async function onRequestGet({
     }
 
     const [
-      services,
+      groups,
       stored,
       legacyTemplates
     ] =
       await Promise.all([
-        serviceRows(
+        groupRows(
           env,
           user.business_id
         ),
-        storedServiceSettings(
+        storedGroupSettings(
           env,
           user.business_id
         ),
@@ -376,16 +400,22 @@ export async function onRequestGet({
     const result = [];
 
     for (
-      const service of services
+      const group of groups
     ) {
+      const groupName =
+        String(
+          group.group_name ||
+          ""
+        );
+
       const explicit =
         stored[
-          service.id
+          groupName
         ];
 
       const starter =
         aftercareContentFor(
-          service.name
+          groupName
         );
 
       const defaultTemplate =
@@ -397,7 +427,7 @@ export async function onRequestGet({
               starter
             )
           : genericAftercareTemplate(
-              service.name
+              groupName
             );
 
       const enabled =
@@ -412,7 +442,7 @@ export async function onRequestGet({
         explicit
           ? (
               cleanTemplate(
-                service.name,
+                groupName,
                 explicit.template ||
                 explicit
               ) ||
@@ -421,10 +451,14 @@ export async function onRequestGet({
           : defaultTemplate;
 
       result.push({
+        /*
+         * Keep these response property names for the existing UI,
+         * but the id/name now represent the MAIN service group.
+         */
         service_id:
-          service.id,
+          groupName,
         service_name:
-          service.name,
+          groupName,
         enabled,
         customised:
           Boolean(
@@ -486,32 +520,31 @@ export async function onRequestPut({
     const body =
       await request.json();
 
-    const serviceId =
+    const groupName =
       String(
         body.service_id ||
+        body.group_name ||
         ""
-      ).trim();
+      )
+        .trim()
+        .slice(
+          0,
+          160
+        );
 
-    const service =
-      await serviceFor(
+    const group =
+      await validGroup(
         env,
         user.business_id,
-        serviceId
+        groupName
       );
 
-    if (
-      !service ||
-      String(
-        service.service_type ||
-        "standard"
-      ) ===
-      "consultation"
-    ) {
+    if (!group) {
       return Response.json(
         {
           ok: false,
           error:
-            "Choose a valid treatment service."
+            "Choose a valid treatment service group."
         },
         {
           status: 400
@@ -524,7 +557,7 @@ export async function onRequestPut({
 
     const template =
       cleanTemplate(
-        service.name,
+        groupName,
         body.template
       );
 
@@ -546,18 +579,17 @@ export async function onRequestPut({
 
     const fallback =
       aftercareContentFor(
-        service.name
+        groupName
       ) ||
       genericAftercareTemplate(
-        service.name
+        groupName
       );
 
-    await upsertServiceSetting({
+    await upsertGroupSetting({
       env,
       businessId:
         user.business_id,
-      serviceId:
-        service.id,
+      groupName,
       value: {
         enabled,
         template:
@@ -569,7 +601,7 @@ export async function onRequestPut({
     return Response.json({
       ok: true,
       service_id:
-        service.id,
+        groupName,
       enabled,
       template:
         template ||
@@ -613,27 +645,35 @@ export async function onRequestDelete({
     const url =
       new URL(request.url);
 
-    const serviceId =
+    const groupName =
       String(
         url.searchParams.get(
           "service_id"
         ) ||
+        url.searchParams.get(
+          "group_name"
+        ) ||
         ""
-      ).trim();
+      )
+        .trim()
+        .slice(
+          0,
+          160
+        );
 
-    const service =
-      await serviceFor(
+    const group =
+      await validGroup(
         env,
         user.business_id,
-        serviceId
+        groupName
       );
 
-    if (!service) {
+    if (!group) {
       return Response.json(
         {
           ok: false,
           error:
-            "Invalid treatment service."
+            "Invalid treatment service group."
         },
         {
           status: 400
@@ -651,38 +691,43 @@ export async function onRequestDelete({
       `)
       .bind(
         user.business_id,
-        serviceAftercareKey(
-          service.id
+        groupAftercareKey(
+          groupName
         )
       )
       .run();
 
     const starter =
       aftercareContentFor(
-        service.name
+        groupName
       );
 
     const template =
-      await getBusinessAftercareForService(
-        env,
-        user.business_id,
-        service.id,
-        service.name
-      );
+      starter
+        ? (
+            (
+              await getBusinessAftercareTemplates(
+                env,
+                user.business_id
+              )
+            )[
+              starter.key
+            ] ||
+            starter
+          )
+        : genericAftercareTemplate(
+            groupName
+          );
 
     return Response.json({
       ok: true,
       service_id:
-        service.id,
+        groupName,
       enabled:
         Boolean(
           starter
         ),
-      template:
-        template ||
-        genericAftercareTemplate(
-          service.name
-        ),
+      template,
       restored_to:
         starter
           ? "eselram_starter"

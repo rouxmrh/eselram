@@ -122,6 +122,12 @@ async function bookingGroups(
   env,
   businessId
 ) {
+  /*
+   * Booking messages belong to the main treatment/service group.
+   * Consultation service records are deliberately excluded so a linked
+   * "Tattoo Removal Consultation" never becomes a second customer-facing
+   * Communications tab.
+   */
   const rows =
     await env.DB
       .prepare(`
@@ -139,11 +145,10 @@ async function bookingGroups(
           MAX(
             CASE
               WHEN
-                service_type =
-                  'consultation'
-                OR
-                requires_consultation =
-                  1
+                COALESCE(
+                  requires_consultation,
+                  0
+                ) = 1
               THEN 1
               ELSE 0
             END
@@ -154,6 +159,10 @@ async function bookingGroups(
         WHERE
           business_id = ?
           AND is_active = 1
+          AND COALESCE(
+            service_type,
+            'standard'
+          ) != 'consultation'
 
         GROUP BY
           COALESCE(
@@ -195,7 +204,6 @@ async function bookingGroups(
     })
   );
 }
-
 
 export async function onRequestGet({
   request,
