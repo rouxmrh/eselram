@@ -627,6 +627,89 @@
       }
     }
 
+
+    /* Cosmetic alignment for booking action buttons. */
+    .es-booking-form-actions,
+    .es-booking-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .es-booking-form-actions .es-primary-button,
+    .es-booking-form-actions .es-secondary-button,
+    .es-booking-actions .es-booking-action {
+      min-height:40px;
+      padding:0 14px;
+      border-radius:9px;
+      font-size:13px;
+      font-weight:700;
+      line-height:1;
+      box-sizing:border-box;
+      white-space:nowrap;
+    }
+
+    .es-booking-actions {
+      justify-content:flex-end;
+      flex-wrap:nowrap;
+      min-width:0;
+    }
+
+    .es-manage-booking-row {
+      grid-template-columns:
+        minmax(150px, 1.2fr)
+        minmax(220px, 2fr)
+        minmax(110px, .9fr)
+        minmax(92px, .75fr)
+        minmax(330px, 2.5fr);
+      column-gap:16px;
+      align-items:center;
+    }
+
+    .es-manage-booking-row .es-booking-status {
+      justify-self:start;
+      min-width:0;
+    }
+
+    .es-manage-booking-row .es-booking-actions {
+      justify-self:end;
+      width:max-content;
+      max-width:100%;
+    }
+
+    @media(max-width:1100px) {
+      .es-manage-booking-row {
+        grid-template-columns:
+          minmax(130px, 1fr)
+          minmax(190px, 1.8fr)
+          minmax(95px, .8fr)
+          minmax(90px, .7fr)
+          minmax(300px, 2.3fr);
+        column-gap:12px;
+      }
+
+      .es-booking-form-actions .es-primary-button,
+      .es-booking-form-actions .es-secondary-button,
+      .es-booking-actions .es-booking-action {
+        min-height:38px;
+        padding:0 12px;
+        font-size:12px;
+      }
+    }
+
+    @media(max-width:900px) {
+      .es-manage-booking-row {
+        grid-template-columns:1fr;
+        row-gap:8px;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        justify-self:start;
+        width:auto;
+        flex-wrap:wrap;
+      }
+    }
+
 </style>
 </head>
 
@@ -992,7 +1075,7 @@
           ></div>
 
 
-          <div class="es-form-actions">
+          <div class="es-form-actions es-booking-form-actions">
 
             <button
               id="saveBookingButton"
