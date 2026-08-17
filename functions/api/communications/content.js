@@ -5,13 +5,17 @@ import {
 
 import {
   EMAIL_TEMPLATE_DEFAULTS,
+  EMAIL_VARIABLE_RULES,
   PUBLIC_BOOKING_DEFAULTS,
+  PUBLIC_BOOKING_PATCH_TEST_DEFAULT,
   cleanEmailTemplate,
   emailTemplateSettingKey,
   getBusinessEmailOverrides,
   getBusinessEmailTemplates,
   getPublicBookingCopyOverrides,
-  publicBookingSettingKey
+  getPublicBookingPatchTestCopyOverrides,
+  publicBookingSettingKey,
+  publicBookingPatchTestSettingKey
 } from "../../../lib/customer-content.js";
 
 
@@ -152,7 +156,9 @@ async function bookingGroups(
               THEN 1
               ELSE 0
             END
-          ) AS has_consultation
+          ) AS has_consultation,
+
+          MAX(CASE WHEN COALESCE(requires_patch_test, 0) = 1 THEN 1 ELSE 0 END) AS has_patch_test
 
         FROM services
 
@@ -200,7 +206,8 @@ async function bookingGroups(
           0
         ) === 1
           ? "consultation"
-          : "standard"
+          : "standard",
+      patch_required: Number(row.has_patch_test || 0) === 1
     })
   );
 }
@@ -224,6 +231,7 @@ export async function onRequestGet({
       templates,
       overrides,
       bookingCopy,
+      bookingPatchTestCopy,
       groups
     ] =
       await Promise.all([
@@ -238,6 +246,11 @@ export async function onRequestGet({
         ),
 
         getPublicBookingCopyOverrides(
+          env,
+          user.business_id
+        ),
+
+        getPublicBookingPatchTestCopyOverrides(
           env,
           user.business_id
         ),
@@ -258,6 +271,8 @@ export async function onRequestGet({
         Object.keys(
           overrides
         ),
+      email_variable_rules:
+        EMAIL_VARIABLE_RULES,
 
       booking_groups:
         groups.map(
@@ -275,11 +290,11 @@ export async function onRequestGet({
                 group.kind
               ],
             customised:
-              Boolean(
-                bookingCopy[
-                  group.name
-                ]
-              )
+              Boolean(bookingCopy[group.name]),
+            patch_test_copy:
+              bookingPatchTestCopy[group.name] || PUBLIC_BOOKING_PATCH_TEST_DEFAULT,
+            patch_test_customised:
+              Boolean(bookingPatchTestCopy[group.name])
           })
         ),
 
@@ -369,6 +384,26 @@ export async function onRequestPut({
         );
       }
 
+      const rules = EMAIL_VARIABLE_RULES[key] || { allowed: [], required: {} };
+      const fields = ["subject", "title", "intro", "closing"];
+      const unknown = [];
+      const missing = [];
+      for (const field of fields) {
+        const value = String(template[field] || "");
+        const vars = [...value.matchAll(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi)].map(match => match[1]);
+        for (const variable of vars) {
+          if (!rules.allowed.includes(variable)) unknown.push(`{{${variable}}}`);
+        }
+        for (const variable of (rules.required[field] || [])) {
+          if (!vars.includes(variable)) missing.push(`{{${variable}}} in ${field}`);
+        }
+      }
+      if (unknown.length || missing.length) {
+        return Response.json({ ok: false, error: unknown.length
+          ? `Unknown or mistyped variable: ${[...new Set(unknown)].join(", ")}. Use the variable buttons provided.`
+          : `Required information is missing: ${[...new Set(missing)].join(", ")}.` }, { status: 400 });
+      }
+
       const stored =
         await getBusinessEmailOverrides(
           env,
@@ -433,15 +468,27 @@ export async function onRequestPut({
         !copy
       ) {
         return Response.json(
-          {
-            ok: false,
-            error:
-              "Booking group and wording are required."
-          },
-          {
-            status: 400
-          }
+          { ok: false, error: "Booking group and wording are required." },
+          { status: 400 }
         );
+      }
+
+      const allowedBookingVariables = [
+        "group_name",
+        "consultation_duration",
+        "consultation_payment",
+        "consultation_credit_sentence",
+        "patch_test_sentence",
+        "post_consultation_sentence"
+      ];
+      const unknownBookingVariables = [...copy.matchAll(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi)]
+        .map(match => match[1])
+        .filter(variable => !allowedBookingVariables.includes(variable));
+      if (unknownBookingVariables.length) {
+        return Response.json({
+          ok: false,
+          error: `Unknown or mistyped variable: {{${unknownBookingVariables[0]}}}. Use the variable buttons provided.`
+        }, { status: 400 });
       }
 
       const stored =
@@ -463,10 +510,19 @@ export async function onRequestPut({
           stored
       });
 
-      return Response.json({
-        ok: true,
-        copy
-      });
+      return Response.json({ ok: true, copy });
+    }
+
+    if (kind === "booking_patch_test_copy") {
+      const group = String(body.group || "").trim().slice(0, 160);
+      const copy = String(body.copy || "").trim().slice(0, 4000);
+      if (!group || !copy) return Response.json({ ok: false, error: "Booking group and patch-test wording are required." }, { status: 400 });
+      const unknown = [...copy.matchAll(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi)].map(m => m[1]).filter(v => !["group_name","service_name"].includes(v));
+      if (unknown.length) return Response.json({ ok: false, error: `Unknown or mistyped variable: {{${unknown[0]}}}.` }, { status: 400 });
+      const stored = await getPublicBookingPatchTestCopyOverrides(env, user.business_id);
+      stored[group] = copy;
+      await upsertJson({ env, businessId: user.business_id, key: publicBookingPatchTestSettingKey(), value: stored });
+      return Response.json({ ok: true, copy });
     }
 
     return Response.json(
@@ -613,9 +669,15 @@ export async function onRequestDelete({
           stored
       });
 
-      return Response.json({
-        ok: true
-      });
+      return Response.json({ ok: true });
+    }
+
+    if (kind === "booking_patch_test_copy") {
+      const group = String(url.searchParams.get("group") || "").trim();
+      const stored = await getPublicBookingPatchTestCopyOverrides(env, user.business_id);
+      delete stored[group];
+      await upsertJson({ env, businessId: user.business_id, key: publicBookingPatchTestSettingKey(), value: stored });
+      return Response.json({ ok: true });
     }
 
     return Response.json(

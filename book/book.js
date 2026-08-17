@@ -444,7 +444,7 @@ function renderSelectedBookingGroup(groupName) {
           ? "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase."
           : ""
       }
-      ${patchRequired ? "A patch test is required before treatment." : ""}
+      ${patchRequired ? renderBookingCopy(patchTestCopyForGroup(group.name), { group_name: group.name, service_name: group.name }) : ""}
       ${
         practitionerManaged && !hasClientBookableTreatment
           ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
@@ -484,7 +484,7 @@ function renderSelectedBookingGroup(groupName) {
                   : "",
               patch_test_sentence:
                 patchRequired
-                  ? "A patch test is required before treatment."
+                  ? renderBookingCopy(patchTestCopyForGroup(group.name), { group_name: group.name, service_name: group.name })
                   : "",
               post_consultation_sentence:
                 practitionerManaged &&
@@ -718,6 +718,13 @@ function bookingCopyForGroup(
       ?.booking_copy
       ?.[groupName] ||
     ""
+  ).trim();
+}
+
+function patchTestCopyForGroup(groupName) {
+  return String(
+    state.config?.booking_patch_test_copy?.[groupName] ||
+    "A patch test is required before the first treatment. The business will confirm the patch-test requirements with you."
   ).trim();
 }
 
@@ -960,8 +967,9 @@ function renderReview() {
           )
     );
   }
-  if (Number(service.requires_patch_test || 0) === 1) {
-    notices.push("A patch test is required before the first treatment. The business will confirm the patch-test requirements with you.");
+  if (Number(service.requires_patch_test || 0) === 1 || Number(service.linked_patch_test_required || 0) === 1) {
+    const groupName = publicBookingGroup(service);
+    notices.push(renderBookingCopy(patchTestCopyForGroup(groupName), { group_name: groupName, service_name: serviceDisplayName(service.name) }));
   }
 
   const requirements = $("#requirementsNotice");

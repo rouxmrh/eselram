@@ -6,7 +6,8 @@ import {
 } from "../../../lib/public-booking.js";
 
 import {
-  getPublicBookingCopyOverrides
+  getPublicBookingCopyOverrides,
+  getPublicBookingPatchTestCopyOverrides
 } from "../../../lib/customer-content.js";
 
 export async function onRequestGet({ env }) {
@@ -152,11 +153,10 @@ export async function onRequestGet({ env }) {
         .first()
     ]);
 
-    const publicBookingCopy =
-      await getPublicBookingCopyOverrides(
-        env,
-        business.id
-      );
+    const [publicBookingCopy, publicBookingPatchTestCopy] = await Promise.all([
+      getPublicBookingCopyOverrides(env, business.id),
+      getPublicBookingPatchTestCopyOverrides(env, business.id)
+    ]);
 
     const stripeReady = stripeIntegration?.status === "verified";
 
@@ -261,6 +261,8 @@ export async function onRequestGet({ env }) {
 
       booking_copy:
         publicBookingCopy,
+      booking_patch_test_copy:
+        publicBookingPatchTestCopy,
 
       services:
         publicBookingRules.enabled

@@ -901,6 +901,49 @@ function updateEmailPreview() {
 }
 
 
+function variableLabel(variable) {
+  return String(variable || "")
+    .replace(/^\{\{|\}\}$/g, "")
+    .split("_")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function extractTemplateVariables(value) {
+  return [...String(value || "").matchAll(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi)]
+    .map(match => match[1]);
+}
+
+function insertVariableAtCursor(field, variable) {
+  if (!field) return;
+  const token = `{{${variable}}}`;
+  const start = Number.isInteger(field.selectionStart) ? field.selectionStart : field.value.length;
+  const end = Number.isInteger(field.selectionEnd) ? field.selectionEnd : start;
+  field.value = field.value.slice(0, start) + token + field.value.slice(end);
+  field.focus();
+  field.setSelectionRange(start + token.length, start + token.length);
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function validateEmailVariables(template) {
+  const rules = contentData?.email_variable_rules?.[selectedEmailKey] || { allowed: [], required: {} };
+  const labels = { subject: "Subject", title: "Heading", intro: "Main message", closing: "Closing message" };
+  const unknown = [];
+  const missing = [];
+  for (const field of ["subject", "title", "intro", "closing"]) {
+    const variables = extractTemplateVariables(template?.[field]);
+    for (const variable of variables) {
+      if (!rules.allowed.includes(variable)) unknown.push(`{{${variable}}}`);
+    }
+    for (const variable of (rules.required?.[field] || [])) {
+      if (!variables.includes(variable)) missing.push(`${variableLabel(variable)} in ${labels[field]}`);
+    }
+  }
+  if (unknown.length) return `Unknown or mistyped variable: ${[...new Set(unknown)].join(", ")}. Use the variable buttons to insert the correct variable.`;
+  if (missing.length) return `Required information is missing: ${[...new Set(missing)].join(", ")}. Add it back using the variable buttons before saving.`;
+  return "";
+}
+
 function renderEmailEditor() {
   if (
     !emailTemplateEditor ||
@@ -988,11 +1031,16 @@ function renderEmailEditor() {
         )}</textarea>
       </label>
 
-      <p class="es-content-help">
-        Useful variables: {{customer_name}}, {{business_name}}, {{service_name}},
-        {{form_name}}, {{amount}}. {{default_closing}} keeps Eselram's smart
-        booking-specific closing where applicable.
-      </p>
+      <div>
+        <p class="es-content-help" style="margin-bottom:7px;">
+          Insert a variable into the field you are editing. Eselram checks required variables and blocks mistyped variables before saving.
+        </p>
+        <div class="es-variable-chips" data-email-variable-chips>
+          ${(contentData?.email_variable_rules?.[selectedEmailKey]?.allowed || [])
+            .map(variable => `<button class="es-variable-chip" type="button" data-insert-email-variable="${escapeHtml(variable)}">${escapeHtml(variableLabel(variable))}</button>`)
+            .join("")}
+        </div>
+      </div>
 
       <div class="es-content-actions">
         <button
@@ -1062,6 +1110,14 @@ function renderEmailEditor() {
       restoreEmailTemplate
     );
 
+  let activeEmailField = emailTemplateEditor.querySelector("[data-email-intro]");
+  emailTemplateEditor.querySelectorAll("input, textarea").forEach(field => {
+    field.addEventListener("focus", () => { activeEmailField = field; });
+  });
+  emailTemplateEditor.querySelectorAll("[data-insert-email-variable]").forEach(button => {
+    button.addEventListener("click", () => insertVariableAtCursor(activeEmailField, button.dataset.insertEmailVariable));
+  });
+
   updateEmailPreview();
 }
 
@@ -1071,6 +1127,12 @@ async function saveEmailTemplate() {
     currentEmailEditorValue();
 
   if (!template) return;
+
+  const variableError = validateEmailVariables(template);
+  if (variableError) {
+    showContentStatus(emailTemplateStatus, variableError, "error");
+    return;
+  }
 
   try {
     const response =
@@ -1316,6 +1378,18 @@ function renderBookingCopyEditor() {
         )}</textarea>
       </label>
 
+      ${group.patch_required ? `
+        <label>
+          Patch-test notice
+          <textarea id="bookingPatchTestCopyText" maxlength="4000" rows="4">${escapeHtml(group.patch_test_copy || "")}</textarea>
+          <span class="es-content-help">Shown on /book only when Patch test required is enabled for the service. The main booking message can use {{patch_test_sentence}} to reuse this wording.</span>
+        </label>
+        <div class="es-variable-chips">
+          <button class="es-variable-chip" type="button" data-insert-patch-variable="group_name">Group name</button>
+          <button class="es-variable-chip" type="button" data-insert-patch-variable="service_name">Service name</button>
+        </div>
+      ` : ""}
+
       ${
         variables.length
           ? `
@@ -1323,11 +1397,9 @@ function renderBookingCopyEditor() {
               ${variables
                 .map(
                   variable => `
-                    <span class="es-variable-chip">
-                      ${escapeHtml(
-                        variable
-                      )}
-                    </span>
+                    <button class="es-variable-chip" type="button" data-insert-booking-variable="${escapeHtml(variable.replace(/^\{\{|\}\}$/g, ""))}">
+                      ${escapeHtml(variableLabel(variable))}
+                    </button>
                   `
                 )
                 .join("")}
@@ -1344,6 +1416,7 @@ function renderBookingCopyEditor() {
           group.name
         )}</h3>
         <p id="bookingCopyPreview"></p>
+        ${group.patch_required ? `<p id="bookingPatchTestCopyPreview" style="margin-top:12px;padding:12px;border-left:3px solid var(--es-primary);background:#f1f4f1;border-radius:8px;"></p>` : ""}
       </div>
 
       <div class="es-content-actions">
@@ -1380,31 +1453,29 @@ function renderBookingCopyEditor() {
 
       if (!preview) return;
 
-      preview.textContent =
-        previewTemplateText(
-          field?.value ||
-          "",
-          {
-            group_name:
-              group.name,
-            consultation_duration:
-              "30",
-            consultation_payment:
-              "£30.00 online",
-            consultation_credit_sentence:
-              "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase.",
-            patch_test_sentence:
-              "A patch test is required before treatment.",
-            post_consultation_sentence:
-              "Existing clients can book an eligible treatment online using the same customer details held by the business."
-          }
-        );
+      const patchField = document.getElementById("bookingPatchTestCopyText");
+      const patchText = patchField?.value || group.patch_test_copy || "";
+      preview.textContent = previewTemplateText(field?.value || "", {
+        group_name: group.name,
+        consultation_duration: "30",
+        consultation_payment: "£30.00 online",
+        consultation_credit_sentence: "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase.",
+        patch_test_sentence: patchText,
+        post_consultation_sentence: "Existing clients can book an eligible treatment online using the same customer details held by the business."
+      });
+      const patchPreview = document.getElementById("bookingPatchTestCopyPreview");
+      if (patchPreview) patchPreview.textContent = previewTemplateText(patchText, { group_name: group.name, service_name: group.name });
     };
 
-  field?.addEventListener(
-    "input",
-    updatePreview
-  );
+  field?.addEventListener("input", updatePreview);
+  const patchField = document.getElementById("bookingPatchTestCopyText");
+  patchField?.addEventListener("input", updatePreview);
+  document.querySelectorAll("[data-insert-booking-variable]").forEach(button => {
+    button.addEventListener("click", () => insertVariableAtCursor(field, button.dataset.insertBookingVariable));
+  });
+  document.querySelectorAll("[data-insert-patch-variable]").forEach(button => {
+    button.addEventListener("click", () => insertVariableAtCursor(patchField, button.dataset.insertPatchVariable));
+  });
 
   document
     .getElementById(
@@ -1482,6 +1553,17 @@ async function saveBookingCopy() {
       );
     }
 
+    const patchField = document.getElementById("bookingPatchTestCopyText");
+    if (group.patch_required && patchField) {
+      const patchResponse = await fetch("/api/communications/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ kind: "booking_patch_test_copy", group: group.name, copy: patchField.value })
+      });
+      const patchData = await patchResponse.json();
+      if (!patchResponse.ok || !patchData.ok) throw new Error(patchData.error || "Unable to save patch-test wording.");
+    }
+
     await loadContentManager();
 
     showContentStatus(
@@ -1540,6 +1622,12 @@ async function restoreBookingCopy() {
         data.error ||
         "Unable to restore booking wording."
       );
+    }
+
+    if (group.patch_required) {
+      const patchResponse = await fetch(`/api/communications/content?kind=booking_patch_test_copy&group=${encodeURIComponent(group.name)}`, { method: "DELETE", headers: { Accept: "application/json" } });
+      const patchData = await patchResponse.json();
+      if (!patchResponse.ok || !patchData.ok) throw new Error(patchData.error || "Unable to restore patch-test wording.");
     }
 
     await loadContentManager();
