@@ -956,6 +956,122 @@
       }
     }
 
+
+    /* Final header-button alignment. */
+    .es-bookings-header-actions {
+      display:flex !important;
+      align-items:center !important;
+      justify-content:flex-end !important;
+      gap:10px !important;
+      flex-wrap:nowrap !important;
+    }
+
+    .es-bookings-header-actions #bookingsListViewButton,
+    .es-bookings-header-actions #newBookingButton {
+      width:132px !important;
+      min-width:132px !important;
+      height:44px !important;
+      min-height:44px !important;
+      padding:0 14px !important;
+      border-radius:9px !important;
+      font-size:13px !important;
+      font-weight:700 !important;
+      line-height:1 !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      white-space:nowrap !important;
+      margin:0 !important;
+    }
+
+    /* Final Manage Bookings row geometry.
+       Status and actions have separate protected tracks. */
+    .es-manage-booking-row {
+      display:grid !important;
+      grid-template-columns:
+        96px
+        minmax(145px, 1fr)
+        84px
+        82px
+        236px !important;
+      column-gap:8px !important;
+      align-items:center !important;
+      width:100% !important;
+      box-sizing:border-box !important;
+    }
+
+    .es-manage-booking-row > * {
+      min-width:0 !important;
+    }
+
+    .es-manage-booking-row > div:nth-child(4) {
+      width:82px !important;
+      min-width:82px !important;
+      overflow:visible !important;
+      position:relative !important;
+      z-index:1 !important;
+    }
+
+    .es-manage-booking-row .es-booking-status {
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      max-width:100% !important;
+      white-space:nowrap !important;
+      position:relative !important;
+      z-index:1 !important;
+    }
+
+    .es-manage-booking-row .es-booking-actions {
+      justify-self:end !important;
+      width:236px !important;
+      min-width:236px !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:flex-end !important;
+      flex-wrap:nowrap !important;
+      gap:4px !important;
+      white-space:nowrap !important;
+      position:relative !important;
+      z-index:2 !important;
+    }
+
+    .es-manage-booking-row .es-booking-action {
+      flex:0 0 auto !important;
+      min-height:34px !important;
+      height:34px !important;
+      padding:0 7px !important;
+      border-radius:8px !important;
+      font-size:10px !important;
+      font-weight:700 !important;
+      line-height:1 !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      white-space:nowrap !important;
+    }
+
+    @media(max-width:900px) {
+      .es-manage-booking-row {
+        grid-template-columns:1fr !important;
+        row-gap:8px !important;
+      }
+
+      .es-manage-booking-row > div:nth-child(4) {
+        width:auto !important;
+        min-width:0 !important;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        justify-self:start !important;
+        width:auto !important;
+        min-width:0 !important;
+        flex-wrap:wrap !important;
+      }
+    }
+
 </style>
 </head>
 

@@ -129,7 +129,7 @@ const bookingsWeekCount =
 
 const openManageBookingsButton =
   document.getElementById(
-    "openManageBookingsButton"
+    "bookingsListViewButton"
   );
 
 
@@ -203,6 +203,8 @@ if (openManageBookingsButton) {
   openManageBookingsButton.addEventListener(
     "click",
     () => {
+      closeBookingForm();
+
       if (
         typeof window.setBookingsWorkspaceView ===
         "function"
