@@ -1072,6 +1072,142 @@
       }
     }
 
+
+    /* Premium Manage Bookings alignment — cosmetic only.
+       Keep date, customer, payment, status and actions on shared tracks. */
+    .es-manage-booking-row {
+      display:grid !important;
+      grid-template-columns:
+        96px
+        minmax(260px, 1fr)
+        118px
+        76px
+        258px !important;
+      column-gap:12px !important;
+      align-items:center !important;
+      width:100% !important;
+      box-sizing:border-box !important;
+    }
+
+    .es-manage-booking-row > * {
+      min-width:0 !important;
+      margin:0 !important;
+    }
+
+    /* Consistent left edge for every customer/name block. */
+    .es-manage-booking-row > div:nth-child(1),
+    .es-manage-booking-row > div:nth-child(2),
+    .es-manage-booking-row > div:nth-child(3) {
+      justify-self:stretch !important;
+      text-align:left !important;
+    }
+
+    /* Status pill uses the same visual height/type scale as row buttons. */
+    .es-manage-booking-row > div:nth-child(4) {
+      width:76px !important;
+      min-width:76px !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:flex-start !important;
+      overflow:visible !important;
+    }
+
+    .es-manage-booking-row .es-booking-status {
+      height:34px !important;
+      min-height:34px !important;
+      min-width:68px !important;
+      padding:0 8px !important;
+      border-radius:8px !important;
+      font-size:10px !important;
+      font-weight:700 !important;
+      line-height:1 !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      white-space:nowrap !important;
+      margin:0 !important;
+    }
+
+    /* All row actions share the same height/type scale as status. */
+    .es-manage-booking-row .es-booking-actions {
+      justify-self:end !important;
+      width:258px !important;
+      min-width:258px !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:flex-end !important;
+      flex-wrap:nowrap !important;
+      gap:5px !important;
+      white-space:nowrap !important;
+      margin:0 !important;
+    }
+
+    .es-manage-booking-row .es-booking-action {
+      flex:0 0 auto !important;
+      height:34px !important;
+      min-height:34px !important;
+      padding:0 8px !important;
+      border-radius:8px !important;
+      font-size:10px !important;
+      font-weight:700 !important;
+      line-height:1 !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      white-space:nowrap !important;
+      margin:0 !important;
+    }
+
+    @media(max-width:1100px) {
+      .es-manage-booking-row {
+        grid-template-columns:
+          90px
+          minmax(210px, 1fr)
+          108px
+          72px
+          246px !important;
+        column-gap:8px !important;
+      }
+
+      .es-manage-booking-row > div:nth-child(4) {
+        width:72px !important;
+        min-width:72px !important;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        width:246px !important;
+        min-width:246px !important;
+        gap:4px !important;
+      }
+
+      .es-manage-booking-row .es-booking-action,
+      .es-manage-booking-row .es-booking-status {
+        padding-left:7px !important;
+        padding-right:7px !important;
+      }
+    }
+
+    @media(max-width:900px) {
+      .es-manage-booking-row {
+        grid-template-columns:1fr !important;
+        row-gap:8px !important;
+      }
+
+      .es-manage-booking-row > div:nth-child(4) {
+        width:auto !important;
+        min-width:0 !important;
+      }
+
+      .es-manage-booking-row .es-booking-actions {
+        justify-self:start !important;
+        width:auto !important;
+        min-width:0 !important;
+        flex-wrap:wrap !important;
+      }
+    }
+
 </style>
 </head>
 
