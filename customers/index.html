@@ -1601,6 +1601,34 @@
       }
     }
 
+
+    /* Mobile only: keep Manage bookings and New customer perfectly aligned. */
+    @media (max-width:700px) {
+      .es-customers-header-actions {
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+        align-items:stretch !important;
+        gap:8px !important;
+        width:100% !important;
+      }
+
+      .es-customers-header-actions .es-mobile-manage-bookings,
+      .es-customers-header-actions #newCustomerButton {
+        width:100% !important;
+        min-width:0 !important;
+        height:42px !important;
+        min-height:42px !important;
+        margin:0 !important;
+        padding:0 12px !important;
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        box-sizing:border-box !important;
+        line-height:1 !important;
+        white-space:nowrap !important;
+      }
+    }
+
 </style>
 </head>
 
