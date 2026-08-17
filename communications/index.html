@@ -714,6 +714,89 @@
       }
     }
 
+
+    .es-aftercare-service-toolbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:#fafbf8;
+    }
+
+    .es-aftercare-service-state {
+      display:grid;
+      gap:3px;
+      min-width:0;
+    }
+
+    .es-aftercare-service-state strong {
+      font-size:13px;
+    }
+
+    .es-aftercare-service-state span {
+      color:var(--es-muted);
+      font-size:11px;
+      line-height:1.4;
+    }
+
+    .es-aftercare-toggle {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      min-height:38px;
+      margin:0;
+      padding:0 12px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:var(--es-surface);
+      font-size:11px;
+      font-weight:800;
+      white-space:nowrap;
+      cursor:pointer;
+    }
+
+    .es-aftercare-toggle input {
+      width:16px;
+      height:16px;
+      min-height:16px;
+      margin:0;
+    }
+
+    .es-aftercare-off {
+      padding:22px 18px;
+      border:1px dashed var(--es-border);
+      border-radius:15px;
+      background:#fafbf8;
+    }
+
+    .es-aftercare-off strong,
+    .es-aftercare-off span {
+      display:block;
+    }
+
+    .es-aftercare-off span {
+      margin-top:5px;
+      color:var(--es-muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    @media(max-width:700px) {
+      .es-aftercare-service-toolbar {
+        display:grid;
+        grid-template-columns:1fr;
+      }
+
+      .es-aftercare-toggle {
+        width:100%;
+        justify-content:center;
+        box-sizing:border-box;
+      }
+    }
+
 </style>
 </head>
 
@@ -837,36 +920,18 @@
           hidden
         ></div>
 
+        <p class="es-aftercare-help" style="margin-top:18px;">
+          Aftercare is linked to your active treatment services. Eselram keeps the existing
+          Tattoo Removal, Carbon Facial and Fungal Nail guidance as starter defaults.
+          Other services start with aftercare off until you choose to enable it.
+        </p>
+
         <div
           id="aftercareTabs"
           class="es-aftercare-tabs"
           role="tablist"
-          aria-label="Aftercare treatment"
-        >
-          <button
-            class="es-aftercare-tab active"
-            type="button"
-            data-aftercare-key="tattoo_removal"
-          >
-            Tattoo Removal
-          </button>
-
-          <button
-            class="es-aftercare-tab"
-            type="button"
-            data-aftercare-key="carbon_facial"
-          >
-            Carbon Facial
-          </button>
-
-          <button
-            class="es-aftercare-tab"
-            type="button"
-            data-aftercare-key="fungal_nail"
-          >
-            Fungal Nail
-          </button>
-        </div>
+          aria-label="Aftercare service"
+        ></div>
 
         <div id="aftercareEditor" class="es-aftercare-editor">
           Loading aftercare…

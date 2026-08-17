@@ -94,9 +94,8 @@ let selectedEmailKey =
 let selectedBookingGroup =
   "";
 
-let aftercareTemplates = {};
-let selectedAftercareKey =
-  "tattoo_removal";
+let aftercareServices = [];
+let selectedAftercareKey = "";
 
 let rows = [];
 let settings = {};
@@ -1674,14 +1673,104 @@ function showAftercareStatus(
 }
 
 
-function currentAftercareFromEditor() {
-  const template =
-    aftercareTemplates[
-      selectedAftercareKey
-    ];
+function selectedAftercareService() {
+  return (
+    aftercareServices.find(
+      item =>
+        item.service_id ===
+        selectedAftercareKey
+    ) ||
+    null
+  );
+}
+
+
+function renderAftercareTabs() {
+  if (!aftercareTabs) {
+    return;
+  }
+
+  if (!aftercareServices.length) {
+    aftercareTabs.innerHTML = "";
+    return;
+  }
 
   if (
-    !template ||
+    !selectedAftercareKey ||
+    !aftercareServices.some(
+      item =>
+        item.service_id ===
+        selectedAftercareKey
+    )
+  ) {
+    selectedAftercareKey =
+      aftercareServices[0]
+        .service_id;
+  }
+
+  aftercareTabs.innerHTML =
+    aftercareServices
+      .map(
+        item => `
+          <button
+            class="es-aftercare-tab ${
+              item.service_id ===
+                selectedAftercareKey
+                ? "active"
+                : ""
+            }"
+            type="button"
+            data-aftercare-key="${escapeHtml(
+              item.service_id
+            )}"
+          >
+            ${escapeHtml(
+              item.service_name
+            )}${
+              item.enabled
+                ? ""
+                : " · Off"
+            }
+          </button>
+        `
+      )
+      .join("");
+
+  aftercareTabs
+    .querySelectorAll(
+      "[data-aftercare-key]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            selectedAftercareKey =
+              button.dataset
+                .aftercareKey;
+
+            if (
+              aftercareStatus
+            ) {
+              aftercareStatus.hidden =
+                true;
+            }
+
+            renderAftercareTabs();
+            renderAftercareEditor();
+          }
+        );
+      }
+    );
+}
+
+
+function currentAftercareFromEditor() {
+  const service =
+    selectedAftercareService();
+
+  if (
+    !service ||
     !aftercareEditor
   ) {
     return null;
@@ -1746,7 +1835,8 @@ function currentAftercareFromEditor() {
 
   return {
     key:
-      selectedAftercareKey,
+      service.template?.key ||
+      "custom_service",
     serviceLabel,
     sections,
     note
@@ -1755,24 +1845,105 @@ function currentAftercareFromEditor() {
 
 
 function renderAftercareEditor() {
-  if (!aftercareEditor) return;
+  if (!aftercareEditor) {
+    return;
+  }
 
-  const template =
-    aftercareTemplates[
-      selectedAftercareKey
-    ];
+  const service =
+    selectedAftercareService();
 
-  if (!template) {
+  if (!service) {
     aftercareEditor.innerHTML = `
       <div class="es-empty-state">
-        <strong>Aftercare unavailable.</strong>
-        <span>Refresh Communications and try again.</span>
+        <strong>No treatment services available.</strong>
+        <span>Add an active treatment service in Services first.</span>
       </div>
     `;
     return;
   }
 
+  const template =
+    service.template;
+
+  const starterText =
+    service.has_eselram_starter
+      ? "This service uses an Eselram starter aftercare by default."
+      : "Aftercare for this service is optional and starts off until you enable it.";
+
+  if (
+    !service.enabled
+  ) {
+    aftercareEditor.innerHTML = `
+      <div class="es-aftercare-service-toolbar">
+        <div class="es-aftercare-service-state">
+          <strong>${escapeHtml(
+            service.service_name
+          )}</strong>
+          <span>${escapeHtml(
+            starterText
+          )}</span>
+        </div>
+
+        <label class="es-aftercare-toggle">
+          <input
+            id="aftercareEnabledToggle"
+            type="checkbox"
+          >
+          Enable aftercare
+        </label>
+      </div>
+
+      <div class="es-aftercare-off">
+        <strong>Aftercare is off</strong>
+        <span>
+          Completing this treatment will not send an aftercare email.
+          Enable it to start with a safe editable template.
+        </span>
+      </div>
+    `;
+
+    document
+      .getElementById(
+        "aftercareEnabledToggle"
+      )
+      ?.addEventListener(
+        "change",
+        event => {
+          if (
+            event.target.checked
+          ) {
+            service.enabled =
+              true;
+
+            renderAftercareEditor();
+          }
+        }
+      );
+
+    return;
+  }
+
   aftercareEditor.innerHTML = `
+    <div class="es-aftercare-service-toolbar">
+      <div class="es-aftercare-service-state">
+        <strong>${escapeHtml(
+          service.service_name
+        )}</strong>
+        <span>${escapeHtml(
+          starterText
+        )}</span>
+      </div>
+
+      <label class="es-aftercare-toggle">
+        <input
+          id="aftercareEnabledToggle"
+          type="checkbox"
+          checked
+        >
+        Send aftercare
+      </label>
+    </div>
+
     <label class="es-aftercare-service-title">
       Email / treatment heading
       <input
@@ -1780,7 +1951,8 @@ function renderAftercareEditor() {
         data-aftercare-service-label
         maxlength="120"
         value="${escapeHtml(
-          template.serviceLabel ||
+          template?.serviceLabel ||
+          service.service_name ||
           ""
         )}"
       >
@@ -1788,9 +1960,10 @@ function renderAftercareEditor() {
 
     <p class="es-aftercare-help">
       Each line in an instructions box becomes one bullet point in the email.
+      The email still uses the business logo and branding configured in Eselram.
     </p>
 
-    ${(template.sections || [])
+    ${(template?.sections || [])
       .map(
         ([title, items], index) => `
           <section
@@ -1803,7 +1976,9 @@ function renderAftercareEditor() {
                 type="text"
                 maxlength="120"
                 data-aftercare-section-title
-                value="${escapeHtml(title)}"
+                value="${escapeHtml(
+                  title
+                )}"
               >
             </label>
 
@@ -1815,11 +1990,13 @@ function renderAftercareEditor() {
                   5,
                   Math.min(
                     12,
-                    (items || []).length + 1
+                    (items || [])
+                      .length + 1
                   )
                 )}"
               >${escapeHtml(
-                (items || []).join("\n")
+                (items || [])
+                  .join("\n")
               )}</textarea>
             </label>
           </section>
@@ -1834,7 +2011,7 @@ function renderAftercareEditor() {
           data-aftercare-note
           rows="4"
         >${escapeHtml(
-          template.note ||
+          template?.note ||
           ""
         )}</textarea>
       </label>
@@ -1854,10 +2031,31 @@ function renderAftercareEditor() {
         class="es-secondary-button"
         type="button"
       >
-        Restore Eselram default
+        ${
+          service.has_eselram_starter
+            ? "Restore Eselram default"
+            : "Reset & turn off"
+        }
       </button>
     </div>
   `;
+
+  document
+    .getElementById(
+      "aftercareEnabledToggle"
+    )
+    ?.addEventListener(
+      "change",
+      async event => {
+        if (
+          !event.target.checked
+        ) {
+          await saveAftercare(
+            false
+          );
+        }
+      }
+    );
 
   document
     .getElementById(
@@ -1865,7 +2063,10 @@ function renderAftercareEditor() {
     )
     ?.addEventListener(
       "click",
-      saveAftercare
+      () =>
+        saveAftercare(
+          true
+        )
     );
 
   document
@@ -1880,7 +2081,9 @@ function renderAftercareEditor() {
 
 
 async function loadAftercare() {
-  if (!aftercareEditor) return;
+  if (!aftercareEditor) {
+    return;
+  }
 
   try {
     const response =
@@ -1890,7 +2093,9 @@ async function loadAftercare() {
           headers: {
             Accept:
               "application/json"
-          }
+          },
+          cache:
+            "no-store"
         }
       );
 
@@ -1907,10 +2112,32 @@ async function loadAftercare() {
       );
     }
 
-    aftercareTemplates =
-      data.templates ||
-      {};
+    aftercareServices =
+      data.services ||
+      [];
 
+    if (
+      selectedAftercareKey &&
+      !aftercareServices.some(
+        item =>
+          item.service_id ===
+          selectedAftercareKey
+      )
+    ) {
+      selectedAftercareKey =
+        "";
+    }
+
+    if (
+      !selectedAftercareKey &&
+      aftercareServices.length
+    ) {
+      selectedAftercareKey =
+        aftercareServices[0]
+          .service_id;
+    }
+
+    renderAftercareTabs();
     renderAftercareEditor();
   } catch (error) {
     aftercareEditor.innerHTML = `
@@ -1926,18 +2153,27 @@ async function loadAftercare() {
 }
 
 
-async function saveAftercare() {
-  const template =
-    currentAftercareFromEditor();
+async function saveAftercare(
+  enabled = true
+) {
+  const service =
+    selectedAftercareService();
 
-  if (!template) return;
+  if (!service) {
+    return;
+  }
+
+  const template =
+    currentAftercareFromEditor() ||
+    service.template;
 
   try {
     const response =
       await fetch(
         "/api/communications/aftercare",
         {
-          method: "PUT",
+          method:
+            "PUT",
           headers: {
             "Content-Type":
               "application/json",
@@ -1946,8 +2182,9 @@ async function saveAftercare() {
           },
           body:
             JSON.stringify({
-              key:
-                selectedAftercareKey,
+              service_id:
+                service.service_id,
+              enabled,
               template
             })
         }
@@ -1966,14 +2203,22 @@ async function saveAftercare() {
       );
     }
 
-    aftercareTemplates[
-      selectedAftercareKey
-    ] = data.template;
+    service.enabled =
+      data.enabled;
 
+    service.customised =
+      true;
+
+    service.template =
+      data.template;
+
+    renderAftercareTabs();
     renderAftercareEditor();
 
     showAftercareStatus(
-      "Aftercare saved. Future completed treatments will use this version."
+      data.enabled
+        ? "Aftercare saved. Future completed treatments for this service will use this version."
+        : "Aftercare is now off for this service."
     );
   } catch (error) {
     showAftercareStatus(
@@ -1986,9 +2231,21 @@ async function saveAftercare() {
 
 
 async function restoreAftercare() {
+  const service =
+    selectedAftercareService();
+
+  if (!service) {
+    return;
+  }
+
+  const message =
+    service.has_eselram_starter
+      ? "Restore the Eselram starter aftercare for this service?"
+      : "Remove this custom aftercare and turn aftercare off for this service?";
+
   if (
     !window.confirm(
-      "Restore the Eselram default aftercare for this treatment?"
+      message
     )
   ) {
     return;
@@ -1997,11 +2254,12 @@ async function restoreAftercare() {
   try {
     const response =
       await fetch(
-        `/api/communications/aftercare?key=${encodeURIComponent(
-          selectedAftercareKey
+        `/api/communications/aftercare?service_id=${encodeURIComponent(
+          service.service_id
         )}`,
         {
-          method: "DELETE",
+          method:
+            "DELETE",
           headers: {
             Accept:
               "application/json"
@@ -2018,62 +2276,36 @@ async function restoreAftercare() {
     ) {
       throw new Error(
         data.error ||
-        "Unable to restore aftercare."
+        "Unable to reset aftercare."
       );
     }
 
-    aftercareTemplates[
-      selectedAftercareKey
-    ] = data.template;
+    service.enabled =
+      data.enabled;
 
+    service.customised =
+      false;
+
+    service.template =
+      data.template;
+
+    renderAftercareTabs();
     renderAftercareEditor();
 
     showAftercareStatus(
-      "Eselram default aftercare restored."
+      data.restored_to ===
+        "eselram_starter"
+        ? "Eselram starter aftercare restored."
+        : "Custom aftercare removed. Aftercare is off for this service."
     );
   } catch (error) {
     showAftercareStatus(
       error.message ||
-      "Unable to restore aftercare.",
+      "Unable to reset aftercare.",
       "error"
     );
   }
 }
-
-
-aftercareTabs
-  ?.querySelectorAll(
-    "[data-aftercare-key]"
-  )
-  .forEach(
-    button => {
-      button.addEventListener(
-        "click",
-        () => {
-          selectedAftercareKey =
-            button.dataset.aftercareKey;
-
-          aftercareTabs
-            .querySelectorAll(
-              "[data-aftercare-key]"
-            )
-            .forEach(
-              item =>
-                item.classList.toggle(
-                  "active",
-                  item === button
-                )
-            );
-
-          if (aftercareStatus) {
-            aftercareStatus.hidden = true;
-          }
-
-          renderAftercareEditor();
-        }
-      );
-    }
-  );
 
 
 async function loadCommunications() {
