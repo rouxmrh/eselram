@@ -3998,6 +3998,25 @@ function renderCustomerProfile(
     `/bookings/?customer=${encodeURIComponent(
       customer.id
     )}`;
+
+  /* Mobile profile opens in a clean collapsed state.
+     Desktop keeps the existing default open/closed behaviour. */
+  if (
+    window.matchMedia(
+      "(max-width: 700px)"
+    ).matches
+  ) {
+    customerDrawer
+      .querySelectorAll(
+        ".es-customer-accordion"
+      )
+      .forEach(
+        (section) => {
+          section.open =
+            false;
+        }
+      );
+  }
 }
 
 
