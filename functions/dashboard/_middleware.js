@@ -75,7 +75,13 @@ export async function onRequest({
     }
 
 
-    return next();
+    return Response.redirect(
+      new URL(
+        "/bookings/",
+        request.url
+      ).toString(),
+      302
+    );
 
 
   } catch (error) {

@@ -4261,3 +4261,191 @@ canvas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* =======================================================
+   Mobile viewport hardening — admin + public booking
+   Keeps pages inside the device viewport and prevents
+   iOS focus zoom from making forms appear to float.
+   ======================================================= */
+
+html,
+body {
+  max-width: 100%;
+}
+
+@media (max-width: 700px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .es-dashboard-main,
+  .es-dashboard-main > *,
+  .es-dashboard-panel,
+  .es-panel,
+  .es-card,
+  .es-settings-panel,
+  .es-service-editor-shell,
+  .booking-shell,
+  .booking-card,
+  .step,
+  .brand-header,
+  .progress,
+  .booking-footer {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Prevent Safari/iOS from zooming the viewport when a form field receives focus. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  input,
+  select,
+  textarea,
+  button,
+  a,
+  label,
+  .es-button,
+  .es-secondary-button,
+  .es-booking-action,
+  .es-customer-action {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Long email addresses, service names, URLs and notes must wrap instead of widening cards. */
+  .es-dashboard-panel,
+  .es-card,
+  .es-panel,
+  .es-customer-record,
+  .es-customer-payment-row,
+  .es-booking-row,
+  .es-package-row,
+  .es-service-row,
+  .es-finance-row,
+  .es-comms-row,
+  .booking-category-panel,
+  .booking-service-summary,
+  .review-card,
+  .message {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Pills wrap within the screen rather than being clipped off-screen. */
+  .booking-category-pills,
+  .booking-service-pills,
+  .service-choice-actions,
+  .es-bookings-view-switcher,
+  .es-form-actions,
+  .es-actions,
+  .es-dialog-actions,
+  .es-calendar-drawer-actions,
+  .es-comms-drawer-actions {
+    flex-wrap: wrap !important;
+    max-width: 100% !important;
+    overflow-x: visible !important;
+  }
+
+  .booking-category-pill,
+  .booking-service-pill,
+  .booking-packages-cta,
+  .es-status,
+  .es-booking-status,
+  .es-calendar-summary-pill,
+  .es-dashboard-status-pill,
+  .es-clinical-record-status {
+    max-width: 100% !important;
+    white-space: normal !important;
+    text-align: center;
+  }
+
+  /* Native/dialog overlays stay inside the viewport. */
+  dialog,
+  .es-dialog,
+  .es-booking-dialog,
+  .es-package-dialog,
+  .es-photo-dialog,
+  .es-form-request-dialog {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 20px) !important;
+    margin: 10px auto !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .es-dialog-inner,
+  .es-booking-dialog-inner,
+  .es-package-dialog-inner,
+  .es-photo-dialog-inner,
+  .es-form-request-dialog-inner {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Side drawers remain intentional overlays, but cannot spill past the phone viewport. */
+  .es-calendar-drawer,
+  .es-comms-drawer,
+  .es-clinical-record-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Public booking cards should feel like a page on mobile, not a floating desktop card. */
+  .booking-shell {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .booking-card {
+    width: 100% !important;
+    min-height: 100dvh;
+    margin: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .es-dashboard-main {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .es-dashboard-panel,
+  .es-settings-panel {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .brand-header,
+  .step,
+  .progress,
+  .booking-footer {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  .booking-home-row {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+

@@ -109,7 +109,7 @@ form.addEventListener(
 
 
       window.location.href =
-        "/dashboard/";
+        "/bookings/";
 
 
     } catch (error) {
