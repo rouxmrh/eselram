@@ -1208,6 +1208,58 @@
       }
     }
 
+
+    /* Cosmetic only: Calendar and Block dates as two separate aligned pill buttons. */
+    .es-bookings-view-switcher {
+      display:flex !important;
+      align-items:center !important;
+      gap:10px !important;
+      width:max-content !important;
+      padding:0 !important;
+      border:0 !important;
+      background:transparent !important;
+      border-radius:0 !important;
+      box-shadow:none !important;
+    }
+
+    .es-bookings-view-switcher .es-bookings-view-button {
+      height:40px !important;
+      min-height:40px !important;
+      min-width:96px !important;
+      padding:0 16px !important;
+      margin:0 !important;
+      border:1px solid var(--line, #d8d9d3) !important;
+      border-radius:999px !important;
+      background:#fff !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      font-size:12px !important;
+      font-weight:700 !important;
+      line-height:1 !important;
+      white-space:nowrap !important;
+      text-decoration:none !important;
+    }
+
+    .es-bookings-view-switcher .es-bookings-view-button.is-active {
+      background:#fff !important;
+      box-shadow:0 2px 8px rgba(20,30,40,.08) !important;
+    }
+
+    @media(max-width:640px) {
+      .es-bookings-view-switcher {
+        gap:8px !important;
+      }
+
+      .es-bookings-view-switcher .es-bookings-view-button {
+        min-width:88px !important;
+        height:38px !important;
+        min-height:38px !important;
+        padding:0 14px !important;
+      }
+    }
+
 </style>
 </head>
 
