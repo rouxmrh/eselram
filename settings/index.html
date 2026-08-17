@@ -664,14 +664,22 @@
       #copyStripeWebhookUrl { width:82px; min-width:82px; }
     }
 
-    /* Email provider: align Send test email with the Send test to field. */
+    /* Email provider: keep Send test email directly beside the Send test to input. */
     #tab-email .es-email-test-grid {
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(180px,1fr);
+      gap:16px;
       align-items:end;
+    }
+    #tab-email .es-email-test-grid > label {
+      margin:0;
+      min-width:0;
     }
     #tab-email .es-email-test-grid .es-field-button {
       display:flex;
       align-items:flex-end;
       min-width:0;
+      margin:0;
     }
     #tab-email #sendEmailTestButton {
       width:100%;
@@ -684,9 +692,17 @@
       box-sizing:border-box;
     }
     #tab-email #emailTestRecipient {
+      width:100%;
       min-height:44px;
       height:44px;
+      margin:0;
       box-sizing:border-box;
+    }
+    @media(max-width:600px) {
+      #tab-email .es-email-test-grid {
+        grid-template-columns:1fr;
+        gap:10px;
+      }
     }
 
 </style>
