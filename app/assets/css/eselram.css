@@ -4535,3 +4535,23 @@ body {
     margin-top: 32px;
   }
 }
+
+
+/* Installer payments — unavailable providers */
+.es-payment-card--disabled {
+  opacity: .46;
+  background: #f3f4f3;
+  cursor: not-allowed;
+  box-shadow: none !important;
+}
+.es-payment-card--disabled:hover {
+  border-color: var(--es-border);
+  box-shadow: none;
+}
+.es-payment-card--disabled input { cursor: not-allowed; }
+.es-coming-soon {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #68706b;
+}
