@@ -532,6 +532,16 @@ const stripeDefaultStatus =
     "stripeDefaultStatus"
   );
 
+const manualPaymentStatus =
+  document.getElementById(
+    "manualPaymentStatus"
+  );
+
+const paymentDefaultProvider =
+  document.getElementById(
+    "paymentDefaultProvider"
+  );
+
 const stripeEncryptionWarning =
   document.getElementById(
     "stripeEncryptionWarning"
@@ -667,8 +677,8 @@ async function loadStripeIntegration() {
         "stripeMakeDefault"
       )
       .checked =
-        integration.is_default !==
-        false;
+        integration.is_default ===
+        true;
 
 
     stripeSecretKeyHelp.textContent =
@@ -684,16 +694,11 @@ async function loadStripeIntegration() {
 
 
     const labels = {
-      not_configured:
-        "Not configured",
-      configured:
-        "Connected — sending test required",
-      verified:
-        "Ready to send",
-      error:
-        "Sending setup required",
-      disabled:
-        "Disabled"
+      not_configured: "Not configured",
+      configured: "Configured — test required",
+      verified: "Connected",
+      error: "Connection needs attention",
+      disabled: "Disabled"
     };
 
 
@@ -719,6 +724,23 @@ async function loadStripeIntegration() {
       integration.is_default
         ? "Yes"
         : "No";
+
+
+    if (manualPaymentStatus) {
+      manualPaymentStatus.textContent =
+        integration.manual_enabled
+          ? "Enabled"
+          : "Not enabled";
+    }
+
+    if (paymentDefaultProvider) {
+      paymentDefaultProvider.textContent =
+        integration.default_provider === "manual"
+          ? "Pay in person"
+          : integration.default_provider === "stripe"
+            ? "Stripe"
+            : "Not selected";
+    }
 
 
     disconnectStripeIntegrationButton.hidden =
@@ -1205,12 +1227,31 @@ async function loadEmailIntegration() {
       data.integration || {};
 
 
+    const businessContact =
+      integration.business_contact_email ||
+      "";
+
+    const businessName =
+      integration.business_name ||
+      "";
+
+    const emailBusinessContact =
+      document.getElementById(
+        "emailBusinessContact"
+      );
+
+    if (emailBusinessContact) {
+      emailBusinessContact.textContent =
+        businessContact || "Not set";
+    }
+
     document
       .getElementById(
         "emailFromName"
       )
       .value =
         integration.from_name ||
+        businessName ||
         "";
 
 
@@ -1332,6 +1373,24 @@ emailIntegrationForm
 
       try {
 
+        const senderEmail =
+          document
+            .getElementById(
+              "emailFromEmail"
+            )
+            .value
+            .trim();
+
+        const personalDomains =
+          /@(gmail\.com|googlemail\.com|outlook\.com|hotmail\.com|live\.com|icloud\.com|me\.com|yahoo\.com|yahoo\.co\.uk|aol\.com|proton\.me|protonmail\.com)$/i;
+
+        if (senderEmail && personalDomains.test(senderEmail)) {
+          throw new Error(
+            "Keep your Gmail/Outlook address as the business contact/reply email. For automated sending, use an address on a domain verified in Resend — or leave Sending email blank until the domain is ready."
+          );
+        }
+
+
         const response =
           await fetch(
             "/api/integrations/email",
@@ -1360,12 +1419,7 @@ emailIntegrationForm
                       .trim(),
 
                   from_email:
-                    document
-                      .getElementById(
-                        "emailFromEmail"
-                      )
-                      .value
-                      .trim(),
+                    senderEmail,
 
                   api_key:
                     document

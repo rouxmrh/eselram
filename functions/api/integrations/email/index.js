@@ -20,10 +20,14 @@ async function getUserContext(request, env) {
     .prepare(`
       SELECT
         u.id AS user_id,
-        u.business_id
+        u.business_id,
+        b.name AS business_name,
+        b.email AS business_email
       FROM user_sessions s
       JOIN users u
         ON u.id = s.user_id
+      JOIN businesses b
+        ON b.id = u.business_id
       WHERE
         s.token_hash = ?
         AND s.revoked_at IS NULL
@@ -78,6 +82,36 @@ function normaliseEmail(value) {
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
     String(value || "").trim()
+  );
+}
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com",
+  "icloud.com", "me.com", "yahoo.com", "yahoo.co.uk", "aol.com",
+  "proton.me", "protonmail.com"
+]);
+
+function emailDomain(value) {
+  const email = normaliseEmail(value);
+  return email.includes("@") ? email.split("@").pop() : "";
+}
+
+function isPersonalSendingAddress(value) {
+  return PERSONAL_EMAIL_DOMAINS.has(emailDomain(value));
+}
+
+function looksLikeEmail(value) {
+  return String(value || "").includes("@");
+}
+
+function looksLikePlaceholderSender(value) {
+  const email = normaliseEmail(value);
+  return (
+    !email ||
+    email.endsWith("@myclinic.co.uk") ||
+    email.endsWith("@example.com") ||
+    email.endsWith("@example.co.uk") ||
+    isPersonalSendingAddress(email)
   );
 }
 
@@ -138,7 +172,9 @@ export async function onRequestGet({
           from_name: "",
           from_email: "",
           last_tested_at: null,
-          last_error: null
+          last_error: null,
+          business_name: user.business_name || "",
+          business_contact_email: user.business_email || ""
         },
         encryption_ready:
           Boolean(
@@ -167,9 +203,24 @@ export async function onRequestGet({
             integration.encrypted_credentials
           ),
         from_name:
-          config.from_name || "",
+          (
+            !config.from_name ||
+            looksLikeEmail(config.from_name) ||
+            String(config.from_name).trim().toLowerCase() === "my clinic"
+          )
+            ? (user.business_name || "")
+            : config.from_name,
         from_email:
-          config.from_email || "",
+          looksLikePlaceholderSender(config.from_email)
+            ? ""
+            : (config.from_email || ""),
+        business_name:
+          user.business_name || "",
+        business_contact_email:
+          user.business_email || "",
+        sender_domain_required:
+          !config.from_email ||
+          looksLikePlaceholderSender(config.from_email),
         last_tested_at:
           integration.last_tested_at,
         last_error:
@@ -271,11 +322,17 @@ export async function onRequestPut({
     }
 
     if (
-      !fromEmail ||
+      fromEmail &&
       !isValidEmail(fromEmail)
     ) {
       return badRequest(
-        "Enter a valid From email address."
+        "Enter a valid sending email address, or leave it blank until your sending domain is ready."
+      );
+    }
+
+    if (fromEmail && isPersonalSendingAddress(fromEmail)) {
+      return badRequest(
+        "Gmail, Outlook and other personal email addresses can be your business contact/reply address, but Resend cannot use them as the sending address. Use an address on a domain you have verified in Resend, or leave Sending email blank for now."
       );
     }
 

@@ -1024,25 +1024,37 @@
           >
 
             <div class="es-panel-header">
-
               <div>
-
-                <p class="es-eyebrow">
-                  Payments
-                </p>
-
-                <h2>
-                  Stripe
-                </h2>
-
+                <p class="es-eyebrow">Payments</p>
+                <h2>Payment methods</h2>
                 <p class="es-muted-copy">
-                  Connect this business's own Stripe account. Stripe credentials are encrypted before they are stored.
+                  Pay in person needs no external account. Stripe is optional if you want clients to pay online by card.
                 </p>
-
               </div>
-
             </div>
 
+            <div class="es-integration-summary">
+              <div>
+                <span>Pay in person</span>
+                <strong id="manualPaymentStatus">Checking…</strong>
+              </div>
+              <div>
+                <span>Default payment method</span>
+                <strong id="paymentDefaultProvider">Checking…</strong>
+              </div>
+            </div>
+
+            <div class="es-settings-divider"></div>
+
+            <div class="es-panel-header">
+              <div>
+                <p class="es-eyebrow">Online payments</p>
+                <h2>Stripe</h2>
+                <p class="es-muted-copy">
+                  Connect this business's own Stripe account only if you want to accept online card payments.
+                </p>
+              </div>
+            </div>
 
             <div
               id="stripeEncryptionWarning"
@@ -1050,64 +1062,27 @@
               hidden
             ></div>
 
-
             <div class="es-integration-summary">
-
               <div>
-
-                <span>
-                  Provider
-                </span>
-
-                <strong>
-                  Stripe
-                </strong>
-
+                <span>Provider</span>
+                <strong>Stripe</strong>
               </div>
-
-
               <div>
-
-                <span>
-                  Status
-                </span>
-
-                <strong id="stripeIntegrationStatus">
-                  Not configured
-                </strong>
-
+                <span>Status</span>
+                <strong id="stripeIntegrationStatus">Not configured</strong>
               </div>
-
-
               <div>
-
-                <span>
-                  Mode
-                </span>
-
-                <strong id="stripeIntegrationMode">
-                  —
-                </strong>
-
+                <span>Mode</span>
+                <strong id="stripeIntegrationMode">—</strong>
               </div>
-
-
               <div>
-
-                <span>
-                  Default provider
-                </span>
-
-                <strong id="stripeDefaultStatus">
-                  No
-                </strong>
-
+                <span>Stripe is default</span>
+                <strong id="stripeDefaultStatus">No</strong>
               </div>
-
             </div>
 
 
-            <form id="stripeIntegrationForm">
+<form id="stripeIntegrationForm">
 
               <div class="es-form-grid">
 
@@ -1215,7 +1190,6 @@
                 <input
                   id="stripeMakeDefault"
                   type="checkbox"
-                  checked
                 >
 
                 <span>
@@ -1323,27 +1297,18 @@
 
 
             <div class="es-integration-summary">
-
               <div>
-                <span>
-                  Provider
-                </span>
-
-                <strong>
-                  Resend
-                </strong>
+                <span>Business contact / reply email</span>
+                <strong id="emailBusinessContact">—</strong>
               </div>
-
               <div>
-                <span>
-                  Status
-                </span>
-
-                <strong id="emailIntegrationStatus">
-                  Not configured
-                </strong>
+                <span>Provider</span>
+                <strong>Resend</strong>
               </div>
-
+              <div>
+                <span>Status</span>
+                <strong id="emailIntegrationStatus">Not configured</strong>
+              </div>
             </div>
 
 
@@ -1352,12 +1317,12 @@
               <div class="es-form-grid">
 
                 <label>
-                  From name
+                  Sender name
 
                   <input
                     id="emailFromName"
                     type="text"
-                    placeholder="My Clinic"
+                    placeholder="Your business name"
                     required
                   >
                 </label>
@@ -1369,12 +1334,11 @@
                   <input
                     id="emailFromEmail"
                     type="email"
-                    placeholder="notifications@yourclinic.co.uk"
-                    required
+                    placeholder="notifications@yourverifieddomain.co.uk"
                   >
 
                   <small class="es-field-help">
-                    This must be on a domain verified in Resend. Gmail, Outlook and other personal email addresses can still be used as your business contact/reply address, but not as the sending address.
+                    Leave this blank until you have a domain verified in Resend. Gmail, Outlook and other personal addresses stay as your business contact/reply email; they are not used as the automated sender.
                   </small>
                 </label>
 

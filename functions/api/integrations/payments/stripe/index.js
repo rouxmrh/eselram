@@ -309,6 +309,23 @@ export async function onRequestGet({
         .first();
 
 
+    const manualProvider =
+      await env.DB
+        .prepare(`
+          SELECT
+            is_enabled,
+            is_default,
+            connection_status
+          FROM business_payment_providers
+          WHERE
+            business_id = ?
+            AND provider_key = 'manual'
+          LIMIT 1
+        `)
+        .bind(user.business_id)
+        .first();
+
+
     if (!integration) {
 
       return Response.json({
@@ -331,8 +348,21 @@ export async function onRequestGet({
           mode:
             "unknown",
           is_default:
-            provider?.is_default ===
-            1,
+            manualProvider?.is_enabled === 1 &&
+            manualProvider?.is_default === 1
+              ? false
+              : provider?.is_default === 1,
+          default_provider:
+            manualProvider?.is_enabled === 1 &&
+            manualProvider?.is_default === 1
+              ? "manual"
+              : provider?.is_default === 1
+                ? "stripe"
+                : null,
+          manual_enabled:
+            manualProvider?.is_enabled === 1,
+          manual_is_default:
+            manualProvider?.is_default === 1,
           connection_status:
             provider?.connection_status ||
             "not_connected",
@@ -393,8 +423,21 @@ export async function onRequestGet({
           provider?.environment ||
           "unknown",
         is_default:
-          provider?.is_default ===
-          1,
+          manualProvider?.is_enabled === 1 &&
+          manualProvider?.is_default === 1
+            ? false
+            : provider?.is_default === 1,
+        default_provider:
+          manualProvider?.is_enabled === 1 &&
+          manualProvider?.is_default === 1
+            ? "manual"
+            : provider?.is_default === 1
+              ? "stripe"
+              : null,
+        manual_enabled:
+          manualProvider?.is_enabled === 1,
+        manual_is_default:
+          manualProvider?.is_default === 1,
         connection_status:
           provider?.connection_status ||
           "not_connected",
