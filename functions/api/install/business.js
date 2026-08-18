@@ -33,51 +33,97 @@ export async function onRequestPost({ request, env }) {
       );
     }
 
-    const existingBusiness = await env.DB
-      .prepare(`
-        SELECT id
-        FROM businesses
-        LIMIT 1
-      `)
-      .first();
+    const [
+      existingBusiness,
+      installation
+    ] = await Promise.all([
+      env.DB
+        .prepare(`
+          SELECT id
+          FROM businesses
+          LIMIT 1
+        `)
+        .first(),
 
-    if (existingBusiness) {
+      env.DB
+        .prepare(`
+          SELECT current_step, is_complete
+          FROM installer_state
+          WHERE id = 1
+        `)
+        .first()
+    ]);
+
+    if (
+      existingBusiness &&
+      installation?.is_complete === 1
+    ) {
       return Response.json(
         {
           ok: false,
-          error: "A business has already been created."
+          error:
+            "Eselram has already been configured."
         },
         { status: 409 }
       );
     }
 
-    const businessId = createId();
+    let businessId =
+      existingBusiness?.id ||
+      createId();
 
-    await env.DB
-      .prepare(`
-        INSERT INTO businesses (
-          id,
+    if (existingBusiness) {
+      await env.DB
+        .prepare(`
+          UPDATE businesses
+          SET
+            name = ?,
+            email = ?,
+            phone = ?,
+            country_code = ?,
+            timezone = ?,
+            currency = ?,
+            locale = ?
+          WHERE id = ?
+        `)
+        .bind(
           name,
           email,
-          phone,
-          country_code,
+          phone || null,
+          countryCode,
           timezone,
           currency,
-          locale
+          "en-GB",
+          businessId
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      .bind(
-        businessId,
-        name,
-        email,
-        phone || null,
-        countryCode,
-        timezone,
-        currency,
-        "en-GB"
-      )
-      .run();
+        .run();
+    } else {
+      await env.DB
+        .prepare(`
+          INSERT INTO businesses (
+            id,
+            name,
+            email,
+            phone,
+            country_code,
+            timezone,
+            currency,
+            locale
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `)
+        .bind(
+          businessId,
+          name,
+          email,
+          phone || null,
+          countryCode,
+          timezone,
+          currency,
+          "en-GB"
+        )
+        .run();
+    }
 
     await env.DB
       .prepare(`

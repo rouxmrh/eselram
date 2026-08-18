@@ -29,6 +29,25 @@ async function checkInstallation() {
     }
 
     if (data.installation_required) {
+      const currentStep =
+        data.installation?.current_step ||
+        "welcome";
+
+      const stepRoutes = {
+        business: "/installer/business.html",
+        hours: "/installer/hours.html",
+        branding: "/installer/branding.html",
+        payments: "/installer/payments.html",
+        owner: "/installer/owner.html"
+      };
+
+      if (stepRoutes[currentStep]) {
+        window.location.replace(
+          stepRoutes[currentStep]
+        );
+        return;
+      }
+
       statusBox.textContent =
         "Eselram is ready to be configured.";
 
