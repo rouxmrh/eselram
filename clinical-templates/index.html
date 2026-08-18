@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clinical Templates | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+
+  <style>
+    .es-clinical-template-header-actions .es-secondary-button,
+    .es-clinical-template-header-actions .es-button {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      line-height: 1;
+    }
+  </style>
+</head>
+
+<body class="es-dashboard-body">
+  <div class="es-dashboard-layout">
+
+    <aside
+  id="appSidebar"
+  class="es-sidebar"
+></aside>
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+        <div>
+          <p class="es-eyebrow">Settings</p>
+          <h1>Clinical Templates</h1>
+          <p class="es-lead">
+            Start with an Eselram template or build a form from scratch.
+          </p>
+        </div>
+
+        <div class="es-dashboard-header-actions es-clinical-template-header-actions">
+          <a class="es-secondary-button" href="/settings/branding.html">
+            Branding
+          </a>
+          <button id="newTemplateButton" class="es-button" type="button">
+            Blank template
+          </button>
+        </div>
+      </header>
+
+      <section id="templateStatus" class="es-status" hidden></section>
+
+      <section class="es-dashboard-panel">
+        <div class="es-panel-header">
+          <div>
+            <p class="es-eyebrow">Starter library</p>
+            <h2>Start with a template</h2>
+          </div>
+        </div>
+
+        <p class="es-lead" style="font-size:13px;max-width:760px;">
+          Starter templates are neutral Eselram forms. Once added to your business,
+          every section and question can be changed.
+        </p>
+
+        <div id="starterTemplateLibrary" class="es-template-library">
+          Loading starter templates…
+        </div>
+      </section>
+
+      <section class="es-template-layout">
+
+        <aside class="es-template-sidebar">
+          <p class="es-eyebrow">Templates</p>
+          <h2>Your forms</h2>
+
+          <p class="es-template-sidebar-intro">
+            Only published forms appear here. Starter copies stay out of this list until you publish them.
+          </p>
+
+          <div id="templateList" class="es-template-list">
+            Loading templates…
+          </div>
+        </aside>
+
+        <section id="templateEditor" class="es-template-editor">
+          <div class="es-template-editor-empty">
+            <strong>Select or create a template.</strong>
+            <span>
+              Add sections, custom fields, required questions and conditional display rules.
+            </span>
+          </div>
+        </section>
+
+      </section>
+    </main>
+  </div>
+  
+<script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("clinical-records");
+</script>
+  
+  <script src="/clinical-templates/clinical-templates.js"></script>
+</body>
+</html>

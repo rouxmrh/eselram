@@ -1,0 +1,2584 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Customers | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+
+  <style>
+    .es-customers-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .es-customers-search {
+      width: min(360px, 100%);
+      margin-top: 0;
+    }
+
+    .es-customers-list {
+      display: grid;
+      margin-top: 8px;
+    }
+
+    .es-customer-row {
+      display: grid;
+      grid-template-columns:
+        minmax(220px, 1.45fr)
+        minmax(190px, 1.15fr)
+        95px
+        110px
+        auto;
+      gap: 20px;
+      align-items: center;
+      padding: 17px 0;
+      border-bottom: 1px solid var(--es-border);
+    }
+
+    .es-customer-row:last-child {
+      border-bottom: 0;
+    }
+
+    .es-customer-main,
+    .es-customer-contact,
+    .es-customer-stat {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .es-customer-main strong {
+      overflow: hidden;
+      font-size: 15px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .es-customer-main span,
+    .es-customer-contact span,
+    .es-customer-stat span {
+      overflow: hidden;
+      color: var(--es-muted);
+      font-size: 12px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .es-customer-stat strong {
+      font-size: 14px;
+    }
+
+    .es-customer-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 7px;
+    }
+
+    .es-customer-action {
+      min-height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-sm);
+      background: var(--es-surface);
+      color: var(--es-text);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .es-customer-action:hover {
+      border-color: var(--es-primary);
+    }
+
+    .es-customer-form-panel {
+      margin-bottom: 22px;
+    }
+
+    .es-customer-check {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 4px 0 20px;
+    }
+
+    .es-customer-check input {
+      width: auto;
+      min-height: auto;
+      margin: 0;
+    }
+
+    .es-customer-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(20, 25, 22, .32);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
+    .es-customer-drawer-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .es-customer-drawer {
+      position: fixed;
+      z-index: 100;
+      top: 0;
+      right: 0;
+      width: min(760px, 96vw);
+      height: 100vh;
+      overflow-y: auto;
+      padding: 0 30px 30px;
+      border-left: 1px solid var(--es-border);
+      background: #fbfcf9;
+      box-shadow: -18px 0 50px rgba(28, 34, 30, .13);
+      transform: translateX(105%);
+      transition: transform .24s ease;
+    }
+
+    .es-customer-drawer.is-open {
+      transform: translateX(0);
+    }
+
+    .es-customer-drawer-header {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 0 -30px 22px;
+      padding: 24px 30px 18px;
+      border-bottom: 1px solid var(--es-border);
+      background: rgba(251, 252, 249, .96);
+      backdrop-filter: blur(10px);
+    }
+
+    .es-customer-drawer-header h2 {
+      margin: 4px 0 0;
+      font-size: 30px;
+      line-height: 1.08;
+    }
+
+    .es-customer-drawer-close,
+    .es-customer-top-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: var(--es-surface);
+      color: var(--es-text);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(28, 34, 30, .04);
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+
+    .es-customer-drawer-close:hover,
+    .es-customer-top-close:hover {
+      border-color: var(--es-primary);
+      background: #f4f7f3;
+    }
+
+    .es-customer-drawer-close:active,
+    .es-customer-top-close:active {
+      transform: translateY(1px);
+    }
+
+    .es-customer-profile-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 0;
+    }
+
+    .es-customer-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 29px;
+      padding: 0 10px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: #f7f8f5;
+      color: var(--es-muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .es-customer-profile-stats {
+      display: grid;
+      grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+
+    .es-customer-profile-stat {
+      display: grid;
+      gap: 4px;
+      min-height: 76px;
+      padding: 15px 16px;
+      border: 1px solid var(--es-border);
+      border-radius: 16px;
+      background: var(--es-surface);
+      box-shadow: 0 4px 14px rgba(28, 34, 30, .035);
+    }
+
+    .es-customer-profile-stat span {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-profile-stat strong {
+      font-size: 18px;
+    }
+
+    .es-customer-section {
+      padding: 22px 0;
+      border-top: 1px solid var(--es-border);
+    }
+
+    .es-customer-section h3 {
+      margin: 0 0 14px;
+      font-size: 17px;
+    }
+
+    .es-customer-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .es-customer-detail {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .es-customer-detail span {
+      color: var(--es-muted);
+      font-size: 12px;
+    }
+
+    .es-customer-detail strong {
+      overflow-wrap: anywhere;
+    }
+
+    .es-customer-detail-full {
+      grid-column: 1 / -1;
+    }
+
+    .es-customer-appointments {
+      display: grid;
+      gap: 8px;
+    }
+
+    .es-customer-appointment {
+      display: grid;
+      grid-template-columns: 110px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-sm);
+      background: #fafbf8;
+    }
+
+    .es-customer-appointment-time,
+    .es-customer-appointment-main {
+      display: grid;
+      gap: 2px;
+    }
+
+    .es-customer-appointment span,
+    .es-customer-appointment small {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 27px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #f1f3ef;
+      color: var(--es-muted);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .es-customer-status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--es-muted);
+    }
+
+    .es-customer-status-confirmed::before {
+      background: var(--es-success);
+    }
+
+    .es-customer-status-completed::before {
+      background: var(--es-primary);
+    }
+
+    .es-customer-status-cancelled::before {
+      background: var(--es-error);
+    }
+
+    .es-customer-drawer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 22px;
+      border-top: 1px solid var(--es-border);
+    }
+
+    .es-customer-drawer-actions .es-button {
+      margin-top: 0;
+    }
+
+    .es-customer-timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .es-customer-timeline-item {
+      display: grid;
+      grid-template-columns: 105px 14px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .es-customer-timeline-date {
+      color: var(--es-muted);
+      font-size: 11px;
+      font-weight: 650;
+      padding-top: 3px;
+    }
+
+    .es-customer-timeline-dot {
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      border-radius: 999px;
+      background: var(--es-primary);
+      box-shadow: 0 0 0 4px #edf1ed;
+    }
+
+    .es-customer-timeline-content {
+      display: grid;
+      gap: 3px;
+      padding: 0 0 16px;
+      border-bottom: 1px solid var(--es-border);
+    }
+
+    .es-customer-timeline-content span,
+    .es-customer-record-row span,
+    .es-customer-photo-meta span {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-record-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .es-customer-record-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-sm);
+      background: #fafbf8;
+    }
+
+    .es-customer-record-main {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+
+    .es-customer-treatment-card {
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-sm);
+      background: #fafbf8;
+      overflow: hidden;
+    }
+
+    .es-customer-treatment-card-head {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      text-align: left;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .es-customer-treatment-card-title { display: grid; gap: 4px; min-width: 0; }
+    .es-customer-treatment-card-title small { color: var(--es-muted); font-size: 11px; }
+    .es-customer-treatment-card-summary { display: flex; gap: 9px; align-items: center; }
+    .es-customer-treatment-chevron { font-size: 16px; color: var(--es-muted); }
+    .es-customer-treatment-card-head[aria-expanded="true"] .es-customer-treatment-chevron { transform: rotate(180deg); }
+    .es-customer-treatment-card-body { border-top: 1px solid var(--es-border); padding: 13px; }
+    .es-customer-treatment-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .es-customer-treatment-facts span { display: grid; gap: 2px; color: var(--es-muted); font-size: 11px; }
+    .es-customer-treatment-facts b { color: var(--es-ink); font-size: 11px; }
+    .es-customer-treatment-photo-strip { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; }
+    .es-customer-treatment-photo-strip img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--es-border); }
+    .es-customer-treatment-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+    .es-customer-treatment-card-actions button { font: inherit; }
+
+    @media (max-width: 620px) {
+      .es-customer-treatment-facts { grid-template-columns: 1fr; }
+      .es-customer-treatment-card-head { align-items: flex-start; }
+    }
+
+    .es-customer-record-actions {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .es-customer-packages {
+      display: grid;
+      gap: 9px;
+    }
+
+    .es-customer-package-row {
+      padding: 13px;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-sm);
+      background: #fafbf8;
+    }
+
+    .es-customer-package-head {
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+    }
+
+    .es-customer-package-meta {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:7px;
+      color:var(--es-muted);
+      font-size:11px;
+    }
+
+    .es-customer-package-actions {
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .es-customer-payments {
+      display: grid;
+      gap: 9px;
+    }
+
+    .es-customer-payment-row {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+      gap: 14px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-sm);
+      background: #fafbf8;
+    }
+
+    .es-customer-payment-main {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .es-customer-payment-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-payment-amount {
+      text-align: right;
+    }
+
+    .es-customer-payment-amount strong,
+    .es-customer-payment-amount span {
+      display: block;
+    }
+
+
+    .es-customer-payments-toggle {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .es-customer-appointment {
+      grid-template-columns:
+        90px
+        minmax(0, 1fr)
+        auto
+        auto;
+    }
+
+    .es-customer-appointment-main {
+      min-width: 0;
+    }
+
+    .es-customer-appointment-main small {
+      display: block;
+      margin-top: 3px;
+    }
+
+    .es-customer-appointment-action {
+      width: auto !important;
+      min-width: 0;
+      white-space: nowrap;
+      justify-self: end;
+      align-self: center;
+    }
+
+    .es-customer-appointment-main .es-customer-action {
+      width: auto !important;
+    }
+
+    .es-customer-package-sessions {
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--es-border);
+    }
+
+    .es-customer-package-session {
+      display: grid;
+      grid-template-columns: 90px minmax(0,1fr) auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .es-customer-package-session span {
+      color: var(--es-muted);
+    }
+
+    .es-customer-timeline-content a {
+      width: fit-content;
+      margin-top: 3px;
+    }
+
+    .es-customer-photos {
+      display: grid;
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .es-customer-photo-card {
+      overflow: hidden;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-md);
+      background: #fafbf8;
+    }
+
+    .es-customer-photo-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      background: #eef0ec;
+      cursor: pointer;
+    }
+
+    .es-customer-photo-meta {
+      display: grid;
+      gap: 3px;
+      padding: 10px;
+    }
+
+    .es-customer-photo-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 7px;
+      padding: 0 10px 10px;
+    }
+
+
+    .es-customer-photos {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .es-customer-photo-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .es-photo-count-pill,
+    .es-photo-type-pill {
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: #f5f7f3;
+      color: var(--es-ink);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 8px 11px;
+    }
+
+    .es-photo-type-pill {
+      cursor: pointer;
+    }
+
+    .es-photo-type-pill.is-selected {
+      border-color: var(--es-primary);
+      background: var(--es-primary);
+      color: #fff;
+    }
+
+    .es-customer-photo-group {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--es-border);
+      border-radius: 16px;
+      background: #fafbf8;
+    }
+
+    .es-customer-photo-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .es-customer-photo-group-header > div {
+      display: grid;
+      gap: 3px;
+    }
+
+    .es-customer-photo-group-header small {
+      color: var(--es-muted);
+    }
+
+    .es-customer-photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .es-customer-photo-image-button {
+      display: block;
+      width: 100%;
+      border: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    .es-photo-compare-button {
+      width: auto !important;
+      white-space: nowrap;
+    }
+
+    .es-customer-photo-upload-items {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .es-customer-photo-upload-preview {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .es-customer-photo-upload-preview img {
+      width: 92px;
+      height: 92px;
+      object-fit: cover;
+      border: 1px solid var(--es-border);
+      border-radius: 12px;
+      background: #eef0ec;
+    }
+
+    .es-customer-photo-upload-preview > div {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .es-customer-photo-upload-preview small {
+      overflow-wrap: anywhere;
+      color: var(--es-muted);
+    }
+
+    .es-customer-photo-field-label {
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .es-customer-photo-type-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .es-photo-compare-dialog {
+      width: min(900px, 94vw);
+      padding: 0;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-lg);
+      background: var(--es-surface);
+    }
+
+    .es-photo-compare-dialog::backdrop {
+      background: rgba(20, 25, 22, .48);
+    }
+
+    .es-photo-compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .es-photo-compare-panel {
+      display: grid;
+      gap: 8px;
+    }
+
+    .es-photo-compare-panel img {
+      display: block;
+      width: 100%;
+      max-height: 65vh;
+      object-fit: contain;
+      border: 1px solid var(--es-border);
+      border-radius: 14px;
+      background: #eef0ec;
+    }
+
+    .es-customer-section-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .es-customer-section-header h3 {
+      margin: 0;
+    }
+
+    .es-photo-dialog {
+      width: min(560px, 94vw);
+      padding: 0;
+      border: 1px solid var(--es-border);
+      border-radius: var(--es-radius-lg);
+      background: var(--es-surface);
+    }
+
+    .es-photo-dialog::backdrop {
+      background: rgba(20, 25, 22, .36);
+    }
+
+    .es-photo-dialog-inner {
+      padding: 26px;
+    }
+
+    @media (max-width: 950px) {
+      .es-customer-row {
+        grid-template-columns: 1.4fr 1.1fr auto;
+      }
+
+      .es-customer-row .es-customer-stat {
+        display: none;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .es-customer-appointment {
+        grid-template-columns: 78px minmax(0, 1fr) auto;
+      }
+
+      .es-customer-appointment-action {
+        grid-column: 2 / -1;
+        justify-self: start;
+      }
+
+      .es-customers-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .es-customer-row {
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+      }
+
+      .es-customer-contact {
+        grid-column: 1 / -1;
+      }
+
+      .es-customer-profile-stats,
+      .es-customer-detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .es-customer-detail-full {
+        grid-column: auto;
+      }
+
+      .es-customer-appointment {
+        grid-template-columns: 1fr;
+      }
+
+      .es-customer-photos {
+        grid-template-columns: 1fr;
+      }
+
+
+      .es-customer-photo-grid,
+      .es-customer-photo-upload-items,
+      .es-photo-compare-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .es-customer-photo-group-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .es-customer-timeline-item {
+        grid-template-columns:
+          82px 12px minmax(0, 1fr);
+      }
+
+      .es-customer-actions {
+        align-self: start;
+      }
+    }
+  
+    .es-customer-photo-upload-items {
+      display: grid;
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .es-customer-photo-upload-item {
+      border: 1px solid var(--es-border);
+      border-radius: 14px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .es-customer-photo-upload-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 14px;
+    }
+
+    .es-customer-photo-upload-heading small {
+      overflow-wrap: anywhere;
+      text-align: right;
+    }
+
+
+    /* Customer profile accordions */
+    .es-customer-profile-accordions {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .es-customer-accordion {
+      overflow: hidden;
+      border: 1px solid var(--es-border);
+      border-radius: 18px;
+      background: var(--es-surface);
+      box-shadow: 0 3px 12px rgba(28, 34, 30, .025);
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease, transform .18s ease;
+    }
+
+    .es-customer-accordion:hover {
+      border-color: color-mix(in srgb, var(--es-primary) 26%, var(--es-border));
+    }
+
+    .es-customer-accordion[open] {
+      border-color: color-mix(in srgb, var(--es-primary) 42%, var(--es-border));
+      background: var(--es-surface);
+      box-shadow: 0 10px 26px rgba(28, 34, 30, .06);
+    }
+
+    .es-customer-accordion[open] .es-customer-accordion-summary {
+      background: #f6f8f4;
+    }
+
+    .es-customer-accordion-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto 18px;
+      gap: 12px;
+      align-items: center;
+      min-height: 58px;
+      padding: 0 18px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+
+    .es-customer-accordion-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .es-customer-accordion-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--es-text);
+    }
+
+    .es-customer-accordion-meta {
+      color: var(--es-muted);
+      font-size: 11px;
+      font-weight: 650;
+      text-align: right;
+    }
+
+    .es-customer-accordion-chevron {
+      color: var(--es-muted);
+      font-size: 18px;
+      line-height: 1;
+      transform: rotate(0deg);
+      transition: transform .18s ease;
+    }
+
+    .es-customer-accordion[open] .es-customer-accordion-chevron {
+      transform: rotate(180deg);
+    }
+
+    .es-customer-accordion-body {
+      padding: 0 18px 18px;
+      border-top: 1px solid var(--es-border);
+    }
+
+    .es-customer-accordion-subsection {
+      padding-top: 18px;
+    }
+
+    .es-customer-accordion-subsection + .es-customer-accordion-subsection {
+      margin-top: 18px;
+      border-top: 1px solid var(--es-border);
+    }
+
+    .es-customer-subsection-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .es-customer-subsection-header h4 {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .es-customer-record-health {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 16px;
+    }
+
+    .es-customer-traffic {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .es-customer-traffic::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      border-radius: 999px;
+      background: #89908a;
+    }
+
+    .es-customer-traffic-green {
+      background: #f2f8f2;
+      color: #2d6439;
+      border-color: #cee1d1;
+    }
+
+    .es-customer-traffic-green::before {
+      background: #3f8a50;
+      box-shadow: 0 0 0 3px rgba(63, 138, 80, .12);
+    }
+
+    .es-customer-traffic-red {
+      background: #fff4f2;
+      color: #9b3f36;
+      border-color: #edd0cb;
+    }
+
+    .es-customer-traffic-red::before {
+      background: #c95347;
+      box-shadow: 0 0 0 3px rgba(201, 83, 71, .12);
+    }
+
+    .es-customer-traffic-neutral {
+      background: #f5f6f3;
+      color: var(--es-muted);
+    }
+
+    .es-customer-accordion .es-customer-section-header {
+      margin-bottom: 12px;
+    }
+
+
+
+    /* Customer profile visual alignment */
+    .es-customer-subsection-header {
+      min-height: 42px;
+    }
+
+    .es-customer-subsection-header .es-secondary-button,
+    .es-customer-drawer-actions .es-secondary-button,
+    .es-customer-drawer-actions .es-button,
+    .es-customer-treatment-card-actions .es-secondary-button,
+    .es-customer-treatment-card-actions .es-button,
+    .es-customer-photo-actions .es-secondary-button,
+    .es-customer-photo-group-header .es-secondary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-height: 38px;
+      margin: 0;
+      padding: 0 14px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .es-customer-drawer-actions {
+      position: sticky;
+      bottom: -30px;
+      z-index: 6;
+      margin: 20px -30px -30px;
+      padding: 16px 30px 22px;
+      border-top: 1px solid var(--es-border);
+      background: rgba(251, 252, 249, .96);
+      backdrop-filter: blur(10px);
+    }
+
+    .es-customer-accordion-subsection {
+      scroll-margin-top: 96px;
+    }
+
+    .es-customer-accordion-title::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-right: 9px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--es-primary) 72%, #ffffff);
+      vertical-align: 1px;
+    }
+
+    /* Keep modal headers and Close actions visible */
+    .es-photo-dialog-inner > .es-booking-dialog-header,
+    .es-form-request-dialog-inner > .es-booking-dialog-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      margin: -2px -2px 20px;
+      padding: 2px 2px 16px;
+      border-bottom: 1px solid var(--es-border);
+      background: var(--es-surface);
+    }
+
+    .es-photo-dialog-inner .es-dialog-close,
+    .es-form-request-dialog-inner .es-dialog-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-width: 68px;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: var(--es-surface);
+      color: var(--es-text);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .es-photo-dialog-inner .es-dialog-close:hover,
+    .es-form-request-dialog-inner .es-dialog-close:hover {
+      border-color: var(--es-primary);
+      background: #f4f7f3;
+    }
+
+    .es-customer-form-panel .es-panel-header {
+      align-items: flex-start;
+    }
+
+    .es-customer-form-panel .es-panel-header .es-customer-top-close {
+      margin-left: auto;
+    }
+
+    @media (max-width: 700px) {
+      .es-customer-accordion-summary {
+        grid-template-columns: minmax(0, 1fr) 18px;
+        padding: 0 14px;
+      }
+
+      .es-customer-accordion-meta {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        padding: 0 0 10px;
+        text-align: left;
+      }
+
+      .es-customer-accordion-chevron {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      .es-customer-accordion-body {
+        padding: 0 14px 14px;
+      }
+    }
+
+
+
+    @media (max-width: 620px) {
+      .es-customer-drawer {
+        width: 100vw;
+        padding: 0 16px 22px;
+      }
+
+      .es-customer-drawer-header {
+        margin: 0 -16px 18px;
+        padding: 18px 16px 14px;
+      }
+
+      .es-customer-drawer-actions {
+        margin: 18px -16px -22px;
+        padding: 14px 16px 18px;
+      }
+
+      .es-customer-subsection-header {
+        align-items: flex-start;
+      }
+
+      .es-customer-subsection-header .es-secondary-button {
+        flex: 0 0 auto;
+      }
+    }
+
+
+    /* Customers hub */
+    .es-customer-hub-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 18px;
+    }
+
+    .es-customer-hub-kpi {
+      display: grid;
+      gap: 5px;
+      min-height: 104px;
+      padding: 18px;
+      border: 1px solid var(--es-border);
+      border-radius: 18px;
+      background: var(--es-surface);
+      box-shadow: 0 7px 20px rgba(28, 34, 30, .035);
+    }
+
+    .es-customer-hub-kpi span,
+    .es-customer-hub-kpi small {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-hub-kpi strong {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .es-customer-clinical-overview {
+      margin-bottom: 18px;
+    }
+
+    .es-customer-hub-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .es-customer-hub-header h2 {
+      margin: 2px 0 0;
+    }
+
+    .es-customer-hub-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.35fr);
+      gap: 16px;
+    }
+
+    .es-customer-hub-block {
+      min-width: 0;
+      padding: 17px;
+      border: 1px solid var(--es-border);
+      border-radius: 16px;
+      background: #fafbf8;
+    }
+
+    .es-customer-hub-block-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .es-customer-hub-block-title h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .es-customer-hub-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      min-height: 28px;
+      padding: 0 8px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: var(--es-surface);
+      color: var(--es-muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .es-customer-hub-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .es-customer-hub-record {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid var(--es-border);
+      border-radius: 13px;
+      background: var(--es-surface);
+    }
+
+    .es-customer-hub-record-main {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .es-customer-hub-record-main strong,
+    .es-customer-hub-record-main span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .es-customer-hub-record-main span {
+      color: var(--es-muted);
+      font-size: 11px;
+    }
+
+    .es-customer-hub-record-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid var(--es-border);
+      border-radius: 10px;
+      background: var(--es-surface);
+      color: var(--es-text);
+      font-size: 11px;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .es-customer-hub-record-action:hover {
+      border-color: var(--es-primary);
+    }
+
+    .es-customer-hub-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .es-customer-hub-status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+    }
+
+    .es-customer-hub-status-needs {
+      border: 1px solid #f1c8bf;
+      background: #fff1ed;
+      color: #8a3e2d;
+    }
+
+    .es-customer-hub-status-needs::before {
+      background: #d45f45;
+    }
+
+    .es-customer-hub-status-complete {
+      border: 1px solid #cce6d4;
+      background: #edf8f0;
+      color: #286b43;
+    }
+
+    .es-customer-hub-status-complete::before {
+      background: var(--es-success);
+    }
+
+    .es-customer-directory-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+
+    .es-customer-directory-tab {
+      min-height: 34px;
+      padding: 0 13px;
+      border: 1px solid var(--es-border);
+      border-radius: 999px;
+      background: var(--es-surface);
+      color: var(--es-text);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .es-customer-directory-tab.active {
+      border-color: var(--es-primary);
+      background: #edf2ee;
+      color: var(--es-primary);
+    }
+
+    @media (max-width: 980px) {
+      .es-customer-hub-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .es-customer-hub-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .es-customer-hub-kpis {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .es-customer-hub-header {
+        display: grid;
+      }
+
+      .es-customer-hub-record {
+        grid-template-columns: 1fr;
+      }
+
+      .es-customer-hub-record-action {
+        justify-self: start;
+      }
+    }
+
+    .es-photo-compare-list {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:10px;
+    }
+
+    .es-photo-compare-list a {
+      display:block;
+      min-width:0;
+    }
+
+    .es-photo-compare-list img {
+      display:block;
+      width:100%;
+      height:auto;
+      max-height:42vh;
+      object-fit:contain;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:#eef0ec;
+    }
+
+
+    /* Mobile-only customer navigation + clinical action spacing. */
+    .es-customers-header-actions {
+      display:flex;
+      align-items:center;
+      gap:9px;
+    }
+
+    .es-mobile-manage-bookings {
+      display:none;
+      text-decoration:none;
+    }
+
+    @media (max-width:700px) {
+      .es-dashboard-header {
+        align-items:flex-start;
+      }
+
+      .es-customers-header-actions {
+        width:100%;
+        display:flex;
+        align-items:center;
+        gap:8px;
+        flex-wrap:wrap;
+      }
+
+      .es-mobile-manage-bookings {
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:42px;
+        padding:0 14px;
+        white-space:nowrap;
+      }
+
+      .es-customers-header-actions #newCustomerButton {
+        min-height:42px;
+      }
+
+      /* Keep the form/treatment name on its own line.
+         Actions sit beneath it rather than floating across the title. */
+      .es-customer-record-row {
+        grid-template-columns:1fr !important;
+        gap:12px !important;
+        align-items:start !important;
+      }
+
+      .es-customer-record-main {
+        width:100% !important;
+        min-width:0 !important;
+      }
+
+      .es-customer-record-main strong,
+      .es-customer-record-main span {
+        display:block;
+        max-width:100%;
+        overflow-wrap:anywhere;
+      }
+
+      .es-customer-record-actions {
+        width:100% !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:flex-start !important;
+        flex-wrap:wrap !important;
+        gap:8px !important;
+      }
+
+      .es-customer-record-actions .es-customer-traffic,
+      .es-customer-record-actions .es-customer-action {
+        position:static !important;
+        flex:0 0 auto;
+        max-width:100%;
+        min-height:40px;
+        box-sizing:border-box;
+      }
+
+      .es-customer-record-actions .es-customer-traffic {
+        padding-left:12px;
+        padding-right:12px;
+      }
+    }
+
+    @media (max-width:420px) {
+      .es-customers-header-actions {
+        display:grid;
+        grid-template-columns:1fr 1fr;
+      }
+
+      .es-mobile-manage-bookings,
+      .es-customers-header-actions #newCustomerButton {
+        width:100%;
+        justify-content:center;
+      }
+
+      .es-customer-record-actions .es-customer-traffic,
+      .es-customer-record-actions .es-customer-action {
+        min-height:38px;
+        padding-left:11px;
+        padding-right:11px;
+      }
+    }
+
+
+    /* Mobile only: keep Manage bookings and New customer perfectly aligned. */
+    @media (max-width:700px) {
+      .es-customers-header-actions {
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+        align-items:stretch !important;
+        gap:8px !important;
+        width:100% !important;
+      }
+
+      .es-customers-header-actions .es-mobile-manage-bookings,
+      .es-customers-header-actions #newCustomerButton {
+        width:100% !important;
+        min-width:0 !important;
+        height:42px !important;
+        min-height:42px !important;
+        margin:0 !important;
+        padding:0 12px !important;
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        box-sizing:border-box !important;
+        line-height:1 !important;
+        white-space:nowrap !important;
+      }
+    }
+
+
+    /* Mobile only: premium breathing room beneath customer header buttons. */
+    @media (max-width:700px) {
+      .es-customers-header-actions {
+        transform:translateY(-4px);
+        margin-bottom:10px !important;
+      }
+    }
+
+
+    /* Mobile-only customer profile finishing.
+       Desktop profile remains unchanged. */
+    @media (max-width:700px) {
+      .es-customer-drawer {
+        padding-bottom:0 !important;
+        overflow-y:auto !important;
+        overscroll-behavior:contain;
+      }
+
+      .es-customer-profile-accordions {
+        margin-bottom:18px !important;
+      }
+
+      /* Keep the profile action area fully reachable at the end of the drawer. */
+      .es-customer-drawer-actions {
+        position:sticky !important;
+        bottom:0 !important;
+        z-index:12 !important;
+        width:auto !important;
+        max-width:none !important;
+        margin:18px -16px 0 !important;
+        padding:
+          12px
+          16px
+          max(14px, env(safe-area-inset-bottom)) !important;
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        gap:7px !important;
+        border-top:1px solid var(--es-border) !important;
+        background:rgba(251,252,249,.98) !important;
+        box-sizing:border-box !important;
+        backdrop-filter:blur(10px);
+      }
+
+      .es-customer-drawer-actions #editCustomerButton,
+      .es-customer-drawer-actions #sendCustomerFormButton,
+      .es-customer-drawer-actions #newCustomerBookingButton {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        min-height:42px !important;
+        height:auto !important;
+        margin:0 !important;
+        padding:8px 7px !important;
+        box-sizing:border-box !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        text-align:center !important;
+        white-space:normal !important;
+        line-height:1.15 !important;
+        font-size:11px !important;
+        font-weight:800 !important;
+        text-decoration:none !important;
+      }
+    }
+
+    @media (max-width:380px) {
+      .es-customer-drawer-actions {
+        grid-template-columns:1fr !important;
+      }
+
+      .es-customer-drawer-actions #editCustomerButton,
+      .es-customer-drawer-actions #sendCustomerFormButton,
+      .es-customer-drawer-actions #newCustomerBookingButton {
+        min-height:40px !important;
+      }
+    }
+
+
+    /* Mobile-only: keep key customer actions permanently reachable. */
+    @media (max-width:700px) {
+      .es-customer-drawer {
+        width:100vw !important;
+        max-width:100vw !important;
+        height:100dvh !important;
+        max-height:100dvh !important;
+        padding-bottom:96px !important;
+        box-sizing:border-box !important;
+        overflow-y:auto !important;
+        overflow-x:hidden !important;
+        -webkit-overflow-scrolling:touch;
+      }
+
+      .es-customer-drawer-actions {
+        position:fixed !important;
+        left:0 !important;
+        right:0 !important;
+        bottom:0 !important;
+        z-index:30 !important;
+        width:100vw !important;
+        max-width:100vw !important;
+        margin:0 !important;
+        padding:
+          10px
+          12px
+          max(10px, env(safe-area-inset-bottom)) !important;
+        display:grid !important;
+        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+        gap:6px !important;
+        border-top:1px solid var(--es-border) !important;
+        background:rgba(251,252,249,.99) !important;
+        box-shadow:0 -8px 24px rgba(28,34,30,.08) !important;
+        backdrop-filter:blur(12px);
+        box-sizing:border-box !important;
+      }
+
+      .es-customer-drawer:not(.is-open) .es-customer-drawer-actions {
+        visibility:hidden !important;
+        pointer-events:none !important;
+      }
+
+      .es-customer-drawer.is-open .es-customer-drawer-actions {
+        visibility:visible !important;
+        pointer-events:auto !important;
+      }
+
+      .es-customer-drawer-actions #editCustomerButton,
+      .es-customer-drawer-actions #sendCustomerFormButton,
+      .es-customer-drawer-actions #newCustomerBookingButton {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        min-height:42px !important;
+        height:42px !important;
+        margin:0 !important;
+        padding:0 6px !important;
+        box-sizing:border-box !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        text-align:center !important;
+        white-space:normal !important;
+        overflow-wrap:anywhere !important;
+        font-size:10px !important;
+        font-weight:800 !important;
+        line-height:1.1 !important;
+        text-decoration:none !important;
+      }
+
+      /* Ensure the last profile section can scroll clear of the fixed action bar. */
+      .es-customer-drawer > .es-customer-accordion:last-of-type,
+      .es-customer-profile-accordions {
+        margin-bottom:20px !important;
+      }
+    }
+
+    @media (max-width:360px) {
+      .es-customer-drawer {
+        padding-bottom:154px !important;
+      }
+
+      .es-customer-drawer-actions {
+        grid-template-columns:1fr !important;
+      }
+
+      .es-customer-drawer-actions #editCustomerButton,
+      .es-customer-drawer-actions #sendCustomerFormButton,
+      .es-customer-drawer-actions #newCustomerBookingButton {
+        min-height:38px !important;
+        height:38px !important;
+        font-size:11px !important;
+      }
+    }
+
+
+    .es-customer-hub-header > a.es-secondary-button[href="/treatment-records/"] {
+      min-width:148px !important;
+      height:40px !important;
+      min-height:40px !important;
+      padding:0 14px !important;
+      margin:0 !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      box-sizing:border-box !important;
+      border-radius:10px !important;
+      text-align:center !important;
+      text-decoration:none !important;
+      font-size:11px !important;
+      font-weight:800 !important;
+      line-height:1 !important;
+    }
+
+</style>
+</head>
+
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
+
+    <aside
+  id="appSidebar"
+  class="es-sidebar"
+></aside>
+
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+
+        <div>
+          <p class="es-eyebrow">
+            Clients
+          </p>
+
+          <h1>
+            Customers
+          </h1>
+
+          <p class="es-lead">
+            Keep customer details, notes and appointment history together.
+          </p>
+        </div>
+
+        <div class="es-customers-header-actions">
+          <a
+            class="es-secondary-button es-mobile-manage-bookings"
+            href="/bookings/"
+          >
+            Manage bookings
+          </a>
+
+          <button
+            id="newCustomerButton"
+            class="es-button"
+            type="button"
+          >
+            New customer
+          </button>
+        </div>
+
+      </header>
+
+
+      <section class="es-customer-hub-kpis" aria-label="Customer and clinical overview">
+
+        <article class="es-customer-hub-kpi">
+          <span>Customers</span>
+          <strong id="customerHubTotalCustomers">0</strong>
+          <small>All customer profiles</small>
+        </article>
+
+        <article class="es-customer-hub-kpi">
+          <span>Treatment records</span>
+          <strong id="customerHubTreatmentRecords">0</strong>
+          <small>Clinical treatment history</small>
+        </article>
+
+        <article class="es-customer-hub-kpi">
+          <span>Needs details</span>
+          <strong id="customerHubNeedsDetails">0</strong>
+          <small>Records requiring attention</small>
+        </article>
+
+        <article class="es-customer-hub-kpi">
+          <span>Follow-ups planned</span>
+          <strong id="customerHubFollowups">0</strong>
+          <small>Records with a next treatment date</small>
+        </article>
+
+      </section>
+
+
+      <section class="es-dashboard-panel es-customer-clinical-overview">
+
+        <div class="es-customer-hub-header">
+          <div>
+            <p class="es-eyebrow">Clinical overview</p>
+            <h2>Customer care at a glance</h2>
+          </div>
+
+          <a class="es-secondary-button" href="/treatment-records/">
+            New treatment record
+          </a>
+        </div>
+
+        <div class="es-customer-hub-grid">
+
+          <div class="es-customer-hub-block">
+            <div class="es-customer-hub-block-title">
+              <h3>Needs attention</h3>
+              <span id="customerHubAttentionCount" class="es-customer-hub-count">0</span>
+            </div>
+
+            <div id="customerHubAttentionList" class="es-customer-hub-list">
+              <div class="es-empty-state">Loading clinical records…</div>
+            </div>
+          </div>
+
+          <div class="es-customer-hub-block">
+            <div class="es-customer-hub-block-title">
+              <h3>Recent treatment records</h3>
+              <span class="es-customer-hub-count">Latest</span>
+            </div>
+
+            <div id="customerHubRecentList" class="es-customer-hub-list">
+              <div class="es-empty-state">Loading treatment history…</div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <section
+        id="customerFormPanel"
+        class="es-dashboard-panel es-customer-form-panel"
+        hidden
+      >
+
+        <div class="es-panel-header">
+
+          <div>
+            <p
+              id="customerFormEyebrow"
+              class="es-eyebrow"
+            >
+              Customer
+            </p>
+
+            <h2 id="customerFormTitle">
+              Add customer
+            </h2>
+          </div>
+
+          <button
+            id="closeCustomerFormButton"
+            class="es-customer-top-close"
+            type="button"
+          >
+            Close
+          </button>
+
+        </div>
+
+
+        <form id="customerForm">
+
+          <input
+            id="customerId"
+            type="hidden"
+          >
+
+
+          <div class="es-form-grid">
+
+            <label>
+              First name
+
+              <input
+                id="customerFirstName"
+                type="text"
+                required
+                autocomplete="given-name"
+              >
+            </label>
+
+            <label>
+              Last name
+
+              <input
+                id="customerLastName"
+                type="text"
+                required
+                autocomplete="family-name"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Email
+
+              <input
+                id="customerEmail"
+                type="email"
+                autocomplete="email"
+              >
+            </label>
+
+            <label>
+              Phone
+
+              <input
+                id="customerPhone"
+                type="tel"
+                autocomplete="tel"
+              >
+            </label>
+
+          </div>
+
+
+          <label>
+            Customer notes
+
+            <textarea
+              id="customerNotes"
+              placeholder="Optional notes about this customer"
+            ></textarea>
+          </label>
+
+
+          <label class="es-customer-check">
+            <input
+              id="marketingConsent"
+              type="checkbox"
+            >
+
+            Marketing consent recorded
+          </label>
+
+
+          <div
+            id="customerFormStatus"
+            class="es-status"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+
+
+          <div class="es-form-actions">
+
+            <button
+              id="saveCustomerButton"
+              class="es-button"
+              type="submit"
+            >
+              Save customer
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+      <section class="es-dashboard-panel">
+
+        <div class="es-customers-toolbar">
+
+          <div>
+            <p class="es-eyebrow">
+              Customer directory
+            </p>
+
+            <h2>
+              Your customers
+            </h2>
+          </div>
+
+          <input
+            id="customerSearch"
+            class="es-customers-search"
+            type="search"
+            placeholder="Search name, email or phone"
+            aria-label="Search customers"
+          >
+
+        </div>
+
+
+        <div class="es-customer-directory-tabs" aria-label="Customer filters">
+          <button class="es-customer-directory-tab active" type="button" data-customer-hub-filter="all">
+            All customers
+          </button>
+          <button class="es-customer-directory-tab" type="button" data-customer-hub-filter="attention">
+            Needs attention
+          </button>
+          <button class="es-customer-directory-tab" type="button" data-customer-hub-filter="followup">
+            Follow-up planned
+          </button>
+        </div>
+
+
+        <div
+          id="customersList"
+          class="es-empty-state"
+        >
+          Loading customers…
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+  <div
+    id="customerDrawerBackdrop"
+    class="es-customer-drawer-backdrop"
+  ></div>
+
+
+  <aside
+    id="customerDrawer"
+    class="es-customer-drawer"
+    aria-hidden="true"
+  >
+
+    <div class="es-customer-drawer-header">
+
+      <div>
+        <p class="es-eyebrow">
+          Customer profile
+        </p>
+
+        <h2 id="customerDrawerName">
+          Customer
+        </h2>
+
+        <div
+          id="customerDrawerMeta"
+          class="es-customer-profile-meta"
+        ></div>
+      </div>
+
+      <button
+        id="closeCustomerDrawer"
+        class="es-customer-drawer-close"
+        type="button"
+        aria-label="Close"
+      >
+        Close
+      </button>
+
+    </div>
+
+
+    <div
+      id="customerProfileStats"
+      class="es-customer-profile-stats"
+    ></div>
+
+
+    <div class="es-customer-profile-accordions">
+
+      <details class="es-customer-accordion">
+        <summary class="es-customer-accordion-summary">
+          <span class="es-customer-accordion-title">Contact & notes</span>
+          <span id="customerContactSummary" class="es-customer-accordion-meta">Contact details</span>
+          <span class="es-customer-accordion-chevron" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="es-customer-accordion-body">
+          <div class="es-customer-accordion-subsection">
+            <div id="customerDetails" class="es-customer-detail-grid"></div>
+          </div>
+        </div>
+      </details>
+
+
+      <details class="es-customer-accordion">
+        <summary class="es-customer-accordion-summary">
+          <span class="es-customer-accordion-title">Appointments & packages</span>
+          <span id="customerAppointmentsSummary" class="es-customer-accordion-meta">Bookings and courses</span>
+          <span class="es-customer-accordion-chevron" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="es-customer-accordion-body">
+          <div class="es-customer-accordion-subsection">
+            <div class="es-customer-subsection-header"><h4>Upcoming bookings</h4></div>
+            <div id="customerUpcomingBookings" class="es-customer-appointments"></div>
+          </div>
+
+          <div class="es-customer-accordion-subsection">
+            <div class="es-customer-subsection-header">
+              <h4>Packages & courses</h4>
+              <a class="es-secondary-button" href="/packages/">Manage packages</a>
+            </div>
+            <div id="customerPackages" class="es-customer-packages"></div>
+          </div>
+
+          <div class="es-customer-accordion-subsection">
+            <div class="es-customer-subsection-header"><h4>Booking history</h4></div>
+            <div id="customerBookingHistory" class="es-customer-appointments"></div>
+          </div>
+        </div>
+      </details>
+
+
+      <details class="es-customer-accordion" open>
+        <summary class="es-customer-accordion-summary">
+          <span class="es-customer-accordion-title">Forms, records & photos</span>
+          <span id="customerRecordsSummary" class="es-customer-accordion-meta">Clinical overview</span>
+          <span class="es-customer-accordion-chevron" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="es-customer-accordion-body">
+          <div id="customerRecordHealth" class="es-customer-record-health"></div>
+
+          <div class="es-customer-accordion-subsection">
+            <div class="es-customer-subsection-header">
+              <h4>Forms & clinical records</h4>
+              <button id="sendCustomerFormInlineButton" class="es-secondary-button" type="button">Add form / record</button>
+            </div>
+            <div id="customerClinicalRecords" class="es-customer-record-list"></div>
+            <div id="customerInlineFormStatus" class="es-status" hidden></div>
+          </div>
+
+          <div class="es-customer-accordion-subsection">
+            <div class="es-customer-subsection-header">
+              <h4>Treatment records</h4>
+              <a id="newCustomerTreatmentButton" class="es-secondary-button" href="/treatment-records/">New record</a>
+            </div>
+            <div id="customerTreatmentRecords" class="es-customer-record-list"></div>
+          </div>
+
+          <div class="es-customer-accordion-subsection">
+            <div class="es-customer-subsection-header">
+              <h4>Photos</h4>
+              <button id="addCustomerPhotoButton" class="es-secondary-button" type="button">Add photo</button>
+            </div>
+            <div id="customerPhotos" class="es-customer-photos"></div>
+          </div>
+        </div>
+      </details>
+
+
+      <details class="es-customer-accordion">
+        <summary class="es-customer-accordion-summary">
+          <span class="es-customer-accordion-title">Payments & balances</span>
+          <span id="customerPaymentsSummary" class="es-customer-accordion-meta">Financial summary</span>
+          <span class="es-customer-accordion-chevron" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="es-customer-accordion-body">
+          <div class="es-customer-accordion-subsection">
+            <div id="customerPayments" class="es-customer-payments"></div>
+            <div id="customerPaymentsToggleWrap" class="es-customer-payments-toggle" hidden>
+              <button id="toggleFailedCustomerPayments" class="es-customer-action" type="button">Show failed attempts</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+
+      <details class="es-customer-accordion">
+        <summary class="es-customer-accordion-summary">
+          <span class="es-customer-accordion-title">Communications</span>
+          <span id="customerCommunicationsSummary" class="es-customer-accordion-meta">Email history</span>
+          <span class="es-customer-accordion-chevron" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="es-customer-accordion-body">
+          <div class="es-customer-accordion-subsection">
+            <div class="es-customer-subsection-header">
+              <h4>Email & messages</h4>
+              <a class="es-secondary-button" href="/communications/">Full log</a>
+            </div>
+            <div id="customerCommunications" class="es-customer-record-list"></div>
+          </div>
+        </div>
+      </details>
+
+
+      <details class="es-customer-accordion">
+        <summary class="es-customer-accordion-summary">
+          <span class="es-customer-accordion-title">Activity timeline</span>
+          <span id="customerTimelineSummary" class="es-customer-accordion-meta">Full customer history</span>
+          <span class="es-customer-accordion-chevron" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="es-customer-accordion-body">
+          <div class="es-customer-accordion-subsection">
+            <div id="customerTimeline" class="es-customer-timeline"></div>
+          </div>
+        </div>
+      </details>
+
+    </div>
+
+    <div class="es-customer-drawer-actions">
+
+      <button
+        id="editCustomerButton"
+        class="es-secondary-button"
+        type="button"
+      >
+        Edit customer
+      </button>
+
+      <button
+        id="sendCustomerFormButton"
+        class="es-secondary-button"
+        type="button"
+      >
+        Add form / record
+      </button>
+
+      <a
+        id="newCustomerBookingButton"
+        class="es-button"
+        href="/bookings/"
+      >
+        New booking
+      </a>
+
+    </div>
+
+  </aside>
+
+  <dialog
+    id="customerPhotoCompareDialog"
+    class="es-photo-compare-dialog"
+  >
+    <div class="es-photo-dialog-inner">
+      <div class="es-booking-dialog-header">
+        <div>
+          <p class="es-eyebrow">Photo comparison</p>
+          <h2 id="customerPhotoCompareTitle">Before & after</h2>
+        </div>
+        <button
+          id="closeCustomerPhotoCompareDialog"
+          class="es-dialog-close"
+          type="button"
+          aria-label="Close"
+        >Close</button>
+      </div>
+
+      <div class="es-photo-compare-grid">
+        <div class="es-photo-compare-panel">
+          <strong>Before</strong>
+          <div id="customerPhotoCompareBeforeList" class="es-photo-compare-list"></div>
+        </div>
+        <div class="es-photo-compare-panel">
+          <strong>After</strong>
+          <div id="customerPhotoCompareAfterList" class="es-photo-compare-list"></div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog
+    id="customerPhotoDialog"
+    class="es-photo-dialog"
+  >
+    <div class="es-photo-dialog-inner">
+
+      <div class="es-booking-dialog-header">
+        <div>
+          <p class="es-eyebrow">
+            Customer photo
+          </p>
+
+          <h2 id="customerPhotoDialogTitle">
+            Add photo
+          </h2>
+        </div>
+
+        <button
+          id="closeCustomerPhotoDialog"
+          class="es-dialog-close"
+          type="button"
+          aria-label="Close"
+        >
+          Close
+        </button>
+      </div>
+
+      <form id="customerPhotoForm">
+
+        <label>
+          Photos
+          <input
+            id="customerPhotoFile"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            required
+          >
+
+          <small class="es-field-help">
+            Select one or more JPG, PNG or WebP images. Each stored image is limited to 10 MB; larger phone photos are reduced in the browser where possible.
+          </small>
+        </label>
+
+        <div
+          id="customerPhotoItems"
+          class="es-customer-photo-upload-items"
+        ></div>
+
+        <div class="es-settings-divider"></div>
+
+        <p class="es-eyebrow">Link selected photos</p>
+
+        <small class="es-field-help">
+          Appointment and treatment links apply to this batch. Photo type, date and notes can be set separately for every image.
+        </small>
+
+        <label>
+          Link to appointment
+          <select id="customerPhotoAppointment">
+            <option value="">Customer only — no appointment</option>
+          </select>
+        </label>
+
+        <label>
+          Link to treatment record
+          <select id="customerPhotoTreatmentRecord">
+            <option value="">No treatment record</option>
+          </select>
+        </label>
+
+        <div
+          id="customerPhotoStatus"
+          class="es-status"
+          hidden
+        ></div>
+
+        <div class="es-form-actions">
+          <button
+            id="saveCustomerPhotoButton"
+            class="es-button"
+            type="submit"
+          >
+            Upload photo
+          </button>
+
+          <button
+            id="cancelCustomerPhotoButton"
+            class="es-secondary-button"
+            type="button"
+          >
+            Cancel
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </dialog>
+
+
+  <dialog
+    id="customerSendFormDialog"
+    class="es-form-request-dialog"
+  >
+    <div class="es-form-request-dialog-inner">
+
+      <div class="es-booking-dialog-header">
+        <div>
+          <p class="es-eyebrow">Client form</p>
+          <h2 id="customerSendFormTitle">Add form or record</h2>
+        </div>
+
+        <button
+          id="closeCustomerSendFormDialog"
+          class="es-dialog-close"
+          type="button"
+          aria-label="Close"
+        >
+          Close
+        </button>
+      </div>
+
+      <label>
+        Link to appointment
+        <select id="customerFormAppointment">
+          <option value="">Customer only — no appointment</option>
+        </select>
+      </label>
+
+      <label>
+        Form or record
+        <select id="customerFormTemplate">
+          <option value="">Choose a form</option>
+        </select>
+      </label>
+
+      <div
+        id="customerSendFormStatus"
+        class="es-status"
+        hidden
+      ></div>
+
+      <button
+        id="generateCustomerFormLinkButton"
+        class="es-button"
+        type="button"
+      >
+        Generate secure link
+      </button>
+
+      <div
+        id="customerGeneratedFormLinkWrap"
+        class="es-form-request-link"
+        hidden
+      >
+        <input
+          id="customerGeneratedFormLink"
+          type="text"
+          readonly
+          aria-label="Generated client form link"
+        >
+
+        <button
+          id="copyCustomerGeneratedFormLink"
+          class="es-secondary-button"
+          type="button"
+        >
+          Copy link
+        </button>
+
+        <button
+          id="emailCustomerGeneratedFormLink"
+          class="es-button"
+          type="button"
+        >
+          Send by email
+        </button>
+      </div>
+
+      <div class="es-settings-divider"></div>
+
+      <p class="es-eyebrow">Form history</p>
+
+      <div
+        id="customerFormRequests"
+        class="es-form-request-list"
+      ></div>
+
+    </div>
+  </dialog>
+
+
+<script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("customers");
+</script>
+  
+  <script src="/customers/customers.js"></script>
+
+</body>
+</html>
