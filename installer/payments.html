@@ -30,110 +30,58 @@
       </h1>
 
       <p class="es-lead">
-        Choose the payment methods you want available
-        for your business. You can change these later.
-      </p>
+  Choose the payment methods you want available
+  for your business. You can change these later.
+</p>
 
-      <form id="paymentsForm">
+<form id="paymentsForm">
 
-        <div class="es-payment-options">
+  <div class="es-payment-options">
 
-          <label class="es-payment-card">
-            <input
-              type="checkbox"
-              name="provider"
-              value="stripe"
-            >
+    <label class="es-payment-card">
+      <input
+        type="checkbox"
+        name="provider"
+        value="stripe"
+      >
 
-            <span class="es-payment-content">
-              <strong>Stripe</strong>
-              <small>
-                Accept secure card payments online.
-              </small>
-            </span>
-          </label>
+      <span class="es-payment-content">
+        <strong>Stripe</strong>
+        <small>
+          Accept secure card payments online.
+        </small>
+      </span>
+    </label>
 
+    <label class="es-payment-card">
+      <input
+        type="checkbox"
+        name="provider"
+        value="manual"
+      >
 
-          <label class="es-payment-card">
-            <input
-              type="checkbox"
-              name="provider"
-              value="paypal"
-            >
+      <span class="es-payment-content">
+        <strong>Pay in person</strong>
+        <small>
+          Allow clients to book without paying online.
+        </small>
+      </span>
+    </label>
 
-            <span class="es-payment-content">
-              <strong>PayPal</strong>
-              <small>
-                Let clients pay using PayPal.
-              </small>
-            </span>
-          </label>
+  </div>
 
+  <label class="es-default-payment">
+    Default payment method
 
-          <label class="es-payment-card">
-            <input
-              type="checkbox"
-              name="provider"
-              value="sumup"
-            >
-
-            <span class="es-payment-content">
-              <strong>SumUp</strong>
-              <small>
-                Accept payments through SumUp.
-              </small>
-            </span>
-          </label>
-
-
-          <label class="es-payment-card">
-            <input
-              type="checkbox"
-              name="provider"
-              value="square"
-            >
-
-            <span class="es-payment-content">
-              <strong>Square</strong>
-              <small>
-                Accept payments through Square.
-              </small>
-            </span>
-          </label>
-
-
-          <label class="es-payment-card">
-            <input
-              type="checkbox"
-              name="provider"
-              value="manual"
-              checked
-            >
-
-            <span class="es-payment-content">
-              <strong>Pay at appointment</strong>
-              <small>
-                Allow clients to book without paying online.
-              </small>
-            </span>
-          </label>
-
-        </div>
-
-
-        <label class="es-default-payment">
-          Default payment method
-
-          <select
-            id="defaultProvider"
-            required
-          >
-            <option value="manual">
-              Pay at appointment
-            </option>
-          </select>
-        </label>
-
+    <select
+      id="defaultProvider"
+      required
+    >
+      <option value="manual">
+        Pay in person
+      </option>
+    </select>
+  </label>
 
         <div class="es-payment-note">
           Online payment accounts will be connected securely
