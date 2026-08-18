@@ -185,7 +185,14 @@ async function statusResponse(request, env) {
     session: {
       status: install.status || "connecting",
       installation_url: install.installation_url || null,
-      message: install.message || ""
+      message: install.message || "",
+      can_resume: !!(
+        install?.resources?.github_owner &&
+        install?.resources?.github_repo &&
+        install?.resources?.cloudflare_account_id &&
+        install?.resources?.d1_database_id &&
+        install?.resources?.r2_bucket_name
+      )
     },
     providers: {
       cloudflare: { connected: !!creds.cloudflare, available: !!env.CLOUDFLARE_CLIENT_ID && !!env.CLOUDFLARE_CLIENT_SECRET },
@@ -208,6 +215,67 @@ async function statusResponse(request, env) {
   return response;
 }
 
+
+async function discoverCloudflarePagesOAuthScope(accessToken) {
+  if (!accessToken) return null;
+
+  // Cloudflare's OAuth client UI shows human-readable permission names, while
+  // authorization requests must use the catalog's exact scope `id`.
+  // Discover that ID from Cloudflare instead of hard-coding pages.write.
+  for (let page = 1; page <= 25; page++) {
+    const response = await fetch(`${CF_API}/oauth/scopes?page=${page}&per_page=100`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(
+        data?.errors?.[0]?.message ||
+        "Cloudflare could not list its OAuth scope catalog. Reconnect Cloudflare with the existing base permissions first."
+      );
+    }
+
+    const scopes = Array.isArray(data?.result) ? data.result : [];
+    const candidate = scopes.find((item) => {
+      const name = String(item?.name || "").toLowerCase();
+      const category = String(item?.category || "").toLowerCase();
+      return (
+        item?.id &&
+        name.includes("pages") &&
+        (name.includes("write") || name.includes("edit")) &&
+        (!category || category.includes("developer") || category.includes("platform"))
+      );
+    }) || scopes.find((item) => {
+      const name = String(item?.name || "").toLowerCase();
+      return item?.id && name.includes("pages") && (name.includes("write") || name.includes("edit"));
+    });
+
+    if (candidate?.id) return String(candidate.id);
+
+    const info = data?.result_info || {};
+    const totalPages = Math.ceil(Number(info.total_count || 0) / Math.max(Number(info.per_page || 100), 1));
+    if (!scopes.length || (totalPages && page >= totalPages)) break;
+  }
+
+  throw new Error(
+    "Cloudflare's OAuth catalog did not return a Pages Edit/Write scope. Check that Pages → Edit is enabled on the Eselram Provisioner OAuth client."
+  );
+}
+
+function mergeOAuthScopes(baseScopes, extraScope) {
+  const values = String(baseScopes || "")
+    .split(/\s+/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .filter((value) => value !== "pages.write"); // remove the previously guessed invalid ID
+
+  if (extraScope && !values.includes(extraScope)) values.push(extraScope);
+  return values.join(" ");
+}
+
 async function startProvider(request, env, provider) {
   const state = randomUrlSafe(24);
   const redirectUri = callbackUrl(env, provider);
@@ -216,7 +284,25 @@ async function startProvider(request, env, provider) {
 
   if (provider === "cloudflare") {
     requireOAuth(env.CLOUDFLARE_CLIENT_ID, env.CLOUDFLARE_CLIENT_SECRET, "Cloudflare");
-    const params = new URLSearchParams({ response_type: "code", client_id: env.CLOUDFLARE_CLIENT_ID, redirect_uri: redirectUri, scope: env.CLOUDFLARE_OAUTH_SCOPES || "", state });
+
+    const existingCloudflare = await providerCredential(request, env, "cloudflare");
+    let pagesScope = null;
+
+    if (existingCloudflare?.access_token) {
+      pagesScope = await discoverCloudflarePagesOAuthScope(existingCloudflare.access_token);
+    }
+
+    // First-time users can authorize the proven base scopes. Once connected,
+    // Reconnect Cloudflare discovers and requests the exact Pages scope ID from
+    // Cloudflare's live OAuth catalog.
+    const requestedScopes = mergeOAuthScopes(env.CLOUDFLARE_OAUTH_SCOPES || "", pagesScope);
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: env.CLOUDFLARE_CLIENT_ID,
+      redirect_uri: redirectUri,
+      scope: requestedScopes,
+      state
+    });
     target = `https://dash.cloudflare.com/oauth2/auth?${params}`;
   } else if (provider === "github") {
     requireOAuth(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, "GitHub");
@@ -249,8 +335,29 @@ async function providerCallback(request, env, provider) {
   const state = url.searchParams.get("state") || "";
   const code = url.searchParams.get("code") || "";
   const oauthError = url.searchParams.get("error") || "";
-  if (oauthError) throw new Error(`${provider} authorization was not completed.`);
-  if (!state || !code) throw new Error("OAuth callback is missing state or code.");
+  const oauthErrorDescription = url.searchParams.get("error_description") || "";
+  const oauthErrorUri = url.searchParams.get("error_uri") || "";
+
+  if (oauthError) {
+    const description = oauthErrorDescription
+      ? decodeURIComponent(oauthErrorDescription.replace(/\+/g, " "))
+      : "";
+    const detail = [
+      `${provider} authorization failed: ${oauthError}`,
+      description,
+      oauthErrorUri ? `More information: ${oauthErrorUri}` : ""
+    ].filter(Boolean).join(" — ");
+    throw new Error(detail);
+  }
+
+  if (!state || !code) {
+    const returnedParams = [...url.searchParams.keys()]
+      .filter((key) => !["code", "state"].includes(key))
+      .join(", ");
+    throw new Error(
+      `OAuth callback is missing ${!state && !code ? "state and code" : !state ? "state" : "code"}${returnedParams ? `. Returned parameters: ${returnedParams}` : "."}`
+    );
+  }
 
   const oauth = await unseal(env, readCookie(request, `${OAUTH_COOKIE_PREFIX}${provider}`));
   if (!oauth || oauth.state !== state || (Date.now() - Number(oauth.created_at || 0)) > STATE_MAX_AGE * 1000) {
@@ -536,10 +643,41 @@ async function encryptIntegrationCredential(value, installationSecret) {
   return ["v1", bytesToBase64(iv), bytesToBase64(ciphertext)].join(":");
 }
 
-async function createResendApiKey(resendCredential, slug) {
-  const accessToken = String(resendCredential?.access_token || "").trim();
-  if (!accessToken) throw new Error("The Resend OAuth connection does not contain an access token.");
+async function refreshResendCredential(env, resendCredential) {
+  const refreshToken = String(resendCredential?.refresh_token || "").trim();
 
+  // Resend OAuth access tokens are intentionally short-lived. If we have a
+  // refresh token, rotate it immediately before provisioning so long setup
+  // sessions cannot fail with an expired JWT.
+  if (!refreshToken) {
+    const accessToken = String(resendCredential?.access_token || "").trim();
+    if (!accessToken) throw new Error("Reconnect Email: the Resend OAuth session has no usable access or refresh token.");
+    return resendCredential;
+  }
+
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken
+  });
+
+  try {
+    const refreshed = await fetchFormJson(
+      `${RESEND_API}/oauth/token`,
+      body,
+      {},
+      basicAuth(env.RESEND_CLIENT_ID, env.RESEND_CLIENT_SECRET)
+    );
+    return refreshed;
+  } catch (error) {
+    throw new Error(`Reconnect Email: the Resend authorization has expired and could not be refreshed. ${error?.message || ""}`.trim());
+  }
+}
+
+async function createResendApiKey(resendCredential, slug, permission = "sending_access", suffix = "") {
+  const accessToken = String(resendCredential?.access_token || "").trim();
+  if (!accessToken) throw new Error("Reconnect Email: the Resend OAuth connection does not contain an access token.");
+
+  const label = suffix ? `Eselram ${slug} ${suffix}` : `Eselram ${slug}`;
   const response = await fetch(`${RESEND_API}/api-keys`, {
     method: "POST",
     headers: {
@@ -547,15 +685,16 @@ async function createResendApiKey(resendCredential, slug) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      name: `Eselram ${slug}`.slice(0, 50),
-      permission: "sending_access"
+      name: label.slice(0, 50),
+      permission
     })
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data?.token) {
-    throw new Error(data?.message || data?.error || "Unable to create the buyer-owned Resend sending key.");
+    const message = data?.message || data?.error || "Unable to create the buyer-owned Resend API key.";
+    throw new Error(`Resend setup failed: ${message}`);
   }
-  return { id: data.id || null, token: data.token };
+  return { id: data.id || null, token: data.token, permission };
 }
 
 async function seedConnectedIntegrations({
@@ -563,28 +702,39 @@ async function seedConnectedIntegrations({
   accountId,
   databaseId,
   installationSecret,
-  resendApiKey,
+  resendSendingKey,
+  resendSetupKey,
   stripeCredential,
   paymentMode
 }) {
   const businessId = "biz_provisioned";
+
   await d1Query(
     cfToken,
     accountId,
     databaseId,
-    `INSERT OR IGNORE INTO businesses (id, name, country_code, timezone, currency, locale) VALUES (?, ?, 'GB', 'Europe/London', 'GBP', 'en-GB')`,
+    `INSERT OR IGNORE INTO businesses (id, name, country_code, timezone, currency, locale)
+     VALUES (?, ?, 'GB', 'Europe/London', 'GBP', 'en-GB')`,
     [businessId, "Eselram setup"]
   );
 
   const encryptedEmail = await encryptIntegrationCredential(
-    JSON.stringify({ api_key: resendApiKey }),
+    JSON.stringify({
+      api_key: resendSendingKey?.token || "",
+      management_api_key: resendSetupKey?.token || "",
+      management_api_key_id: resendSetupKey?.id || null
+    }),
     installationSecret
   );
+
   await d1Query(
     cfToken,
     accountId,
     databaseId,
-    `INSERT INTO business_integrations (id, business_id, integration_type, provider, encrypted_credentials, config_json, status)
+    `INSERT INTO business_integrations (
+       id, business_id, integration_type, provider,
+       encrypted_credentials, config_json, status
+     )
      VALUES (?, ?, 'email', 'resend', ?, ?, 'configured')
      ON CONFLICT(business_id, integration_type) DO UPDATE SET
        provider = excluded.provider,
@@ -593,31 +743,59 @@ async function seedConnectedIntegrations({
        status = 'configured',
        last_error = NULL,
        updated_at = CURRENT_TIMESTAMP`,
-    [`bi_${crypto.randomUUID()}`, businessId, encryptedEmail, JSON.stringify({ from_name: "", from_email: "" })]
+    [
+      `bi_${crypto.randomUUID()}`,
+      businessId,
+      encryptedEmail,
+      JSON.stringify({
+        from_name: "",
+        from_email: "",
+        sending_domain_id: null,
+        sending_domain_name: "",
+        sending_domain_status: "not_configured"
+      })
+    ]
   );
 
-  if (paymentMode === "stripe") {
-    const stripeAccessToken = String(stripeCredential?.access_token || "").trim();
-    if (!stripeAccessToken) throw new Error("Stripe connected successfully but no connected-account access token was returned.");
+  const stripeAccessToken = String(stripeCredential?.access_token || "").trim();
+  const stripeConnected = Boolean(stripeAccessToken);
 
-    const stripeMode = stripeCredential?.livemode === true || stripeAccessToken.includes("_live_") ? "live" : "sandbox";
+  if (paymentMode === "stripe" && !stripeConnected) {
+    throw new Error("Stripe was selected but the Stripe authorization is no longer available. Reconnect Stripe.");
+  }
+
+  if (stripeConnected) {
+    const stripeMode =
+      stripeCredential?.livemode === true || stripeAccessToken.includes("_live_")
+        ? "live"
+        : "sandbox";
+
     const encryptedStripe = await encryptIntegrationCredential(
-      JSON.stringify({ secret_key: stripeAccessToken, webhook_secret: null }),
+      JSON.stringify({
+        secret_key: stripeAccessToken,
+        webhook_secret: null,
+        credential_source: "stripe_connect_oauth"
+      }),
       installationSecret
     );
+
     const stripeConfig = JSON.stringify({
       publishable_key: stripeCredential?.stripe_publishable_key || "",
       currency: "GBP",
       mode: stripeMode,
       has_webhook_secret: false,
-      connected_account_id: stripeCredential?.stripe_user_id || null
+      connected_account_id: stripeCredential?.stripe_user_id || null,
+      connected_via: "provisioner"
     });
 
     await d1Query(
       cfToken,
       accountId,
       databaseId,
-      `INSERT INTO business_integrations (id, business_id, integration_type, provider, encrypted_credentials, config_json, status)
+      `INSERT INTO business_integrations (
+         id, business_id, integration_type, provider,
+         encrypted_credentials, config_json, status
+       )
        VALUES (?, ?, 'payments', 'stripe', ?, ?, 'configured')
        ON CONFLICT(business_id, integration_type) DO UPDATE SET
          provider = excluded.provider,
@@ -633,31 +811,68 @@ async function seedConnectedIntegrations({
       cfToken,
       accountId,
       databaseId,
-      `INSERT INTO business_payment_providers (id, business_id, provider_key, is_enabled, is_default, connection_status, environment, external_account_reference, webhook_status)
-       VALUES (?, ?, 'stripe', 1, 1, 'connected', ?, ?, 'not_configured')
+      `INSERT INTO business_payment_providers (
+         id, business_id, provider_key, is_enabled, is_default,
+         connection_status, environment, external_account_reference, webhook_status
+       )
+       VALUES (?, ?, 'stripe', 1, ?, 'connected', ?, ?, 'not_configured')
        ON CONFLICT(business_id, provider_key) DO UPDATE SET
          is_enabled = 1,
-         is_default = 1,
+         is_default = excluded.is_default,
          connection_status = 'connected',
          environment = excluded.environment,
          external_account_reference = excluded.external_account_reference,
          updated_at = CURRENT_TIMESTAMP`,
-      [`payprov_${crypto.randomUUID()}`, businessId, stripeMode, stripeCredential?.stripe_user_id || null]
+      [
+        `payprov_${crypto.randomUUID()}`,
+        businessId,
+        paymentMode === "stripe" ? 1 : 0,
+        stripeMode,
+        stripeCredential?.stripe_user_id || null
+      ]
     );
-  } else {
+  }
+
+  if (paymentMode === "manual") {
     await d1Query(
       cfToken,
       accountId,
       databaseId,
-      `INSERT INTO business_payment_providers (id, business_id, provider_key, is_enabled, is_default, connection_status, environment, webhook_status)
-       VALUES (?, ?, 'manual', 1, 1, 'connected', 'live', 'configured')
+      `INSERT INTO business_payment_providers (
+         id, business_id, provider_key, is_enabled, is_default,
+         connection_status, environment, webhook_status
+       )
+       VALUES (?, ?, 'manual', 1, 1, 'connected', 'manual', 'configured')
        ON CONFLICT(business_id, provider_key) DO UPDATE SET
          is_enabled = 1,
          is_default = 1,
          connection_status = 'connected',
+         environment = 'manual',
          webhook_status = 'configured',
          updated_at = CURRENT_TIMESTAMP`,
       [`payprov_${crypto.randomUUID()}`, businessId]
+    );
+
+    if (stripeConnected) {
+      await d1Query(
+        cfToken,
+        accountId,
+        databaseId,
+        `UPDATE business_payment_providers
+         SET is_default = 0
+         WHERE business_id = ? AND provider_key = 'stripe'`,
+        [businessId]
+      );
+    }
+  } else if (paymentMode === "stripe") {
+    await d1Query(
+      cfToken,
+      accountId,
+      databaseId,
+      `UPDATE business_payment_providers
+       SET is_default = CASE WHEN provider_key = 'stripe' THEN 1 ELSE 0 END
+       WHERE business_id = ?`,
+      [businessId]
     );
   }
 }
@@ -696,6 +911,43 @@ function pagesSourceConfig(repo, branch, productionDeploymentsEnabled = false) {
   };
 }
 
+async function getPagesProjectIfExists(cfToken, accountId, projectName) {
+  try {
+    return await cfRequest(
+      cfToken,
+      accountId,
+      `/pages/projects/${encodeURIComponent(projectName)}`
+    );
+  } catch (error) {
+    const message = String(error?.message || error);
+    if (/\b404\b|not found/i.test(message)) return null;
+    throw error;
+  }
+}
+
+function pagesProjectMatchesRepo(project, repo) {
+  const config = project?.source?.config || {};
+  const wantedOwner = String(repo?.owner?.login || "").toLowerCase();
+  const wantedRepo = String(repo?.name || "").toLowerCase();
+  const actualOwner = String(config?.owner || "").toLowerCase();
+  const actualRepo = String(config?.repo_name || "").toLowerCase();
+
+  if (!project?.source) return false;
+  if (String(project.source.type || "").toLowerCase() !== "github") return false;
+
+  // Prefer immutable GitHub IDs when Cloudflare returns them.
+  if (config?.repo_id && repo?.id && String(config.repo_id) !== String(repo.id)) return false;
+  if (config?.owner_id && repo?.owner?.id && String(config.owner_id) !== String(repo.owner.id)) return false;
+
+  return actualOwner === wantedOwner && actualRepo === wantedRepo;
+}
+
+function isPagesAuthorizationError(message) {
+  return /authentication error|authorization|unauthori[sz]ed|forbidden|permission|not authorized|access denied/i.test(
+    String(message || "")
+  );
+}
+
 async function createAndDeployPagesProject({
   cfToken,
   accountId,
@@ -716,34 +968,88 @@ async function createAndDeployPagesProject({
     cronSecret
   });
 
+  // A failed earlier installation can leave a Pages project behind that still
+  // points at a temporary GitHub repository which the buyer later deleted.
+  // Reuse the project only when it is linked to THIS installation's repository.
+  let existingProject = await getPagesProjectIfExists(cfToken, accountId, projectName);
+
+  if (existingProject && !pagesProjectMatchesRepo(existingProject, repo)) {
+    await cfRequest(
+      cfToken,
+      accountId,
+      `/pages/projects/${encodeURIComponent(projectName)}`,
+      { method: "DELETE" }
+    );
+    existingProject = null;
+  }
+
   let project;
   try {
-    project = await cfRequest(cfToken, accountId, "/pages/projects", {
-      method: "POST",
-      body: JSON.stringify({
-        name: projectName,
-        production_branch: branch,
-        build_config: {
-          build_command: "exit 0",
-          destination_dir: ".",
-          root_dir: "/",
-          build_caching: false
-        },
-        deployment_configs: {
-          preview: deploymentConfig,
-          production: deploymentConfig
-        },
-        source: pagesSourceConfig(repo, branch, false)
-      })
-    });
+    if (existingProject) {
+      project = await cfRequest(
+        cfToken,
+        accountId,
+        `/pages/projects/${encodeURIComponent(projectName)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            production_branch: branch,
+            build_config: {
+              build_command: "exit 0",
+              destination_dir: ".",
+              root_dir: "/",
+              build_caching: false
+            },
+            deployment_configs: {
+              preview: deploymentConfig,
+              production: deploymentConfig
+            },
+            source: pagesSourceConfig(repo, branch, false)
+          })
+        }
+      );
+    } else {
+      project = await cfRequest(cfToken, accountId, "/pages/projects", {
+        method: "POST",
+        body: JSON.stringify({
+          name: projectName,
+          production_branch: branch,
+          build_config: {
+            build_command: "exit 0",
+            destination_dir: ".",
+            root_dir: "/",
+            build_caching: false
+          },
+          deployment_configs: {
+            preview: deploymentConfig,
+            production: deploymentConfig
+          },
+          source: pagesSourceConfig(repo, branch, false)
+        })
+      });
+    }
   } catch (error) {
     const message = String(error?.message || error);
-    if (/pages|permission|forbidden|authorization/i.test(message)) {
-      throw new Error(`${message} Ensure the Cloudflare OAuth client includes Pages → Edit (pages.write), then reconnect Cloudflare.`);
+
+    // Only show the OAuth/Pages permission instruction for genuine auth errors.
+    if (isPagesAuthorizationError(message)) {
+      throw new Error(
+        `${message} Cloudflare denied the Pages API request. Reconnect Cloudflare and confirm Pages → Edit is granted.`
+      );
     }
+
+    if (/linked to a repository that no longer exists/i.test(message)) {
+      throw new Error(
+        `${message} The installer detected a stale Cloudflare Pages/GitHub link but Cloudflare would not repair it automatically.`
+      );
+    }
+
     if (/github|repository|source/i.test(message)) {
-      throw new Error(`${message} Cloudflare Pages must have GitHub access to the newly created private repository.`);
+      throw new Error(
+        `${message} Cloudflare Pages must have GitHub access to the current buyer-owned repository ${repo?.owner?.login}/${repo?.name}.`
+      );
     }
+
     throw error;
   }
 
@@ -772,8 +1078,6 @@ async function createAndDeployPagesProject({
 
   const form = new FormData();
   form.set("branch", branch);
-  form.set("commit_hash", repo?.default_branch === branch ? String(repo?.pushed_at || "") : "");
-  form.delete("commit_hash");
   form.set("commit_message", "Initial Eselram deployment");
 
   const deployment = await cfFormRequest(
@@ -897,7 +1201,8 @@ async function provision(request, env) {
   const paymentMode = body.payment_mode === "stripe" ? "stripe" : "manual";
   const cf = await providerCredential(request, env, "cloudflare");
   const gh = await providerCredential(request, env, "github");
-  const resend = await providerCredential(request, env, "resend");
+  let resend = await providerCredential(request, env, "resend");
+  let refreshedResendCredential = null;
   const stripe = await providerCredential(request, env, "stripe");
 
   if (!cf?.access_token || !gh?.access_token || !resend?.access_token || (paymentMode === "stripe" && !stripe)) {
@@ -909,87 +1214,171 @@ async function provision(request, env) {
     return json({ ok: true, ...previous }, 200);
   }
 
-  let accountId = await selectedAccount(request, env);
+  const resumable = ["blocked", "error", "connecting"].includes(previous?.status) &&
+    previous?.resources?.github_owner &&
+    previous?.resources?.github_repo &&
+    previous?.resources?.cloudflare_account_id &&
+    previous?.resources?.d1_database_id &&
+    previous?.resources?.r2_bucket_name;
+
+  let accountId = resumable ? previous.resources.cloudflare_account_id : await selectedAccount(request, env);
   const accounts = await cloudflareAccounts(cf.access_token);
   if (!accountId && accounts.length === 1) accountId = accounts[0].id;
   if (!accountId) {
     return json({ ok: false, error: "Choose the Cloudflare account where Eselram should be installed." }, 409);
   }
 
-  const steps = {};
+  const steps = resumable ? JSON.parse(JSON.stringify(previous.steps || {})) : {};
+  const resources = resumable ? { ...(previous.resources || {}) } : {};
   const setStep = (key, status, message) => { steps[key] = { status, message }; };
 
   try {
-    const ghUser = await githubRequest(gh.access_token, "/user");
-    const slug = slugify(body.slug || `eselram-${randomUrlSafe(4).toLowerCase()}`);
+    let repo;
+    let slug;
+    let branch;
+    let d1Id;
+    let d1Name;
+    let bucket;
 
-    setStep("repository", "running", "Checking the Eselram template and creating your private GitHub copy.");
-    const templatePath = `/repos/${encodeURIComponent(env.ESELRAM_TEMPLATE_OWNER)}/${encodeURIComponent(env.ESELRAM_TEMPLATE_REPO)}`;
-    const template = await githubRequest(gh.access_token, templatePath);
-    if (!template?.is_template) {
-      throw new Error(`GitHub template ${env.ESELRAM_TEMPLATE_OWNER}/${env.ESELRAM_TEMPLATE_REPO} is reachable but is not marked as a template repository.`);
+    if (resumable) {
+      // IMPORTANT: a previous base provisioning run already created the buyer-owned
+      // GitHub repository, D1 database, R2 bucket and migrations. Continue from those
+      // exact resources instead of generating duplicates.
+      repo = await githubRequest(
+        gh.access_token,
+        `/repos/${encodeURIComponent(resources.github_owner)}/${encodeURIComponent(resources.github_repo)}`
+      );
+      slug = repo.name;
+      branch = resources.github_branch || repo.default_branch || "main";
+      d1Id = resources.d1_database_id;
+      d1Name = resources.d1_database_name || `${slug}-db`;
+      bucket = resources.r2_bucket_name;
+
+      setStep("repository", "complete", "Using the GitHub copy already created for this installation.");
+      setStep("database", "complete", "Using the D1 database already created for this installation.");
+      setStep("storage", "complete", "Using the secure file storage already created for this installation.");
+      setStep("migrations", "complete", steps.migrations?.message || "Database migrations were already applied.");
+    } else {
+      const ghUser = await githubRequest(gh.access_token, "/user");
+      slug = slugify(body.slug || `eselram-${randomUrlSafe(4).toLowerCase()}`);
+
+      setStep("repository", "running", "Checking the Eselram template and creating your private GitHub copy.");
+      const templatePath = `/repos/${encodeURIComponent(env.ESELRAM_TEMPLATE_OWNER)}/${encodeURIComponent(env.ESELRAM_TEMPLATE_REPO)}`;
+      const template = await githubRequest(gh.access_token, templatePath);
+      if (!template?.is_template) {
+        throw new Error(`GitHub template ${env.ESELRAM_TEMPLATE_OWNER}/${env.ESELRAM_TEMPLATE_REPO} is reachable but is not marked as a template repository.`);
+      }
+
+      repo = await githubRequest(gh.access_token, `${templatePath}/generate`, {
+        method: "POST",
+        body: JSON.stringify({
+          owner: ghUser.login,
+          name: slug,
+          description: "Independent Eselram installation",
+          private: true,
+          include_all_branches: false
+        })
+      });
+      branch = repo.default_branch || "main";
+      resources.github_owner = repo.owner.login;
+      resources.github_owner_id = repo.owner.id;
+      resources.github_repo = repo.name;
+      resources.github_repo_id = repo.id;
+      resources.github_branch = branch;
+      resources.cloudflare_account_id = accountId;
+      setStep("repository", "complete", "Your own GitHub copy is ready.");
+
+      setStep("database", "running", "Creating your private D1 database.");
+      d1Name = `${slug}-db`;
+      const d1 = await cfRequest(cf.access_token, accountId, "/d1/database", {
+        method: "POST",
+        body: JSON.stringify({ name: d1Name })
+      });
+      d1Id = d1.uuid || d1.id;
+      resources.d1_database_id = d1Id;
+      resources.d1_database_name = d1Name;
+      setStep("database", "complete", "Database created in your Cloudflare account.");
+
+      setStep("storage", "running", "Creating secure file storage.");
+      bucket = `${slug}-form-uploads`.slice(0, 63);
+      await cfRequest(cf.access_token, accountId, "/r2/buckets", {
+        method: "POST",
+        body: JSON.stringify({ name: bucket })
+      });
+      resources.r2_bucket_name = bucket;
+      setStep("storage", "complete", "Secure file storage is ready in your Cloudflare account.");
+
+      setStep("migrations", "running", "Applying the Eselram database schema in one batched operation.");
+      const migrations = await readTemplateMigrationsFromArchive(
+        gh.access_token,
+        env.ESELRAM_TEMPLATE_OWNER,
+        env.ESELRAM_TEMPLATE_REPO,
+        branch
+      );
+      await applyD1MigrationBatch(cf.access_token, accountId, d1Id, migrations);
+      setStep("migrations", "complete", `${migrations.length} database migrations applied.`);
     }
 
-    const repo = await githubRequest(gh.access_token, `${templatePath}/generate`, {
-      method: "POST",
-      body: JSON.stringify({
-        owner: ghUser.login,
-        name: slug,
-        description: "Independent Eselram installation",
-        private: true,
-        include_all_branches: false
-      })
-    });
-    setStep("repository", "complete", "Your own GitHub copy is ready.");
-
-    setStep("database", "running", "Creating your private D1 database.");
-    const d1Name = `${slug}-db`;
-    const d1 = await cfRequest(cf.access_token, accountId, "/d1/database", {
-      method: "POST",
-      body: JSON.stringify({ name: d1Name })
-    });
-    const d1Id = d1.uuid || d1.id;
-    setStep("database", "complete", "Database created in your Cloudflare account.");
-
-    setStep("storage", "running", "Creating secure file storage.");
-    const bucket = `${slug}-form-uploads`.slice(0, 63);
-    await cfRequest(cf.access_token, accountId, "/r2/buckets", {
-      method: "POST",
-      body: JSON.stringify({ name: bucket })
-    });
-    setStep("storage", "complete", "Secure file storage is ready in your Cloudflare account.");
-
-    setStep("migrations", "running", "Applying the Eselram database schema in one batched operation.");
-    const branch = repo.default_branch || "main";
-    const migrations = await readTemplateMigrationsFromArchive(
-      gh.access_token,
-      env.ESELRAM_TEMPLATE_OWNER,
-      env.ESELRAM_TEMPLATE_REPO,
-      branch
-    );
-    await applyD1MigrationBatch(cf.access_token, accountId, d1Id, migrations);
-    setStep("migrations", "complete", `${migrations.length} database migrations applied.`);
-
-    setStep("security", "running", "Generating installation-only encryption and scheduler secrets.");
+    setStep("security", "pending", "Installation-only encryption and scheduler secrets are ready to be injected during application setup.");
     const encryptionKey = randomUrlSafe(48);
     const cronSecret = randomUrlSafe(48);
 
-    setStep("email", "running", "Creating a buyer-owned Resend sending key and storing it encrypted in the new database.");
-    const resendApiKey = await createResendApiKey(resend, slug);
+    setStep("email", "running", "Refreshing the temporary Resend authorization and creating a buyer-owned sending key.");
+    resend = await refreshResendCredential(env, resend);
+    refreshedResendCredential = resend;
+    const resendSendingKey = await createResendApiKey(
+      resend,
+      slug,
+      "sending_access",
+      "Sending"
+    );
 
-    setStep("payments", "running", paymentMode === "stripe" ? "Saving the connected Stripe account securely in the new database." : "Configuring Pay in person as the default payment method.");
+    const resendSetupKey = await createResendApiKey(
+      resend,
+      slug,
+      "full_access",
+      "Domain setup"
+    );
+
+    setStep(
+      "payments",
+      "running",
+      paymentMode === "stripe"
+        ? "Saving the connected Stripe account securely in the new database."
+        : "Configuring Pay in person while preserving any connected Stripe account."
+    );
+
     await seedConnectedIntegrations({
       cfToken: cf.access_token,
       accountId,
       databaseId: d1Id,
       installationSecret: encryptionKey,
-      resendApiKey: resendApiKey.token,
+      resendSendingKey,
+      resendSetupKey,
       stripeCredential: stripe,
       paymentMode
     });
-    setStep("email", "complete", "A buyer-owned Resend sending key was created and encrypted in D1. Sender name/address can be completed inside Eselram.");
-    setStep("payments", "complete", paymentMode === "stripe" ? "Your connected Stripe account was saved for this installation." : "Pay in person is configured as the default payment method.");
 
+    resources.resend_api_key_id = resendSendingKey.id;
+    resources.resend_setup_api_key_id = resendSetupKey.id;
+
+    setStep(
+      "email",
+      "complete",
+      "Buyer-owned Resend sending and guided-domain credentials were created and encrypted in D1."
+    );
+
+    setStep(
+      "payments",
+      "complete",
+      stripe?.access_token
+        ? (paymentMode === "stripe"
+            ? "Stripe is connected and is the default payment method."
+            : "Pay in person is the default; the connected Stripe account is also available.")
+        : "Pay in person is configured as the default payment method."
+    );
+
+    setStep("security", "running", "Injecting installation-only secrets directly into your Cloudflare Pages project.");
     setStep("application", "running", "Creating your Cloudflare Pages application, bindings and first deployment.");
     const pages = await createAndDeployPagesProject({
       cfToken: cf.access_token,
@@ -1005,42 +1394,69 @@ async function provision(request, env) {
     setStep("security", "complete", "Installation-specific secrets were written directly to your Cloudflare Pages project and were not stored by Eselram.");
     setStep("verify", "pending", "Verification will begin automatically as soon as Cloudflare finishes the deployment.");
 
+    Object.assign(resources, {
+      github_owner: repo.owner.login,
+      github_owner_id: repo.owner.id,
+      github_repo: repo.name,
+      github_repo_id: repo.id,
+      github_branch: branch,
+      cloudflare_account_id: accountId,
+      d1_database_id: d1Id,
+      d1_database_name: d1Name,
+      r2_bucket_name: bucket,
+      pages_project_name: slug,
+      pages_deployment_id: pages.deployment?.id,
+      pages_base_url: pages.baseUrl,
+      auto_deploy_enabled: false
+    });
+
     const state = {
       status: "deploying",
       message: "Cloudflare is deploying your Eselram application. This page will update automatically.",
-      resources: {
-        github_owner: repo.owner.login,
-        github_owner_id: repo.owner.id,
-        github_repo: repo.name,
-        github_repo_id: repo.id,
-        github_branch: branch,
-        cloudflare_account_id: accountId,
-        d1_database_id: d1Id,
-        d1_database_name: d1Name,
-        r2_bucket_name: bucket,
-        resend_api_key_id: resendApiKey.id,
-        pages_project_name: slug,
-        pages_deployment_id: pages.deployment?.id,
-        pages_base_url: pages.baseUrl,
-        auto_deploy_enabled: false
-      },
+      resources,
       steps
     };
 
-    return json(
-      { ok: true, ...state },
-      200,
-      { "Set-Cookie": cookieHeader(COOKIE.install, await seal(env, state)) }
-    );
+    const responseHeaders = new Headers({
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store"
+    });
+    responseHeaders.append("Set-Cookie", cookieHeader(COOKIE.install, await seal(env, state)));
+    if (refreshedResendCredential) {
+      responseHeaders.append("Set-Cookie", cookieHeader(COOKIE.resend, await seal(env, refreshedResendCredential)));
+    }
+    return new Response(JSON.stringify({ ok: true, ...state }), {
+      status: 200,
+      headers: responseHeaders
+    });
   } catch (error) {
     const failedStep = Object.keys(steps).reverse().find((key) => steps[key]?.status === "running") || "verify";
     setStep(failedStep, "error", error.message || "Provisioning failed.");
-    const state = { status: "error", message: error.message || "Provisioning failed.", steps };
-    return json(
-      { ok: false, error: state.message, steps },
-      500,
-      { "Set-Cookie": cookieHeader(COOKIE.install, await seal(env, state)) }
+    const hasReusableBase = !!(
+      resources?.github_owner &&
+      resources?.github_repo &&
+      resources?.cloudflare_account_id &&
+      resources?.d1_database_id &&
+      resources?.r2_bucket_name
     );
+    const state = {
+      status: hasReusableBase ? "blocked" : "error",
+      message: error.message || "Provisioning failed.",
+      resources,
+      steps
+    };
+    const responseHeaders = new Headers({
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store"
+    });
+    responseHeaders.append("Set-Cookie", cookieHeader(COOKIE.install, await seal(env, state)));
+    if (refreshedResendCredential) {
+      responseHeaders.append("Set-Cookie", cookieHeader(COOKIE.resend, await seal(env, refreshedResendCredential)));
+    }
+    return new Response(JSON.stringify({ ok: false, error: state.message, resources, steps }), {
+      status: 500,
+      headers: responseHeaders
+    });
   }
 }
 
