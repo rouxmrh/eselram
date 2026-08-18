@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Branding | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+
+<body>
+  <main class="es-page">
+    <section class="es-card">
+
+      <div class="es-brand">ESELRAM</div>
+
+      <p class="es-eyebrow">Step 3 of 5</p>
+
+      <h1>Make Eselram yours.</h1>
+
+      <p class="es-lead">
+        Choose the colours and display preferences for your business.
+      </p>
+
+      <form id="brandingForm">
+
+        <label>
+          Primary colour
+          <div class="es-colour-field">
+            <input
+              id="primaryColour"
+              type="color"
+              value="#365c50"
+              aria-label="Primary colour"
+            >
+            <input
+              id="primaryColourText"
+              type="text"
+              value="#365c50"
+              maxlength="7"
+            >
+          </div>
+        </label>
+
+        <label>
+          Accent colour
+          <div class="es-colour-field">
+            <input
+              id="accentColour"
+              type="color"
+              value="#68706b"
+              aria-label="Accent colour"
+            >
+            <input
+              id="accentColourText"
+              type="text"
+              value="#68706b"
+              maxlength="7"
+            >
+          </div>
+        </label>
+
+        <label>
+          Theme
+          <select id="theme">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="system">Use device setting</option>
+          </select>
+        </label>
+
+        <label>
+          Time format
+          <select id="timeFormat">
+            <option value="24">24-hour</option>
+            <option value="12">12-hour</option>
+          </select>
+        </label>
+
+        <label>
+          Date format
+          <select id="dateFormat">
+            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+          </select>
+        </label>
+
+        <div
+          id="formStatus"
+          class="es-status"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+
+        <button
+          id="continueButton"
+          class="es-button"
+          type="submit"
+        >
+          Continue
+        </button>
+
+      </form>
+
+    </section>
+  </main>
+
+  <script src="/installer/branding.js"></script>
+</body>
+</html>

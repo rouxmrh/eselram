@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Hours | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+
+<body>
+
+  <main class="es-page">
+    <section class="es-card">
+
+      <div class="es-brand">ESELRAM</div>
+
+      <p class="es-eyebrow">Step 2 of 5</p>
+
+      <h1>When are you open?</h1>
+
+      <p class="es-lead">
+        Set the hours clients can book appointments.
+      </p>
+
+      <form id="hoursForm">
+
+        <div id="daysContainer"></div>
+
+        <label>
+          Booking interval
+          <select id="bookingInterval" required>
+            <option value="15">15 minutes</option>
+            <option value="20">20 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+          </select>
+        </label>
+
+        <div
+          id="formStatus"
+          class="es-status"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+
+        <button
+          id="continueButton"
+          class="es-button"
+          type="submit"
+        >
+          Continue
+        </button>
+
+      </form>
+
+    </section>
+  </main>
+
+  <script src="/installer/hours.js"></script>
+
+</body>
+</html>

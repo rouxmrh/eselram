@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Manage booking</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+<body>
+  <main class="booking-shell">
+    <section class="booking-card">
+      <header class="brand-header">
+        <img id="manageLogo" class="business-logo" alt="" hidden>
+        <div>
+          <div class="eyebrow">MANAGE BOOKING</div>
+          <h1 id="manageBusinessName">Your appointment</h1>
+        </div>
+      </header>
+
+      <div id="manageError" class="message error" hidden></div>
+      <div id="manageNotice" class="message" hidden></div>
+
+      <section class="step active" style="display:block;">
+        <div class="step-heading">
+          <div>
+            <div class="eyebrow">APPOINTMENT</div>
+            <h2 id="manageTitle">Loading your booking…</h2>
+          </div>
+        </div>
+
+        <div id="manageSummary" class="review-card" hidden></div>
+
+        <div id="managePaymentSection" style="margin-top:24px;" hidden>
+          <div class="eyebrow">PAYMENT</div>
+          <div id="managePaymentSummary" class="review-card" style="margin-top:10px;"></div>
+        </div>
+
+        <div id="manageFormsSection" style="margin-top:24px;" hidden>
+          <div class="eyebrow">FORMS</div>
+          <div id="manageFormsList" style="margin-top:10px;"></div>
+        </div>
+
+        <div id="manageActions" style="margin-top:28px;" hidden>
+          <div class="eyebrow">CHANGES</div>
+          <h2>Manage your appointment</h2>
+
+          <button id="showRescheduleButton" class="primary-button inline" type="button">
+            Reschedule appointment
+          </button>
+
+          <button id="cancelBookingButton" class="text-button" type="button" style="margin-left:12px;">
+            Cancel appointment
+          </button>
+        </div>
+
+        <div id="reschedulePanel" style="margin-top:28px;" hidden>
+          <div class="step-heading">
+            <div>
+              <div class="eyebrow">RESCHEDULE</div>
+              <h2>Choose a new date and time</h2>
+            </div>
+
+            <button id="closeRescheduleButton" class="text-button" type="button">
+              Close
+            </button>
+          </div>
+
+          <div class="date-row">
+            <label>
+              <span>Date</span>
+              <input id="manageDate" type="date">
+            </label>
+          </div>
+
+          <div id="manageSlotStatus" class="muted slot-status">
+            Choose a date to see available times.
+          </div>
+
+          <div id="manageSlots" class="slots"></div>
+        </div>
+
+        <p class="secure-note" style="margin-top:28px;">
+          This secure link only provides access to this appointment.
+        </p>
+      </section>
+
+      <footer class="booking-footer">
+        <span>Powered by Eselram · This business owns this booking system.</span>
+      </footer>
+    </section>
+  </main>
+
+  <script src="/manage-booking/manage-booking.js" defer></script>
+</body>
+</html>

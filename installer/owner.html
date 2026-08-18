@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Create Owner Account | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+</head>
+
+<body>
+
+  <main class="es-page">
+
+    <section class="es-card">
+
+      <div class="es-brand">
+        ESELRAM
+      </div>
+
+      <p class="es-eyebrow">
+        Step 5 of 5
+      </p>
+
+      <h1>
+        Create your owner account.
+      </h1>
+
+      <p class="es-lead">
+        This will be the main administrator
+        account for your business.
+      </p>
+
+      <form id="ownerForm">
+
+        <label>
+          Your name
+
+          <input
+            id="ownerName"
+            type="text"
+            required
+            autocomplete="name"
+          >
+        </label>
+
+
+        <label>
+          Email address
+
+          <input
+            id="ownerEmail"
+            type="email"
+            required
+            autocomplete="email"
+          >
+        </label>
+
+
+        <label>
+          Password
+
+          <div class="es-password-field">
+
+            <input
+              id="password"
+              type="password"
+              required
+              minlength="12"
+              autocomplete="new-password"
+            >
+
+            <button
+              class="es-password-toggle"
+              type="button"
+              data-target="password"
+            >
+              Show
+            </button>
+
+          </div>
+        </label>
+
+
+        <div class="es-password-help">
+          Use at least 12 characters.
+        </div>
+
+
+        <label>
+          Confirm password
+
+          <div class="es-password-field">
+
+            <input
+              id="confirmPassword"
+              type="password"
+              required
+              minlength="12"
+              autocomplete="new-password"
+            >
+
+            <button
+              class="es-password-toggle"
+              type="button"
+              data-target="confirmPassword"
+            >
+              Show
+            </button>
+
+          </div>
+        </label>
+
+
+        <div
+          id="formStatus"
+          class="es-status"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+
+
+        <button
+          id="createAccountButton"
+          class="es-button"
+          type="submit"
+        >
+          Finish Setup
+        </button>
+
+      </form>
+
+    </section>
+
+  </main>
+
+  <script src="/installer/owner.js"></script>
+
+</body>
+</html>
