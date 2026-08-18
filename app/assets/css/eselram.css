@@ -4512,10 +4512,9 @@ body {
    Installer Steps 1–5 — Eselram signature
    ======================================================= */
 .es-setup-signature {
-  margin-top: 42px;
   display: inline-flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
   color: #68706b;
   font-size: 12px;
@@ -4523,16 +4522,24 @@ body {
   letter-spacing: .02em;
 }
 
+.es-setup-signature--top {
+  margin: 0 0 38px;
+}
+
 .es-setup-signature img {
   display: block;
-  width: 52px;
-  height: 52px;
+  width: 92px;
+  height: auto;
   object-fit: contain;
 }
 
 @media (max-width: 650px) {
-  .es-setup-signature {
-    margin-top: 32px;
+  .es-setup-signature--top {
+    margin-bottom: 30px;
+  }
+
+  .es-setup-signature img {
+    width: 84px;
   }
 }
 
