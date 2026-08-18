@@ -707,7 +707,7 @@ export async function onRequestGet({
           emailComplete
             ? "Ready to send"
             : emailIntegration?.provider === "resend"
-              ? "Sending setup required"
+              ? "Domain verification required"
               : "Optional setup",
         detail:
           emailComplete

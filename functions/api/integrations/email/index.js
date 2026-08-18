@@ -221,6 +221,12 @@ export async function onRequestGet({
         sender_domain_required:
           !config.from_email ||
           looksLikePlaceholderSender(config.from_email),
+        sending_domain_id:
+          config.sending_domain_id || null,
+        sending_domain_name:
+          config.sending_domain_name || "",
+        sending_domain_status:
+          config.sending_domain_status || "not_configured",
         last_tested_at:
           integration.last_tested_at,
         last_error:
@@ -370,8 +376,15 @@ export async function onRequestPut({
       );
     }
 
+    const existingConfig =
+      parseJson(
+        existing?.config_json,
+        {}
+      );
+
     const configJson =
       JSON.stringify({
+        ...existingConfig,
         from_name: fromName,
         from_email: fromEmail
       });
@@ -549,6 +562,15 @@ export async function onRequestPost({
       normaliseEmail(
         config.from_email
       );
+
+    if (
+      !fromEmail ||
+      !isValidEmail(fromEmail)
+    ) {
+      return badRequest(
+        "Set up and verify a sending domain first. Once verified, Eselram will use an address such as notifications@yourdomain.co.uk."
+      );
+    }
 
     const resendResponse =
       await fetch(

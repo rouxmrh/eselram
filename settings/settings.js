@@ -687,9 +687,11 @@ async function loadStripeIntegration() {
 
 
     stripeSecretKeyHelp.textContent =
-      integration.has_secret_key
-        ? "A Stripe server-side key is already stored securely. Leave this blank to keep the existing key."
-        : "Paste a Stripe secret or restricted server-side key owned by this business.";
+      integration.provisioned_connection
+        ? "Stripe was connected during Eselram installation. The credential is stored securely; you do not need to paste a key."
+        : integration.has_secret_key
+          ? "A Stripe server-side key is already stored securely. Leave this blank to keep the existing key."
+          : "Stripe was not connected during this installation. You can configure it here with a business-owned key.";
 
 
     stripeWebhookSecretHelp.textContent =
@@ -708,11 +710,17 @@ async function loadStripeIntegration() {
 
 
     stripeIntegrationStatus.textContent =
-      labels[
-        integration.status
-      ] ||
-      integration.status ||
-      "Not configured";
+      integration.provisioned_connection ||
+      integration.connection_status ===
+        "connected"
+        ? "Connected"
+        : (
+            labels[
+              integration.status
+            ] ||
+            integration.status ||
+            "Not configured"
+          );
 
 
     stripeIntegrationMode.textContent =
@@ -1225,6 +1233,490 @@ const sendEmailTestButton =
   );
 
 
+const emailSendingDomain =
+  document.getElementById(
+    "emailSendingDomain"
+  );
+
+const createEmailDomainButton =
+  document.getElementById(
+    "createEmailDomainButton"
+  );
+
+const verifyEmailDomainButton =
+  document.getElementById(
+    "verifyEmailDomainButton"
+  );
+
+const emailDomainStatus =
+  document.getElementById(
+    "emailDomainStatus"
+  );
+
+const emailDnsRecordsWrap =
+  document.getElementById(
+    "emailDnsRecordsWrap"
+  );
+
+const emailDnsRecords =
+  document.getElementById(
+    "emailDnsRecords"
+  );
+
+const emailDomainActions =
+  document.getElementById(
+    "emailDomainActions"
+  );
+
+
+
+function clearNode(node) {
+  while (node?.firstChild) {
+    node.removeChild(node.firstChild);
+  }
+}
+
+function dnsRecordCell(label, value) {
+  const wrap =
+    document.createElement("div");
+
+  const span =
+    document.createElement("span");
+
+  const strong =
+    document.createElement("strong");
+
+  span.textContent =
+    label;
+
+  strong.textContent =
+    value || "—";
+
+  if (label === "Value") {
+    strong.style.wordBreak =
+      "break-all";
+  }
+
+  wrap.appendChild(span);
+  wrap.appendChild(strong);
+
+  return wrap;
+}
+
+function renderEmailDnsRecords(records = []) {
+  if (
+    !emailDnsRecords ||
+    !emailDnsRecordsWrap
+  ) {
+    return;
+  }
+
+  const list =
+    Array.isArray(records)
+      ? records
+      : [];
+
+  clearNode(emailDnsRecords);
+
+  if (!list.length) {
+    emailDnsRecordsWrap.hidden =
+      true;
+
+    return;
+  }
+
+  for (const record of list) {
+    const row =
+      document.createElement("div");
+
+    row.className =
+      "es-integration-summary";
+
+    row.style.marginTop =
+      "8px";
+
+    row.appendChild(
+      dnsRecordCell(
+        "Type",
+        String(
+          record.type ||
+          record.record_type ||
+          "DNS"
+        )
+      )
+    );
+
+    row.appendChild(
+      dnsRecordCell(
+        "Name",
+        String(
+          record.name ||
+          record.host ||
+          ""
+        )
+      )
+    );
+
+    row.appendChild(
+      dnsRecordCell(
+        "Value",
+        String(
+          record.value ||
+          record.content ||
+          ""
+        )
+      )
+    );
+
+    row.appendChild(
+      dnsRecordCell(
+        "Status",
+        String(
+          record.status ||
+          "Add to DNS"
+        )
+      )
+    );
+
+    emailDnsRecords.appendChild(
+      row
+    );
+  }
+
+  emailDnsRecordsWrap.hidden =
+    false;
+}
+
+async function loadEmailDomain() {
+  if (!emailDomainStatus) {
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/integrations/email/domain",
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+        "Unable to load sending-domain setup."
+      );
+    }
+
+    const domain =
+      data.domain || {};
+
+    const sendingInput =
+      document.getElementById(
+        "emailFromEmail"
+      );
+
+    if (emailSendingDomain) {
+      emailSendingDomain.value =
+        domain.domain_name ||
+        "";
+    }
+
+    if (
+      !domain.automation_available
+    ) {
+      emailDomainStatus.hidden =
+        false;
+
+      emailDomainStatus.className =
+        "es-status";
+
+      emailDomainStatus.textContent =
+        "This existing test installation was created before guided domain setup was enabled. Add and verify the domain in Resend manually for this test copy. New installations will complete this flow inside Eselram.";
+
+      emailDomainActions.hidden =
+        false;
+
+      createEmailDomainButton.disabled =
+        true;
+
+      renderEmailDnsRecords([]);
+
+      if (sendingInput) {
+        sendingInput.readOnly =
+          false;
+      }
+
+      return;
+    }
+
+    if (!domain.configured) {
+      emailDomainStatus.hidden =
+        false;
+
+      emailDomainStatus.className =
+        "es-status";
+
+      emailDomainStatus.textContent =
+        "Resend is connected. Add a domain you own to activate automated client emails.";
+
+      emailDomainActions.hidden =
+        true;
+
+      renderEmailDnsRecords([]);
+
+      if (sendingInput) {
+        sendingInput.value =
+          "";
+
+        sendingInput.readOnly =
+          true;
+      }
+
+      return;
+    }
+
+    emailDomainActions.hidden =
+      false;
+
+    renderEmailDnsRecords(
+      domain.records || []
+    );
+
+    if (domain.verified) {
+      emailDomainStatus.hidden =
+        false;
+
+      emailDomainStatus.className =
+        "es-status success";
+
+      emailDomainStatus.textContent =
+        `${domain.domain_name} is verified and ready for automated client emails.`;
+
+      if (sendingInput) {
+        sendingInput.value =
+          domain.suggested_sending_email ||
+          `notifications@${domain.domain_name}`;
+
+        sendingInput.readOnly =
+          false;
+      }
+
+      verifyEmailDomainButton.disabled =
+        true;
+
+      verifyEmailDomainButton.textContent =
+        "Domain verified";
+
+    } else {
+      emailDomainStatus.hidden =
+        false;
+
+      emailDomainStatus.className =
+        "es-status";
+
+      emailDomainStatus.textContent =
+        `${domain.domain_name} is ${domain.domain_status || "pending"}. Add the DNS records below, then check verification.`;
+
+      if (sendingInput) {
+        sendingInput.value =
+          "";
+
+        sendingInput.readOnly =
+          true;
+      }
+
+      verifyEmailDomainButton.disabled =
+        false;
+
+      verifyEmailDomainButton.textContent =
+        "Check verification";
+    }
+
+  } catch (error) {
+    emailDomainStatus.hidden =
+      false;
+
+    emailDomainStatus.className =
+      "es-status error";
+
+    emailDomainStatus.textContent =
+      error.message ||
+      "Unable to load sending-domain setup.";
+  }
+}
+
+
+createEmailDomainButton
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      const domain =
+        String(
+          emailSendingDomain?.value ||
+          ""
+        ).trim();
+
+      if (!domain) {
+        emailDomainStatus.hidden =
+          false;
+
+        emailDomainStatus.className =
+          "es-status error";
+
+        emailDomainStatus.textContent =
+          "Enter the domain you own, for example yourclinic.co.uk.";
+
+        return;
+      }
+
+      createEmailDomainButton.disabled =
+        true;
+
+      emailDomainStatus.hidden =
+        false;
+
+      emailDomainStatus.className =
+        "es-status";
+
+      emailDomainStatus.textContent =
+        "Creating the domain in your Resend account…";
+
+      try {
+        const response =
+          await fetch(
+            "/api/integrations/email/domain",
+            {
+              method:
+                "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                Accept:
+                  "application/json"
+              },
+              body:
+                JSON.stringify({
+                  action:
+                    "create",
+                  domain
+                })
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+          throw new Error(
+            data.error ||
+            "Unable to create the sending domain."
+          );
+        }
+
+        await loadEmailDomain();
+        await loadEmailIntegration();
+
+      } catch (error) {
+        emailDomainStatus.className =
+          "es-status error";
+
+        emailDomainStatus.textContent =
+          error.message ||
+          "Unable to create the sending domain.";
+
+      } finally {
+        createEmailDomainButton.disabled =
+          false;
+      }
+    }
+  );
+
+
+verifyEmailDomainButton
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      verifyEmailDomainButton.disabled =
+        true;
+
+      emailDomainStatus.hidden =
+        false;
+
+      emailDomainStatus.className =
+        "es-status";
+
+      emailDomainStatus.textContent =
+        "Checking the domain with Resend…";
+
+      try {
+        const response =
+          await fetch(
+            "/api/integrations/email/domain",
+            {
+              method:
+                "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                Accept:
+                  "application/json"
+              },
+              body:
+                JSON.stringify({
+                  action:
+                    "verify"
+                })
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+          throw new Error(
+            data.error ||
+            "Unable to verify the sending domain."
+          );
+        }
+
+        await loadEmailDomain();
+        await loadEmailIntegration();
+
+      } catch (error) {
+        emailDomainStatus.className =
+          "es-status error";
+
+        emailDomainStatus.textContent =
+          error.message ||
+          "Unable to verify the sending domain.";
+
+        verifyEmailDomainButton.disabled =
+          false;
+      }
+    }
+  );
+
+
 async function loadEmailIntegration() {
 
   emailIntegrationMessage.hidden =
@@ -1384,6 +1876,8 @@ async function loadEmailIntegration() {
       emailIntegrationMessage.textContent =
         integration.last_error;
     }
+
+    await loadEmailDomain();
 
 
   } catch (error) {

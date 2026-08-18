@@ -449,7 +449,21 @@ export async function onRequestGet({
         last_error:
           integration.last_error,
         webhook_url:
-          webhookUrl
+          webhookUrl,
+        connected_account_id:
+          config.connected_account_id ||
+          provider?.external_account_reference ||
+          null,
+        connected_via:
+          config.connected_via || null,
+        provisioned_connection:
+          Boolean(
+            integration.encrypted_credentials &&
+            (
+              provider?.connection_status === "connected" ||
+              config.connected_via === "provisioner"
+            )
+          )
       },
 
       encryption_ready:
@@ -834,12 +848,26 @@ export async function onRequestPut({
     }
 
 
+    const existingProviderRow =
+      await env.DB
+        .prepare(`
+          SELECT connection_status
+          FROM business_payment_providers
+          WHERE business_id = ?
+            AND provider_key = 'stripe'
+          LIMIT 1
+        `)
+        .bind(user.business_id)
+        .first();
+
     await upsertStripeProvider({
       env,
       businessId:
         user.business_id,
       connectionStatus:
-        "not_connected",
+        existingProviderRow?.connection_status === "connected"
+          ? "connected"
+          : "not_connected",
       environment:
         mode,
       webhookStatus:

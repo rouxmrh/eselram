@@ -125,6 +125,38 @@ export async function onRequestPost({
     }
 
 
+    const [existingStripeProvider, existingStripeIntegration] =
+      await Promise.all([
+        env.DB
+          .prepare(`
+            SELECT
+              connection_status,
+              environment,
+              external_account_reference,
+              webhook_status
+            FROM business_payment_providers
+            WHERE business_id = ? AND provider_key = 'stripe'
+            LIMIT 1
+          `)
+          .bind(business.id)
+          .first(),
+
+        env.DB
+          .prepare(`
+            SELECT
+              status,
+              encrypted_credentials
+            FROM business_integrations
+            WHERE business_id = ?
+              AND integration_type = 'payments'
+              AND provider = 'stripe'
+            LIMIT 1
+          `)
+          .bind(business.id)
+          .first()
+      ]);
+
+
     /*
       Disable existing provider settings first.
 
@@ -159,16 +191,35 @@ export async function onRequestPost({
           : 0;
 
 
+      const stripeWasProvisioned =
+        provider === "stripe" &&
+        Boolean(existingStripeIntegration?.encrypted_credentials) &&
+        ["configured", "verified"].includes(
+          String(existingStripeIntegration?.status || "")
+        );
+
       const connectionStatus =
         provider === "manual"
           ? "connected"
-          : "not_connected";
+          : stripeWasProvisioned
+            ? "connected"
+            : (existingStripeProvider?.connection_status || "not_connected");
 
 
       const webhookStatus =
         provider === "manual"
           ? "configured"
-          : "not_configured";
+          : (existingStripeProvider?.webhook_status || "not_configured");
+
+      const environment =
+        provider === "manual"
+          ? "manual"
+          : (existingStripeProvider?.environment || "sandbox");
+
+      const externalAccountReference =
+        provider === "stripe"
+          ? (existingStripeProvider?.external_account_reference || null)
+          : null;
 
 
       await env.DB
@@ -181,11 +232,12 @@ export async function onRequestPost({
             is_default,
             connection_status,
             environment,
+            external_account_reference,
             webhook_status
           )
 
           VALUES (
-            ?, ?, ?, 1, ?, ?, 'live', ?
+            ?, ?, ?, 1, ?, ?, ?, ?, ?
           )
 
           ON CONFLICT(
@@ -199,6 +251,10 @@ export async function onRequestPost({
               excluded.is_default,
             connection_status =
               excluded.connection_status,
+            environment =
+              excluded.environment,
+            external_account_reference =
+              COALESCE(excluded.external_account_reference, external_account_reference),
             webhook_status =
               excluded.webhook_status,
             updated_at =
@@ -211,6 +267,8 @@ export async function onRequestPost({
           provider,
           isDefault,
           connectionStatus,
+          environment,
+          externalAccountReference,
           webhookStatus
         )
 

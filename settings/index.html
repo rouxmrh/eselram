@@ -1344,7 +1344,8 @@
                   <input
                     id="emailFromEmail"
                     type="email"
-                    placeholder="notifications@yourverifieddomain.co.uk"
+                    placeholder="Set up a verified domain below"
+                    readonly
                   >
 
                   <small class="es-field-help">
@@ -1375,18 +1376,76 @@
 
 
               <div class="es-empty-state" style="margin-top:16px;">
-                <strong>Need to set up a sending domain?</strong>
+                <strong>Set up your sending domain</strong>
                 <span>
-                  Add and verify a domain in your Resend account first. You can finish using Eselram without this; automated client emails will remain inactive until the sending address is verified.
+                  Your normal Gmail or Outlook address stays as your business contact and reply address. Add a domain you own here for automated client emails.
                 </span>
-                <a
-                  class="es-secondary-button"
-                  href="https://resend.com/domains"
-                  target="_blank"
-                  rel="noopener noreferrer"
+
+                <div class="es-form-grid" style="width:100%; margin-top:12px;">
+                  <label>
+                    Business domain
+
+                    <input
+                      id="emailSendingDomain"
+                      type="text"
+                      placeholder="yourclinic.co.uk"
+                      autocomplete="off"
+                    >
+                  </label>
+
+                  <div class="es-field-button">
+                    <button
+                      id="createEmailDomainButton"
+                      class="es-secondary-button"
+                      type="button"
+                    >
+                      Add domain
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  id="emailDomainStatus"
+                  class="es-status"
+                  hidden
+                  style="width:100%;"
+                ></div>
+
+                <div
+                  id="emailDnsRecordsWrap"
+                  hidden
+                  style="width:100%; text-align:left;"
                 >
-                  Open Resend domains
-                </a>
+                  <strong>DNS records to add</strong>
+                  <p class="es-field-help">
+                    Add these records wherever your domain DNS is managed, then click Check verification.
+                  </p>
+                  <div id="emailDnsRecords"></div>
+                </div>
+
+                <div
+                  id="emailDomainActions"
+                  class="es-settings-actions"
+                  hidden
+                  style="width:100%;"
+                >
+                  <button
+                    id="verifyEmailDomainButton"
+                    class="es-secondary-button"
+                    type="button"
+                  >
+                    Check verification
+                  </button>
+
+                  <a
+                    class="es-secondary-button"
+                    href="https://resend.com/domains"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open Resend
+                  </a>
+                </div>
               </div>
 
               <div
