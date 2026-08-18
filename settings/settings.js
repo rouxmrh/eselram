@@ -687,11 +687,11 @@ async function loadStripeIntegration() {
       not_configured:
         "Not configured",
       configured:
-        "Configured — test required",
+        "Connected — sending test required",
       verified:
-        "Connected",
+        "Ready to send",
       error:
-        "Connection error",
+        "Sending setup required",
       disabled:
         "Disabled"
     };
@@ -1241,11 +1241,11 @@ async function loadEmailIntegration() {
       not_configured:
         "Not configured",
       configured:
-        "Configured — test required",
+        "Connected — sending test required",
       verified:
-        "Connected",
+        "Ready to send",
       error:
-        "Connection error",
+        "Sending setup required",
       disabled:
         "Disabled"
     };
@@ -1399,7 +1399,7 @@ emailIntegrationForm
           "es-status success";
 
         emailIntegrationMessage.textContent =
-          "Email settings saved. Send a test email to verify the connection.";
+          "Email settings saved. If the sending domain is verified in Resend, send a test email to activate automated client emails.";
 
 
         await loadEmailIntegration();

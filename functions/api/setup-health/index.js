@@ -471,17 +471,27 @@ export async function onRequestGet({
         "verified";
 
 
+    const enabledPaymentKeys = String(
+      paymentSummary?.enabled_keys || ""
+    )
+      .split(",")
+      .map(value => value.trim())
+      .filter(Boolean);
+
+    const manualPaymentEnabled =
+      enabledPaymentKeys.includes("manual");
+
+    // Pay at appointment is an internal/manual method and does not need an
+    // external provider connection. Treat it as ready when it is the only
+    // enabled/default method, including older provisioned installations whose
+    // connection_status may not have been persisted correctly.
     const paymentsComplete =
-      Number(
-        paymentSummary?.enabled_count || 0
-      ) >= 1 &&
-      Number(
-        paymentSummary?.default_count || 0
-      ) === 1 &&
-      Number(
-        paymentSummary
-          ?.connected_default_count || 0
-      ) === 1;
+      Number(paymentSummary?.enabled_count || 0) >= 1 &&
+      Number(paymentSummary?.default_count || 0) === 1 &&
+      (
+        Number(paymentSummary?.connected_default_count || 0) === 1 ||
+        (manualPaymentEnabled && Number(paymentSummary?.enabled_count || 0) === 1)
+      );
 
 
     const templatesComplete =
@@ -695,14 +705,20 @@ export async function onRequestGet({
           emailComplete,
         status:
           emailComplete
-            ? "Connected"
-            : "Needs attention",
+            ? "Ready to send"
+            : emailIntegration?.provider === "resend"
+              ? "Sending setup required"
+              : "Optional setup",
         detail:
           emailComplete
-            ? "The business's own Resend connection has passed a test."
-            : "Connect and test the business's own email provider.",
+            ? "The business's own Resend connection and sending address have passed a test."
+            : emailIntegration?.provider === "resend"
+              ? "Resend is connected. Verify a business sending domain before automated client emails are enabled."
+              : "Email can be configured later. A verified business sending domain is required before automated client emails are enabled.",
         href:
-          "/settings/#email"
+          "/settings/#email",
+        required:
+          false
       }),
 
 
@@ -722,7 +738,7 @@ export async function onRequestGet({
             ? `Default payment method is connected${paymentSummary?.enabled_keys ? ` · ${paymentSummary.enabled_keys}` : ""}.`
             : "Enable a payment method and ensure the default method is connected.",
         href:
-          "/payments/"
+          "/settings/#payments"
       }),
 
 

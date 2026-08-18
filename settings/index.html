@@ -1308,7 +1308,7 @@
                 </h2>
 
                 <p class="es-muted-copy">
-                  Connect your own Resend account. Your API key is encrypted before it is stored.
+                  Resend is used for automated client emails. Your normal business email can stay as your contact and reply address; the sending address must use a domain verified in your Resend account.
                 </p>
               </div>
 
@@ -1364,14 +1364,18 @@
 
 
                 <label>
-                  From email
+                  Sending email
 
                   <input
                     id="emailFromEmail"
                     type="email"
-                    placeholder="forms@myclinic.co.uk"
+                    placeholder="notifications@yourclinic.co.uk"
                     required
                   >
+
+                  <small class="es-field-help">
+                    This must be on a domain verified in Resend. Gmail, Outlook and other personal email addresses can still be used as your business contact/reply address, but not as the sending address.
+                  </small>
                 </label>
 
               </div>
@@ -1395,6 +1399,21 @@
                 </small>
               </label>
 
+
+              <div class="es-empty-state" style="margin-top:16px;">
+                <strong>Need to set up a sending domain?</strong>
+                <span>
+                  Add and verify a domain in your Resend account first. You can finish using Eselram without this; automated client emails will remain inactive until the sending address is verified.
+                </span>
+                <a
+                  class="es-secondary-button"
+                  href="https://resend.com/domains"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open Resend domains
+                </a>
+              </div>
 
               <div
                 id="emailIntegrationMessage"
@@ -1442,7 +1461,7 @@
                 </h3>
 
                 <p class="es-muted-copy">
-                  Save your email settings first, then confirm that your own Resend account and verified sender are working.
+                  Once your sending domain is verified in Resend, save the sending address above and send a test. Your normal business email can be used in the “Send test to” box.
                 </p>
               </div>
 
