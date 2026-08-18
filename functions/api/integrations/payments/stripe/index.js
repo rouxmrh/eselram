@@ -494,21 +494,36 @@ export async function onRequestPatch({ request, env }) {
       return badRequest("Only Pay in person can be selected here without connecting Stripe.");
     }
 
+    // The provisioner already creates the manual provider for every business.
+    // Keep this update compatible with the installed schema: do not rely on
+    // optional timestamp columns or a composite UNIQUE constraint.
     await env.DB.prepare(`
       UPDATE business_payment_providers
-      SET is_default = 0, updated_at = CURRENT_TIMESTAMP
+      SET is_default = 0
       WHERE business_id = ?
     `).bind(user.business_id).run();
 
-    await env.DB.prepare(`
-      INSERT INTO business_payment_providers (
-        id, business_id, provider_key, is_enabled, is_default,
-        connection_status, environment, webhook_status, last_sync_at
-      ) VALUES (?, ?, 'manual', 1, 1, 'connected', 'manual', 'configured', CURRENT_TIMESTAMP)
-      ON CONFLICT(business_id, provider_key) DO UPDATE SET
-        is_enabled = 1, is_default = 1, connection_status = 'connected',
-        webhook_status = 'configured', updated_at = CURRENT_TIMESTAMP
-    `).bind(`payprov_${crypto.randomUUID()}`, user.business_id).run();
+    const manualResult = await env.DB.prepare(`
+      UPDATE business_payment_providers
+      SET is_enabled = 1,
+          is_default = 1,
+          connection_status = 'connected',
+          environment = 'manual',
+          webhook_status = 'configured'
+      WHERE business_id = ? AND provider_key = 'manual'
+    `).bind(user.business_id).run();
+
+    // Defensive fallback for older installations where the manual row was
+    // not provisioned. Avoid ON CONFLICT because older schemas may not have
+    // the required composite unique index.
+    if (!manualResult?.meta?.changes) {
+      await env.DB.prepare(`
+        INSERT INTO business_payment_providers (
+          id, business_id, provider_key, is_enabled, is_default,
+          connection_status, environment, webhook_status
+        ) VALUES (?, ?, 'manual', 1, 1, 'connected', 'manual', 'configured')
+      `).bind(`payprov_${crypto.randomUUID()}`, user.business_id).run();
+    }
 
     return Response.json({ ok: true, default_provider: "manual" });
   } catch (error) {
