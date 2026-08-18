@@ -1,0 +1,1910 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Settings | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+
+  <style>
+    .es-settings-header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .es-settings-header-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .es-settings-header-actions .es-secondary-button {
+      min-width:132px;
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      text-decoration:none;
+    }
+
+    .es-settings-layout {
+      gap:18px;
+      align-items:start;
+    }
+
+    .es-settings-tabs {
+      position:sticky;
+      top:18px;
+      padding:10px;
+      border:1px solid var(--es-border);
+      border-radius:18px;
+      background:var(--es-surface);
+      box-shadow:0 7px 22px rgba(28,34,30,.035);
+    }
+
+    .es-settings-tabs::before {
+      content:"Settings";
+      display:block;
+      padding:8px 10px 10px;
+      color:var(--es-muted);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .es-settings-tabs button,
+    .es-settings-tabs .es-settings-nav-link {
+      width:100%;
+      min-height:42px;
+      display:flex;
+      align-items:center;
+      box-sizing:border-box;
+      border-radius:11px;
+    }
+
+    .es-settings-tabs button {
+      text-align:left;
+    }
+
+    .es-settings-tabs .es-settings-nav-link {
+      padding:0 12px;
+      text-decoration:none;
+    }
+
+    .es-settings-panel {
+      border:1px solid var(--es-border);
+      border-radius:18px;
+      background:var(--es-surface);
+      padding:22px;
+      box-shadow:0 7px 22px rgba(28,34,30,.035);
+    }
+
+    .es-settings-panel .es-panel-header {
+      padding-bottom:16px;
+      margin-bottom:18px;
+      border-bottom:1px solid var(--es-border);
+    }
+
+    .es-settings-panel .es-form-actions {
+      display:flex;
+      align-items:center;
+      gap:9px;
+      flex-wrap:wrap;
+    }
+
+    .es-settings-panel .es-form-actions .es-button,
+    .es-settings-panel .es-form-actions .es-secondary-button,
+    .es-settings-panel .es-form-actions button,
+    .es-settings-panel .es-form-actions a {
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+    }
+
+    @media(max-width:850px) {
+      .es-settings-header {
+        flex-direction:column;
+      }
+
+      .es-settings-tabs {
+        position:static;
+      }
+    }
+  
+    /* Mobile-only premium layout for Hours & availability / Blocked dates. */
+    @media (max-width:700px) {
+      #tab-hours .es-settings-panel,
+      #tab-hours {
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+
+      #tab-hours .es-panel-header {
+        align-items:flex-start !important;
+        gap:10px !important;
+      }
+
+      #tab-hours .es-panel-header h2 {
+        font-size:22px !important;
+        line-height:1.1 !important;
+      }
+
+      #tab-hours .es-muted-copy,
+      #tab-hours .es-field-help {
+        max-width:100% !important;
+        overflow-wrap:anywhere !important;
+      }
+
+      /* From / To become clean stacked fields on phone. */
+      #tab-hours .es-form-grid {
+        grid-template-columns:1fr !important;
+        gap:0 !important;
+      }
+
+      #tab-hours label {
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+
+      #settingsBlockedFromDate,
+      #settingsBlockedToDate,
+      #settingsBlockedReason {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        box-sizing:border-box !important;
+      }
+
+      #addBlockedDateButton,
+      #saveWorkingHoursButton {
+        width:100% !important;
+        min-width:0 !important;
+        min-height:44px !important;
+        margin-top:12px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        box-sizing:border-box !important;
+      }
+
+      #blockedDatesList {
+        display:grid !important;
+        gap:10px !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        margin-top:16px !important;
+      }
+
+      /* Each blocked date becomes its own tidy mobile card. */
+      #blockedDatesList .es-service-row {
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:12px !important;
+        align-items:start !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        padding:14px !important;
+        box-sizing:border-box !important;
+        border:1px solid var(--es-border) !important;
+        border-radius:14px !important;
+        background:#fafbf8 !important;
+      }
+
+      #blockedDatesList .es-service-main {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        display:grid !important;
+        gap:4px !important;
+      }
+
+      #blockedDatesList .es-service-main strong,
+      #blockedDatesList .es-service-main span {
+        display:block !important;
+        max-width:100% !important;
+        overflow-wrap:anywhere !important;
+        white-space:normal !important;
+      }
+
+      #blockedDatesList .es-service-main strong {
+        font-size:14px !important;
+        line-height:1.3 !important;
+      }
+
+      #blockedDatesList .es-service-main span {
+        font-size:12px !important;
+        color:var(--es-muted) !important;
+      }
+
+      #blockedDatesList .es-secondary-button {
+        width:100% !important;
+        min-width:0 !important;
+        min-height:40px !important;
+        margin:0 !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        box-sizing:border-box !important;
+      }
+
+      #blockedDatesList .es-empty-state {
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+        box-sizing:border-box !important;
+        padding:22px 16px !important;
+        margin-top:0 !important;
+      }
+
+      #workingHoursStatus {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        box-sizing:border-box !important;
+        overflow-wrap:anywhere !important;
+      }
+    }
+
+
+    /* Mobile-only Settings / Blocked dates cleanup.
+       Desktop settings remain unchanged. */
+    @media (max-width:700px) {
+      .es-settings-layout {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        margin-top:22px !important;
+        gap:14px !important;
+      }
+
+      /* Replace the overflowing horizontal settings pills with a tidy 2-column grid. */
+      .es-settings-tabs {
+        position:static !important;
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+        gap:8px !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        padding:10px !important;
+        overflow:visible !important;
+        box-sizing:border-box !important;
+      }
+
+      .es-settings-tabs::before {
+        grid-column:1 / -1 !important;
+        padding:4px 4px 6px !important;
+      }
+
+      .es-settings-tabs button,
+      .es-settings-tabs .es-settings-nav-link {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        min-height:42px !important;
+        height:auto !important;
+        margin:0 !important;
+        padding:9px 10px !important;
+        border:1px solid var(--es-border) !important;
+        border-radius:12px !important;
+        background:var(--es-surface) !important;
+        box-sizing:border-box !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        text-align:center !important;
+        white-space:normal !important;
+        overflow-wrap:anywhere !important;
+        line-height:1.2 !important;
+      }
+
+      .es-settings-tabs button.active {
+        background:#f1f3ef !important;
+        border-color:color-mix(in srgb, var(--es-primary) 34%, var(--es-border)) !important;
+      }
+
+      .es-settings-content,
+      .es-settings-panel,
+      #tab-hours {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        box-sizing:border-box !important;
+      }
+
+      .es-settings-panel {
+        padding:18px !important;
+      }
+
+      /* Working-hours rows become clean vertical cards instead of compressed fields. */
+      #tab-hours .es-hours-setting-row,
+      #tab-hours .es-hours-row {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        grid-template-columns:1fr auto !important;
+        gap:10px 12px !important;
+        padding:14px 0 !important;
+        box-sizing:border-box !important;
+      }
+
+      #tab-hours .es-hours-day {
+        grid-column:1 !important;
+        grid-row:1 !important;
+      }
+
+      #tab-hours .es-hours-toggle {
+        grid-column:2 !important;
+        grid-row:1 !important;
+        justify-self:end !important;
+        max-width:100% !important;
+      }
+
+      #tab-hours .settings-open-time,
+      #tab-hours .settings-close-time,
+      #tab-hours input[type="time"] {
+        grid-column:1 / -1 !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        margin:0 !important;
+        box-sizing:border-box !important;
+      }
+
+      #tab-hours .es-hours-separator {
+        display:none !important;
+      }
+
+      /* Time-off fields and saved blocked dates stay inside the phone viewport. */
+      #tab-hours .es-form-grid {
+        grid-template-columns:1fr !important;
+        gap:0 !important;
+      }
+
+      #settingsBlockedFromDate,
+      #settingsBlockedToDate,
+      #settingsBlockedReason,
+      #addBlockedDateButton,
+      #saveWorkingHoursButton,
+      #blockedDatesList,
+      #workingHoursStatus {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        box-sizing:border-box !important;
+      }
+
+      #addBlockedDateButton,
+      #saveWorkingHoursButton {
+        min-height:44px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+      }
+
+      #blockedDatesList {
+        display:grid !important;
+        gap:10px !important;
+        margin-top:16px !important;
+        overflow:visible !important;
+      }
+
+      #blockedDatesList .es-service-row {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:12px !important;
+        padding:14px !important;
+        border:1px solid var(--es-border) !important;
+        border-radius:14px !important;
+        background:#fafbf8 !important;
+        box-sizing:border-box !important;
+        overflow:hidden !important;
+      }
+
+      #blockedDatesList .es-service-main,
+      #blockedDatesList .es-service-main strong,
+      #blockedDatesList .es-service-main span {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        white-space:normal !important;
+        overflow-wrap:anywhere !important;
+      }
+
+      #blockedDatesList .es-secondary-button {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        min-height:40px !important;
+        margin:0 !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        box-sizing:border-box !important;
+      }
+    }
+
+    @media (max-width:380px) {
+      .es-settings-tabs {
+        grid-template-columns:1fr !important;
+      }
+    }
+
+
+    /* Mobile-only Settings polish. */
+    .es-settings-mobile-back {
+      display:none;
+    }
+
+    @media (max-width:700px) {
+      .es-settings-header {
+        display:grid !important;
+        grid-template-columns:minmax(0,1fr) auto !important;
+        align-items:start !important;
+        gap:12px !important;
+      }
+
+      .es-settings-header > div {
+        min-width:0 !important;
+      }
+
+      .es-settings-mobile-back {
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        align-self:start !important;
+        min-width:0 !important;
+        min-height:38px !important;
+        height:38px !important;
+        margin:0 !important;
+        padding:0 12px !important;
+        border-radius:999px !important;
+        box-sizing:border-box !important;
+        font-size:11px !important;
+        font-weight:800 !important;
+        line-height:1 !important;
+        white-space:nowrap !important;
+        text-decoration:none !important;
+      }
+
+      .es-settings-header .es-lead {
+        grid-column:1 / -1 !important;
+        max-width:100% !important;
+      }
+
+      /* Working-hours cards: compact, contained, and consistent. */
+      #workingHoursDays {
+        display:grid !important;
+        gap:10px !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+      }
+
+      #workingHoursDays .es-hours-setting-row {
+        display:grid !important;
+        grid-template-columns:minmax(0,1fr) auto !important;
+        grid-template-areas:
+          "day toggle"
+          "open close" !important;
+        gap:9px 8px !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        padding:12px !important;
+        border:1px solid var(--es-border) !important;
+        border-radius:14px !important;
+        background:#fafbf8 !important;
+        box-sizing:border-box !important;
+        overflow:hidden !important;
+      }
+
+      #workingHoursDays .es-hours-setting-day {
+        grid-area:day !important;
+        min-width:0 !important;
+        align-self:center !important;
+      }
+
+      #workingHoursDays .es-hours-open-toggle {
+        grid-area:toggle !important;
+        justify-self:end !important;
+        width:auto !important;
+        min-width:74px !important;
+        max-width:96px !important;
+        min-height:36px !important;
+        margin:0 !important;
+        padding:7px 10px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        gap:7px !important;
+        border-radius:999px !important;
+        box-sizing:border-box !important;
+        white-space:nowrap !important;
+        overflow:hidden !important;
+      }
+
+      #workingHoursDays .es-hours-open-toggle input {
+        flex:0 0 auto !important;
+        width:16px !important;
+        height:16px !important;
+        min-width:16px !important;
+        min-height:16px !important;
+        margin:0 !important;
+      }
+
+      #workingHoursDays .settings-open-time,
+      #workingHoursDays .settings-close-time {
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        height:42px !important;
+        min-height:42px !important;
+        margin:0 !important;
+        padding:0 8px !important;
+        box-sizing:border-box !important;
+        font-size:14px !important;
+      }
+
+      #workingHoursDays .settings-open-time {
+        grid-area:open !important;
+      }
+
+      #workingHoursDays .settings-close-time {
+        grid-area:close !important;
+      }
+
+      #workingHoursDays .es-hours-separator {
+        display:none !important;
+      }
+    }
+
+    @media (max-width:380px) {
+      .es-settings-header {
+        grid-template-columns:minmax(0,1fr) auto !important;
+      }
+
+      .es-settings-mobile-back {
+        padding:0 10px !important;
+        font-size:10px !important;
+      }
+
+      #workingHoursDays .es-hours-setting-row {
+        grid-template-columns:minmax(0,1fr) auto !important;
+        gap:8px 6px !important;
+        padding:10px !important;
+      }
+
+      #workingHoursDays .es-hours-open-toggle {
+        min-width:68px !important;
+        max-width:82px !important;
+        padding:6px 8px !important;
+      }
+
+      #workingHoursDays .settings-open-time,
+      #workingHoursDays .settings-close-time {
+        font-size:13px !important;
+        padding:0 6px !important;
+      }
+    }
+
+
+    /* Settings-only cosmetic alignment refinements. */
+    #tab-notifications .es-form-actions,
+    #tab-email .es-settings-actions,
+    #tab-payments .es-settings-actions {
+      display:flex; align-items:center; flex-wrap:wrap; gap:9px;
+    }
+    #tab-notifications .es-form-actions .es-button,
+    #tab-notifications .es-form-actions .es-secondary-button,
+    #tab-email .es-settings-actions .es-button,
+    #tab-email .es-settings-actions .es-secondary-button,
+    #tab-payments .es-settings-actions .es-button,
+    #tab-payments .es-settings-actions .es-secondary-button {
+      min-width:154px; height:42px; min-height:42px; margin:0; padding:0 14px;
+      display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
+      border-radius:10px; text-align:center; text-decoration:none; font-size:12px;
+      font-weight:800; line-height:1; white-space:nowrap;
+    }
+    #tab-payments .es-checkbox-row,
+    #tab-hours .es-checkbox-row {
+      display:flex; align-items:center; gap:10px; min-height:42px; margin:0;
+    }
+    #tab-payments .es-checkbox-row input[type="checkbox"],
+    #tab-hours .es-checkbox-row input[type="checkbox"] {
+      flex:0 0 auto; width:16px; height:16px; margin:0;
+    }
+    #tab-payments .es-checkbox-row span,
+    #tab-hours .es-checkbox-row span {
+      display:flex; align-items:center; min-height:20px; line-height:1.3;
+    }
+    #tab-payments .es-copy-field {
+      display:grid; grid-template-columns:minmax(0,1fr) 92px; gap:8px; align-items:stretch;
+    }
+    #stripeWebhookUrl, #copyStripeWebhookUrl {
+      height:44px; min-height:44px; margin:0; box-sizing:border-box;
+    }
+    #copyStripeWebhookUrl {
+      width:92px; min-width:92px; padding:0 12px; display:inline-flex;
+      align-items:center; justify-content:center; text-align:center; border-radius:10px;
+    }
+    #tab-payments a[href="/payments/"] {
+      text-decoration:none !important; display:inline-flex; align-items:center; justify-content:center;
+    }
+    @media(max-width:600px) {
+      #tab-notifications .es-form-actions .es-button,
+      #tab-notifications .es-form-actions .es-secondary-button,
+      #tab-email .es-settings-actions .es-button,
+      #tab-email .es-settings-actions .es-secondary-button,
+      #tab-payments .es-settings-actions .es-button,
+      #tab-payments .es-settings-actions .es-secondary-button { width:100%; min-width:0; }
+      #tab-payments .es-copy-field { grid-template-columns:minmax(0,1fr) 82px; }
+      #copyStripeWebhookUrl { width:82px; min-width:82px; }
+    }
+
+    /* Email provider: keep Send test email directly beside the Send test to input. */
+    #tab-email .es-email-test-grid {
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(180px,1fr);
+      gap:16px;
+      align-items:end;
+    }
+    #tab-email .es-email-test-grid > label {
+      margin:0;
+      min-width:0;
+    }
+    #tab-email .es-email-test-grid .es-field-button {
+      display:flex;
+      align-items:flex-end;
+      min-width:0;
+      margin:0;
+    }
+    #tab-email #sendEmailTestButton {
+      width:100%;
+      min-height:44px;
+      height:44px;
+      margin:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+    }
+    #tab-email #emailTestRecipient {
+      width:100%;
+      min-height:44px;
+      height:44px;
+      margin:0;
+      box-sizing:border-box;
+    }
+    @media(max-width:600px) {
+      #tab-email .es-email-test-grid {
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+    }
+
+</style>
+
+</head>
+
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
+
+<aside
+  id="appSidebar"
+  class="es-sidebar"
+></aside>
+
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header es-settings-header">
+
+        <div>
+          <p class="es-eyebrow">
+            Configuration
+          </p>
+
+          <h1>
+            Settings
+          </h1>
+
+          <p class="es-lead">
+            Manage your business, branding,
+            availability and platform preferences.
+          </p>
+        </div>
+
+        <a
+          class="es-secondary-button es-settings-mobile-back"
+          href="/bookings/"
+        >
+          Back to calendar
+        </a>
+
+      </header>
+
+
+      <div class="es-settings-layout">
+
+        <nav class="es-settings-tabs">
+
+          <button
+            type="button"
+            data-tab="business"
+            class="active"
+          >
+            Business
+          </button>
+
+          <button
+            type="button"
+            data-tab="branding"
+          >
+            Branding
+          </button>
+
+          <button
+            type="button"
+            data-tab="hours"
+          >
+            Hours & availability
+          </button>
+
+          <button
+            type="button"
+            data-tab="payments"
+          >
+            Payments
+          </button>
+
+          <button
+            type="button"
+            data-tab="email"
+          >
+            Email provider
+          </button>
+
+          <button
+            type="button"
+            data-tab="users"
+          >
+            Users
+          </button>
+
+          <button
+            type="button"
+            data-tab="roles"
+          >
+            Roles
+          </button>
+
+          <button
+            type="button"
+            data-tab="notifications"
+          >
+            Notifications
+          </button>
+
+          <a
+            class="es-settings-nav-link"
+            href="/setup/"
+          >
+            Setup health
+          </a>
+
+
+        </nav>
+
+
+        <section class="es-settings-content">
+
+          <div
+            id="tab-business"
+            class="es-settings-panel"
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Business
+                </p>
+
+                <h2>
+                  Business information
+                </h2>
+              </div>
+
+            </div>
+
+
+            <form id="businessSettingsForm">
+
+              <div class="es-form-grid">
+
+                <label>
+                  Business name
+
+                  <input
+                    id="businessName"
+                    type="text"
+                    required
+                  >
+                </label>
+
+
+                <label>
+                  Legal name
+
+                  <input
+                    id="legalName"
+                    type="text"
+                  >
+                </label>
+
+              </div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Email
+
+                  <input
+                    id="businessEmail"
+                    type="email"
+                  >
+                </label>
+
+
+                <label>
+                  Phone
+
+                  <input
+                    id="businessPhone"
+                    type="tel"
+                  >
+                </label>
+
+              </div>
+
+
+              <label>
+                Website
+
+                <input
+                  id="businessWebsite"
+                  type="url"
+                  placeholder="https://"
+                >
+              </label>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Country
+
+                  <select id="countryCode">
+                    <option value="GB">United Kingdom</option>
+                    <option value="IE">Ireland</option>
+                    <option value="US">United States</option>
+                    <option value="AU">Australia</option>
+                    <option value="NZ">New Zealand</option>
+                    <option value="ZA">South Africa</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Timezone
+
+                  <select id="timezone">
+                    <option value="Europe/London">Europe/London</option>
+                    <option value="Europe/Dublin">Europe/Dublin</option>
+                    <option value="Africa/Johannesburg">Africa/Johannesburg</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="America/Los_Angeles">America/Los_Angeles</option>
+                    <option value="Australia/Sydney">Australia/Sydney</option>
+                    <option value="Pacific/Auckland">Pacific/Auckland</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Currency
+
+                  <select id="currency">
+                    <option value="GBP">GBP – £</option>
+                    <option value="EUR">EUR – €</option>
+                    <option value="USD">USD – $</option>
+                    <option value="AUD">AUD – $</option>
+                    <option value="NZD">NZD – $</option>
+                    <option value="ZAR">ZAR – R</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Locale
+
+                  <select id="locale">
+                    <option value="en-GB">English (UK)</option>
+                    <option value="en-IE">English (Ireland)</option>
+                    <option value="en-US">English (US)</option>
+                    <option value="en-AU">English (Australia)</option>
+                    <option value="en-NZ">English (New Zealand)</option>
+                    <option value="en-ZA">English (South Africa)</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <div
+                id="businessStatus"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <button
+                id="saveBusinessButton"
+                class="es-button"
+                type="submit"
+              >
+                Save changes
+              </button>
+
+            </form>
+
+          </div>
+
+          
+<div
+  id="tab-branding"
+  class="es-settings-panel"
+  hidden
+>
+  <div class="es-panel-header">
+    <div>
+      <p class="es-eyebrow">Branding</p>
+      <h2>Business branding</h2>
+      <p class="es-muted-copy">
+        Manage your logo, colours and client-facing form appearance in one place.
+      </p>
+    </div>
+  </div>
+
+  <div class="es-empty-state">
+    <strong>Branding settings</strong>
+    <span>
+      Configure your business identity and preview how client-facing forms will look.
+    </span>
+    <a class="es-button" href="/settings/branding.html">
+      Manage branding
+    </a>
+  </div>
+</div>
+
+
+
+          <div
+            id="tab-payments"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+
+                <p class="es-eyebrow">
+                  Payments
+                </p>
+
+                <h2>
+                  Stripe
+                </h2>
+
+                <p class="es-muted-copy">
+                  Connect this business's own Stripe account. Stripe credentials are encrypted before they are stored.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div
+              id="stripeEncryptionWarning"
+              class="es-status error"
+              hidden
+            ></div>
+
+
+            <div class="es-integration-summary">
+
+              <div>
+
+                <span>
+                  Provider
+                </span>
+
+                <strong>
+                  Stripe
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Status
+                </span>
+
+                <strong id="stripeIntegrationStatus">
+                  Not configured
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Mode
+                </span>
+
+                <strong id="stripeIntegrationMode">
+                  —
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <span>
+                  Default provider
+                </span>
+
+                <strong id="stripeDefaultStatus">
+                  No
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            <form id="stripeIntegrationForm">
+
+              <div class="es-form-grid">
+
+                <label>
+                  Publishable key
+
+                  <input
+                    id="stripePublishableKey"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="pk_test_… or pk_live_…"
+                  >
+
+                  <small class="es-field-help">
+                    Optional for now. It will be used by client-side Stripe payment interfaces.
+                  </small>
+                </label>
+
+
+                <label>
+                  Currency
+
+                  <select id="stripeCurrency">
+                    <option value="GBP">GBP – £</option>
+                    <option value="EUR">EUR – €</option>
+                    <option value="USD">USD – $</option>
+                    <option value="AUD">AUD – $</option>
+                    <option value="NZD">NZD – $</option>
+                    <option value="ZAR">ZAR – R</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <label>
+                Stripe secret or restricted API key
+
+                <input
+                  id="stripeSecretKey"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="sk_test_… / sk_live_… / rk_…"
+                >
+
+                <small
+                  id="stripeSecretKeyHelp"
+                  class="es-field-help"
+                >
+                  Paste a Stripe server-side key owned by this business.
+                </small>
+              </label>
+
+
+
+              <label>
+                Stripe webhook endpoint URL
+
+                <div class="es-copy-field">
+
+                  <input
+                    id="stripeWebhookUrl"
+                    type="text"
+                    readonly
+                    placeholder="Available after deployment"
+                  >
+
+                  <button
+                    id="copyStripeWebhookUrl"
+                    class="es-secondary-button"
+                    type="button"
+                  >
+                    Copy
+                  </button>
+
+                </div>
+
+                <small class="es-field-help">
+                  Add this URL as a webhook endpoint in the business's own Stripe account, then paste Stripe's signing secret below.
+                </small>
+              </label>
+
+
+              <label>
+                Webhook signing secret
+
+                <input
+                  id="stripeWebhookSecret"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="whsec_…"
+                >
+
+                <small
+                  id="stripeWebhookSecretHelp"
+                  class="es-field-help"
+                >
+                  Optional at this stage. Add it when the Stripe webhook endpoint is enabled for live online payments.
+                </small>
+              </label>
+
+
+              <label class="es-checkbox-row">
+
+                <input
+                  id="stripeMakeDefault"
+                  type="checkbox"
+                  checked
+                >
+
+                <span>
+                  Make Stripe the default payment provider
+                </span>
+
+              </label>
+
+
+              <div
+                id="stripeIntegrationMessage"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <div class="es-settings-actions">
+
+                <button
+                  id="saveStripeIntegrationButton"
+                  class="es-button"
+                  type="submit"
+                >
+                  Save Stripe settings
+                </button>
+
+
+                <button
+                  id="testStripeIntegrationButton"
+                  class="es-secondary-button"
+                  type="button"
+                >
+                  Test connection
+                </button>
+
+
+                <button
+                  id="disconnectStripeIntegrationButton"
+                  class="es-secondary-button"
+                  type="button"
+                  hidden
+                >
+                  Disconnect Stripe
+                </button>
+
+              </div>
+
+            </form>
+
+
+            <div class="es-settings-divider"></div>
+
+
+            <div class="es-empty-state">
+
+              <strong>
+                Business-owned payments
+              </strong>
+
+              <span>
+                Stripe belongs to this business. Eselram stores the credentials encrypted and does not require an Eselram-vendor Stripe account.
+              </span>
+
+              <a
+                class="es-secondary-button"
+                href="/payments/"
+              >
+                Open payment records
+              </a>
+
+            </div>
+
+          </div>
+
+          <div
+            id="tab-email"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Email
+                </p>
+
+                <h2>
+                  Email provider
+                </h2>
+
+                <p class="es-muted-copy">
+                  Connect your own Resend account. Your API key is encrypted before it is stored.
+                </p>
+              </div>
+
+            </div>
+
+
+            <div
+              id="emailEncryptionWarning"
+              class="es-status error"
+              hidden
+            ></div>
+
+
+            <div class="es-integration-summary">
+
+              <div>
+                <span>
+                  Provider
+                </span>
+
+                <strong>
+                  Resend
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Status
+                </span>
+
+                <strong id="emailIntegrationStatus">
+                  Not configured
+                </strong>
+              </div>
+
+            </div>
+
+
+            <form id="emailIntegrationForm">
+
+              <div class="es-form-grid">
+
+                <label>
+                  From name
+
+                  <input
+                    id="emailFromName"
+                    type="text"
+                    placeholder="My Clinic"
+                    required
+                  >
+                </label>
+
+
+                <label>
+                  From email
+
+                  <input
+                    id="emailFromEmail"
+                    type="email"
+                    placeholder="forms@myclinic.co.uk"
+                    required
+                  >
+                </label>
+
+              </div>
+
+
+              <label>
+                Resend API key
+
+                <input
+                  id="emailApiKey"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="re_••••••••••••••••"
+                >
+
+                <small
+                  id="emailApiKeyHelp"
+                  class="es-field-help"
+                >
+                  Paste a sending-only API key from your own Resend account.
+                </small>
+              </label>
+
+
+              <div
+                id="emailIntegrationMessage"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <div class="es-settings-actions">
+
+                <button
+                  id="saveEmailIntegrationButton"
+                  class="es-button"
+                  type="submit"
+                >
+                  Save email settings
+                </button>
+
+                <button
+                  id="disconnectEmailIntegrationButton"
+                  class="es-secondary-button"
+                  type="button"
+                  hidden
+                >
+                  Disconnect
+                </button>
+
+              </div>
+
+            </form>
+
+
+            <div class="es-settings-divider"></div>
+
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Connection test
+                </p>
+
+                <h3>
+                  Send a test email
+                </h3>
+
+                <p class="es-muted-copy">
+                  Save your email settings first, then confirm that your own Resend account and verified sender are working.
+                </p>
+              </div>
+
+            </div>
+
+
+            <div class="es-form-grid es-email-test-grid">
+
+              <label>
+                Send test to
+
+                <input
+                  id="emailTestRecipient"
+                  type="email"
+                  placeholder="you@example.com"
+                >
+              </label>
+
+              <div class="es-field-button">
+
+                <button
+                  id="sendEmailTestButton"
+                  class="es-secondary-button"
+                  type="button"
+                >
+                  Send test email
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+<div
+            id="tab-hours"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-panel-header">
+
+              <div>
+                <p class="es-eyebrow">
+                  Working Hours
+                </p>
+
+                <h2>
+                  Availability & booking rules
+                </h2>
+
+                <p class="es-muted-copy">
+                  Set when clients can book and add buffers around appointments.
+                </p>
+              </div>
+
+            </div>
+
+
+            <form id="workingHoursForm">
+
+              <div
+                id="workingHoursDays"
+                class="es-hours-settings-list"
+              ></div>
+
+
+              <div class="es-settings-divider"></div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Booking interval
+
+                  <select id="settingsBookingInterval">
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Buffer before appointment
+
+                  <select id="settingsBufferBefore">
+                    <option value="0">No buffer</option>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </label>
+
+              </div>
+
+
+              <div class="es-form-grid">
+
+                <label>
+                  Buffer after appointment
+
+                  <select id="settingsBufferAfter">
+                    <option value="0">No buffer</option>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </label>
+
+
+                <label>
+                  Timezone
+
+                  <input
+                    id="settingsHoursTimezone"
+                    type="text"
+                    readonly
+                  >
+                </label>
+
+              </div>
+
+
+              <div class="es-settings-divider"></div>
+
+              <div class="es-panel-header">
+                <div>
+                  <p class="es-eyebrow">
+                    Public booking
+                  </p>
+
+                  <h2>
+                    Online booking rules
+                  </h2>
+
+                  <p class="es-muted-copy">
+                    Control when clients can book online. These rules do not stop you creating bookings manually in Admin.
+                  </p>
+                </div>
+              </div>
+
+              <label class="es-checkbox-row">
+                <input
+                  id="settingsPublicBookingEnabled"
+                  type="checkbox"
+                  checked
+                >
+
+                <span>
+                  Accept bookings through the public booking page
+                </span>
+              </label>
+
+              <div class="es-form-grid">
+                <label>
+                  Minimum booking notice
+
+                  <select id="settingsMinimumNotice">
+                    <option value="0">No minimum notice</option>
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="4">4 hours</option>
+                    <option value="12">12 hours</option>
+                    <option value="24">24 hours</option>
+                    <option value="48">48 hours</option>
+                    <option value="72">72 hours</option>
+                    <option value="168">7 days</option>
+                  </select>
+
+                  <small class="es-field-help">
+                    Clients will only see appointment times at least this far in the future.
+                  </small>
+                </label>
+
+                <label>
+                  Clients can book ahead
+
+                  <select id="settingsMaxAdvanceDays">
+                    <option value="7">7 days</option>
+                    <option value="14">14 days</option>
+                    <option value="30">30 days</option>
+                    <option value="60">60 days</option>
+                    <option value="90">90 days</option>
+                    <option value="180">180 days</option>
+                    <option value="365">365 days</option>
+                  </select>
+
+                  <small class="es-field-help">
+                    Sets the furthest date available on the public booking page.
+                  </small>
+                </label>
+              </div>
+
+              <div class="es-settings-divider"></div>
+
+              <div class="es-panel-header">
+                <div>
+                  <p class="es-eyebrow">
+                    Time off
+                  </p>
+
+                  <h2>
+                    Blocked dates
+                  </h2>
+
+                  <p class="es-muted-copy">
+                    Block full days for holidays, training or other time off. Existing appointments are not cancelled.
+                  </p>
+                </div>
+              </div>
+
+              <div class="es-form-grid">
+                <label>
+                  From
+
+                  <input
+                    id="settingsBlockedFromDate"
+                    type="date"
+                  >
+                </label>
+
+                <label>
+                  To
+
+                  <input
+                    id="settingsBlockedToDate"
+                    type="date"
+                  >
+                </label>
+              </div>
+
+              <label>
+                Reason
+
+                <input
+                  id="settingsBlockedReason"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Optional, e.g. Annual leave"
+                >
+              </label>
+
+              <button
+                id="addBlockedDateButton"
+                class="es-secondary-button"
+                type="button"
+              >
+                Add blocked dates
+              </button>
+
+              <div
+                id="blockedDatesList"
+                class="es-services-list"
+              ></div>
+
+              <div
+                id="workingHoursStatus"
+                class="es-status"
+                hidden
+              ></div>
+
+
+              <button
+                id="saveWorkingHoursButton"
+                class="es-button"
+                type="submit"
+              >
+                Save working hours
+              </button>
+
+            </form>
+
+          </div>
+
+          <div
+            id="tab-notifications"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-panel-header">
+              <div>
+                <p class="es-eyebrow">
+                  Notifications
+                </p>
+
+                <h2>
+                  Customer communications
+                </h2>
+
+                <p class="es-muted-copy">
+                  Choose which automatic emails this installation sends using the business's own connected email provider.
+                </p>
+              </div>
+            </div>
+
+            <form id="notificationSettingsForm">
+
+              <div class="es-check-grid">
+
+                <label class="es-check-option">
+                  <input
+                    id="notifyBookingConfirmation"
+                    type="checkbox"
+                    checked
+                  >
+                  Send booking confirmation emails
+                </label>
+
+                <label class="es-check-option">
+                  <input
+                    id="notifyReminders"
+                    type="checkbox"
+                    checked
+                  >
+                  Send appointment reminder emails
+                </label>
+
+                <label class="es-check-option">
+                  <input
+                    id="notifyCancellation"
+                    type="checkbox"
+                    checked
+                  >
+                  Send cancellation confirmation emails
+                </label>
+
+                <label class="es-check-option">
+                  <input
+                    id="notifyReschedule"
+                    type="checkbox"
+                    checked
+                  >
+                  Send reschedule/update confirmation emails
+                </label>
+
+                <label class="es-check-option">
+                  <input
+                    id="notifyFormReminders"
+                    type="checkbox"
+                    checked
+                  >
+                  Send one reminder for outstanding client forms
+                </label>
+
+                <label class="es-check-option">
+                  <input
+                    id="notifyPaymentReceipts"
+                    type="checkbox"
+                    checked
+                  >
+                  Send payment and package-payment confirmations
+                </label>
+
+              </div>
+
+              <label style="margin-top:24px;">
+                Reminder timing
+
+                <select id="notifyReminderHours">
+                  <option value="1">1 hour before</option>
+                  <option value="2">2 hours before</option>
+                  <option value="6">6 hours before</option>
+                  <option value="12">12 hours before</option>
+                  <option value="24">24 hours before</option>
+                  <option value="48">48 hours before</option>
+                  <option value="72">72 hours before</option>
+                </select>
+              </label>
+
+              <label style="margin-top:18px;">
+                Outstanding form reminder
+
+                <select id="notifyFormReminderHours">
+                  <option value="24">1 day after form email</option>
+                  <option value="48">2 days after form email</option>
+                  <option value="72">3 days after form email</option>
+                  <option value="120">5 days after form email</option>
+                  <option value="168">7 days after form email</option>
+                </select>
+              </label>
+
+              <p class="es-muted-copy" style="margin-top:8px;">
+                Eselram sends a maximum of one automatic reminder for each outstanding form.
+              </p>
+
+              <div class="es-form-actions">
+                <button
+                  id="saveNotificationSettingsButton"
+                  class="es-button"
+                  type="submit"
+                >
+                  Save notifications
+                </button>
+
+                <a
+                  class="es-secondary-button"
+                  href="/communications/"
+                 
+                >
+                  View communication log
+                </a>
+              </div>
+
+              <div
+                id="notificationSettingsStatus"
+                class="es-status"
+                hidden
+              ></div>
+
+            </form>
+
+          </div>
+
+
+          <div
+            id="tab-placeholder"
+            class="es-settings-panel"
+            hidden
+          >
+
+            <div class="es-empty-state">
+
+              <strong id="placeholderTitle">
+                Coming next
+              </strong>
+
+              <span>
+                This settings section will be built next.
+              </span>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("settings");
+</script>
+  
+  <script src="/settings/settings.js"></script>
+
+</body>
+</html>

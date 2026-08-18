@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Branding | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+<body class="es-dashboard-body">
+  <div class="es-dashboard-layout">
+
+<aside
+  id="appSidebar"
+  class="es-sidebar"
+></aside>
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+        <div>
+          <p class="es-eyebrow">Settings</p>
+          <h1>Branding</h1>
+          <p class="es-lead">
+            Choose your business logo and how your business appears across Eselram and client-facing forms.
+          </p>
+        </div>
+
+        <a
+          class="es-secondary-button"
+          href="/settings/"
+          style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; text-align:center;"
+        >
+          Back to settings
+        </a>
+</header>
+
+      <section class="es-branding-grid">
+
+        <section class="es-dashboard-panel">
+          <div class="es-panel-header">
+            <div>
+              <p class="es-eyebrow">Brand identity</p>
+              <h2>Business branding</h2>
+            </div>
+          </div>
+
+          <form id="brandingForm">
+
+            <label>
+              Business logo
+              <input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp">
+            </label>
+
+            <p class="es-logo-upload-note">
+              PNG, JPG or WEBP, under 250 KB. This logo is stored with the business and is also shown in the Eselram sidebar.
+            </p>
+
+            <button id="removeLogoButton" class="es-secondary-button" type="button">
+              Remove logo
+            </button>
+
+            <div class="es-form-grid">
+
+              <label>
+                Primary colour
+                <div class="es-colour-field">
+                  <input id="primaryColourPicker" type="color" value="#365178">
+                  <input id="primaryColour" type="text" value="#365178">
+                </div>
+              </label>
+
+              <label>
+                Accent colour
+                <div class="es-colour-field">
+                  <input id="accentColourPicker" type="color" value="#6f8079">
+                  <input id="accentColour" type="text" value="#6f8079">
+                </div>
+              </label>
+
+            </div>
+
+            <div class="es-form-grid">
+
+              <label>
+                Background colour
+                <div class="es-colour-field">
+                  <input id="backgroundColourPicker" type="color" value="#f5f4ef">
+                  <input id="backgroundColour" type="text" value="#f5f4ef">
+                </div>
+              </label>
+
+              <label>
+                Form surface colour
+                <div class="es-colour-field">
+                  <input id="surfaceColourPicker" type="color" value="#ffffff">
+                  <input id="surfaceColour" type="text" value="#ffffff">
+                </div>
+              </label>
+
+            </div>
+
+            <label>
+              Text colour
+              <div class="es-colour-field">
+                <input id="textColourPicker" type="color" value="#18221f">
+                <input id="textColour" type="text" value="#18221f">
+              </div>
+            </label>
+
+            <div class="es-form-grid">
+
+              <label>
+                Form style
+                <select id="formStyle">
+                  <option value="light">Light</option>
+                  <option value="soft">Soft</option>
+                  <option value="minimal">Minimal</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+
+              <label>
+                Logo position
+                <select id="logoPosition">
+                  <option value="centre">Centre</option>
+                  <option value="left">Left</option>
+                </select>
+              </label>
+
+            </div>
+
+            <div class="es-check-grid">
+
+              <label class="es-check-option">
+                <input id="showBusinessName" type="checkbox" checked>
+                Show business name
+              </label>
+
+              <label class="es-check-option">
+                <input id="showContactDetails" type="checkbox" checked>
+                Show business contact details
+              </label>
+
+            </div>
+
+            <label>
+              Footer text
+              <input
+                id="footerText"
+                type="text"
+                placeholder="Optional footer shown on client-facing forms"
+              >
+            </label>
+
+            <div id="brandingStatus" class="es-status" hidden></div>
+
+            <div class="es-form-actions">
+              <button id="saveBrandingButton" class="es-button" type="submit">
+                Save branding
+              </button>
+            </div>
+
+          </form>
+        </section>
+
+        <aside class="es-branding-preview">
+          <div
+            id="brandingPreview"
+            class="es-branding-preview-card"
+          >
+            <div class="es-branding-preview-head">
+              <img
+                id="previewLogo"
+                class="es-branding-preview-logo"
+                alt=""
+                hidden
+              >
+              <h2 id="previewBusinessName" class="es-branding-preview-name">
+                Your business
+              </h2>
+            </div>
+</div>
+        </aside>
+
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("settings");
+</script>
+  
+  <script src="/settings/branding.js"></script>
+</body>
+</html>

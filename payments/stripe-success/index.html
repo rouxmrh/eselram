@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Payment received</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+</head>
+
+<body class="es-public-payment-body">
+
+  <main class="es-public-payment-shell">
+
+    <section class="es-public-payment-card">
+
+      <p class="es-eyebrow">
+        Payment
+      </p>
+
+      <h1 id="paymentTitle">
+        Checking your payment…
+      </h1>
+
+      <p
+        id="paymentMessage"
+        class="es-lead"
+      >
+        Please keep this page open while we confirm the payment.
+      </p>
+
+      <div
+        id="paymentStatus"
+        class="es-status"
+        hidden
+      ></div>
+
+    </section>
+
+  </main>
+
+
+  <script src="/payments/stripe-success/success.js"></script>
+
+</body>
+</html>

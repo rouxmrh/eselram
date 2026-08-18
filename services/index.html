@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Services | Eselram</title>
+
+  <link
+    rel="stylesheet"
+    href="/app/assets/css/eselram.css"
+  >
+
+  <style>
+    .es-services-summary {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;}
+    .es-services-stat {display:grid;gap:5px;min-height:104px;padding:18px;border:1px solid var(--es-border);border-radius:18px;background:var(--es-surface);box-shadow:0 7px 22px rgba(28,34,30,.035);}
+    .es-services-stat span,.es-services-stat small {color:var(--es-muted);font-size:11px;}
+    .es-services-stat strong {font-size:27px;line-height:1;}
+    .es-services-toolbar {display:grid;grid-template-columns:minmax(230px,1fr) 180px;gap:10px;align-items:end;margin:16px 0 18px;}
+    .es-services-toolbar input,.es-services-toolbar select {width:100%;}
+    .es-services-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+    .es-service-card {display:grid;gap:15px;min-width:0;padding:18px;border:1px solid var(--es-border);border-radius:17px;background:var(--es-surface);box-shadow:0 6px 18px rgba(28,34,30,.03);}
+    .es-service-card.is-inactive {opacity:.72;background:#fafafa;}
+    .es-service-card-header {display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+    .es-service-card-title {display:grid;gap:4px;min-width:0;}
+    .es-service-card-title h3 {margin:0;font-size:17px;line-height:1.2;}
+    .es-service-card-title p {margin:0;color:var(--es-muted);font-size:11px;line-height:1.45;}
+    .es-service-status {display:inline-flex;align-items:center;gap:6px;width:fit-content;min-height:26px;padding:0 9px;border-radius:999px;border:1px solid #cce6d4;background:#edf8f0;color:#286b43;font-size:10px;font-weight:800;white-space:nowrap;}
+    .es-service-status::before {content:"";width:7px;height:7px;border-radius:999px;background:#38935c;}
+    .es-service-status.inactive {border-color:var(--es-border);background:#f3f4f1;color:var(--es-muted);}
+    .es-service-status.inactive::before {background:#9aa09b;}
+    .es-service-card-metrics {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+    .es-service-metric {display:grid;gap:3px;min-width:0;padding:10px 11px;border-radius:12px;background:#f7f8f5;}
+    .es-service-metric span {color:var(--es-muted);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
+    .es-service-metric strong {overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;}
+    .es-service-card-rules {display:flex;flex-wrap:wrap;gap:7px;}
+    .es-service-rule-pill {display:inline-flex;align-items:center;min-height:28px;padding:0 9px;border:1px solid var(--es-border);border-radius:999px;background:#fafbf8;color:var(--es-muted);font-size:10px;font-weight:700;}
+    .es-service-rule-pill.on {border-color:#cce6d4;background:#edf8f0;color:#286b43;}
+    .es-service-card-footer {display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:2px;}
+    .es-service-card-footer small {color:var(--es-muted);font-size:10px;}
+    .es-service-edit {min-width:92px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;}
+    .es-service-editor-shell {border-radius:20px;box-shadow:0 14px 38px rgba(28,34,30,.065);}
+    .es-service-editor-header {display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;}
+    .es-service-editor-close {display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:34px;padding:0 14px;border:1px solid var(--es-border);border-radius:999px;background:var(--es-surface);color:var(--es-text);font-size:11px;font-weight:800;cursor:pointer;}
+    .es-dashboard-header-actions .es-secondary-button,
+    .es-dashboard-header-actions .es-button {min-height:44px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;line-height:1;}
+    @media(max-width:900px){.es-services-summary,.es-services-grid{grid-template-columns:1fr 1fr;}}
+    @media(max-width:650px){.es-services-summary,.es-services-grid,.es-services-toolbar{grid-template-columns:1fr;}.es-service-card-metrics{grid-template-columns:1fr;}}
+  
+    /* Service family/category presentation */
+    .es-service-family-pills {
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      margin:4px 0 18px;
+    }
+
+    .es-service-family-pill {
+      min-height:40px;
+      padding:0 16px;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:var(--es-surface);
+      color:var(--es-text);
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+      transition:
+        background .15s ease,
+        color .15s ease,
+        border-color .15s ease,
+        box-shadow .15s ease;
+    }
+
+    .es-service-family-pill:hover {
+      border-color:#aeb8ae;
+      box-shadow:0 4px 13px rgba(28,34,30,.045);
+    }
+
+    .es-service-family-pill.is-active {
+      border-color:var(--es-primary);
+      background:var(--es-primary);
+      color:#fff;
+      box-shadow:0 7px 18px rgba(35,68,112,.14);
+    }
+
+    .es-service-family-heading {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin:2px 0 12px;
+      padding:0 2px;
+    }
+
+    .es-service-family-heading strong {
+      font-size:18px;
+      line-height:1.2;
+    }
+
+    .es-service-family-heading span {
+      color:var(--es-muted);
+      font-size:11px;
+    }
+
+    .es-service-editor-shell #serviceForm {
+      display:grid;
+      gap:18px;
+    }
+
+    .es-service-editor-shell #serviceForm > label,
+    .es-service-editor-shell fieldset {
+      margin:0;
+    }
+
+    .es-service-editor-shell .es-check-grid {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      align-items:stretch;
+    }
+
+    .es-service-editor-shell .es-check-option {
+      display:flex;
+      align-items:flex-start;
+      gap:9px;
+      min-height:52px;
+      padding:13px 14px;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:#fafbf8;
+      box-sizing:border-box;
+      line-height:1.3;
+    }
+
+    .es-service-editor-shell .es-check-option input {
+      flex:0 0 auto;
+      margin-top:2px;
+    }
+
+    .es-service-editor-shell .es-check-option .es-muted-copy {
+      display:block;
+      margin-top:4px;
+      color:var(--es-muted);
+      font-size:10px;
+      font-weight:500;
+      line-height:1.4;
+    }
+
+    .es-service-editor-shell .es-form-actions {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-top:2px;
+    }
+
+    .es-service-editor-shell .es-form-actions button {
+      min-width:132px;
+      min-height:44px;
+      height:44px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      line-height:1;
+      margin:0;
+    }
+
+    @media(max-width:800px) {
+      .es-service-editor-shell .es-check-grid {
+        grid-template-columns:1fr;
+      }
+    }
+
+  
+    .es-service-card-footer-actions {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:0 0 auto;
+    }
+
+    .es-service-delete {
+      min-width:76px;
+      min-height:38px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-color:#e3c9c9;
+      color:#8b3f3f;
+      background:#fffafa;
+    }
+
+    .es-service-delete:hover {
+      border-color:#d8aaaa;
+      background:#fff5f5;
+    }
+
+    @media(max-width:650px) {
+      .es-service-card-footer {
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .es-service-card-footer-actions {
+        width:100%;
+      }
+
+      .es-service-card-footer-actions button {
+        flex:1 1 0;
+      }
+    }
+
+  </style>
+
+</head>
+
+<body class="es-dashboard-body">
+
+  <div class="es-dashboard-layout">
+
+<aside
+  id="appSidebar"
+  class="es-sidebar"
+></aside>
+
+
+    <main class="es-dashboard-main">
+
+      <header class="es-dashboard-header">
+
+        <div>
+          <p class="es-eyebrow">
+            Setup
+          </p>
+
+          <h1>Services</h1>
+
+          <p class="es-lead">
+            Create and manage the treatments
+            or services your business offers.
+          </p>
+        </div>
+
+        <div class="es-dashboard-header-actions">
+          <a
+            class="es-secondary-button"
+            href="/packages/"
+            style="text-decoration:none;"
+          >
+            Packages &amp; courses
+          </a>
+
+          <button
+            id="newServiceButton"
+            class="es-button"
+            type="button"
+          >
+            Add service
+          </button>
+        </div>
+
+      </header>
+
+
+      <section class="es-services-summary" aria-label="Services overview">
+        <article class="es-services-stat"><span>Active services</span><strong id="servicesActiveCount">0</strong><small>Currently available</small></article>
+        <article class="es-services-stat"><span>Consultation first</span><strong id="servicesConsultationCount">0</strong><small>Services requiring consultation</small></article>
+        <article class="es-services-stat"><span>Patch test</span><strong id="servicesPatchCount">0</strong><small>Services requiring patch testing</small></article>
+        <article class="es-services-stat"><span>Client forms</span><strong id="servicesFormsCount">0</strong><small>Assigned service-form rules</small></article>
+      </section>
+
+
+      <section
+        id="serviceFormPanel"
+        class="es-dashboard-panel es-service-editor-shell"
+        hidden
+      >
+
+        <div class="es-service-editor-header">
+          <div>
+            <p class="es-eyebrow">Service</p>
+            <h2 id="serviceFormTitle">Add service</h2>
+          </div>
+          <button id="closeServiceEditorButton" class="es-service-editor-close" type="button">Close</button>
+        </div>
+
+
+        <form id="serviceForm">
+
+          <input
+            id="serviceId"
+            type="hidden"
+          >
+
+
+          <label>
+            Service name
+
+            <input
+              id="serviceName"
+              type="text"
+              required
+            >
+          </label>
+
+          <label>
+            Service type
+
+            <select id="serviceType">
+              <option value="standard">Standard service / treatment</option>
+              <option value="consultation">Consultation</option>
+            </select>
+
+            <small class="es-muted-copy">
+              Choose Consultation for a standalone consultation appointment. Treatment services can then be linked to it.
+            </small>
+          </label>
+
+
+          <label>
+            Description
+
+            <textarea
+              id="serviceDescription"
+              placeholder="Optional"
+            ></textarea>
+          </label>
+
+          <label>
+            Public booking category
+
+            <input
+              id="serviceBookingGroup"
+              type="text"
+              maxlength="100"
+              placeholder="Optional, e.g. Tattoo Removal, Carbon Facial, Hair, Nails"
+            >
+
+            <small class="es-muted-copy">
+              Optional. Services with the same category are grouped together on the public booking page.
+              Leave blank if this service should appear on its own.
+            </small>
+          </label>
+
+
+          <div class="es-form-grid">
+
+            <label>
+              Duration
+
+              <select
+                id="serviceDuration"
+                required
+              >
+                <option value="15">15 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60" selected>60 minutes</option>
+                <option value="75">75 minutes</option>
+                <option value="90">90 minutes</option>
+                <option value="120">120 minutes</option>
+              </select>
+            </label>
+
+
+            <label>
+              Price
+
+              <input
+                id="servicePrice"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0"
+                required
+              >
+            </label>
+
+          </div>
+
+
+          <label>
+            Payment rule
+
+            <select id="paymentTiming">
+
+              <option value="pay_at_appointment">
+                Pay at appointment
+              </option>
+
+              <option value="online_full">
+                Full payment online
+              </option>
+
+              <option value="online_deposit">
+                Deposit online
+              </option>
+
+              <option value="free">
+                No payment required
+              </option>
+
+            </select>
+          </label>
+
+
+          <label
+            id="depositField"
+            hidden
+          >
+            Deposit amount
+
+            <input
+              id="serviceDeposit"
+              type="number"
+              min="0"
+              step="0.01"
+              value="0"
+            >
+          </label>
+
+
+          <fieldset
+            id="providerSection"
+            class="es-fieldset"
+            hidden
+          >
+
+            <legend>
+              Accepted online payment methods
+            </legend>
+
+            <div
+              id="providerOptions"
+              class="es-provider-options"
+            ></div>
+
+          </fieldset>
+
+
+          <fieldset class="es-fieldset" id="clientFormsSection">
+            <legend>Customer forms</legend>
+            <p class="es-muted-copy">
+              Assign forms that clients may complete. Staff-only records such as treatment or patch-test records are not shown here.
+            </p>
+            <div id="clientFormOptions" class="es-provider-options"></div>
+          </fieldset>
+
+          <label
+            id="requiredConsultationServiceWrap"
+            hidden
+          >
+            Required consultation
+
+            <select id="requiredConsultationService">
+              <option value="">Choose consultation service</option>
+            </select>
+
+            <small class="es-muted-copy">
+              Select the consultation that qualifies the customer for this treatment. A paid consultation credit can then be applied once to the first treatment or package.
+            </small>
+          </label>
+
+          <fieldset
+            id="consultationBookingSection"
+            class="es-fieldset"
+            hidden
+          >
+            <legend>
+              Consultation booking
+            </legend>
+
+            <p class="es-muted-copy">
+              Legacy fallback: use these fields only when no standalone consultation service is linked. For new setups, create a Consultation service and select it above.
+            </p>
+
+            <div class="es-form-grid">
+              <label>
+                Consultation duration
+                <input
+                  id="consultationDuration"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="30"
+                >
+              </label>
+
+              <label>
+                Consultation fee
+                <input
+                  id="consultationPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value="0.00"
+                >
+              </label>
+
+              <label>
+                Consultation payment
+                <select id="consultationPaymentTiming">
+                  <option value="online_full">Pay consultation fee online</option>
+                  <option value="pay_at_appointment">Pay at consultation</option>
+                  <option value="free">Free consultation</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+
+          <div class="es-check-grid">
+
+            <label class="es-check-option">
+              <input
+                id="requiresConsultation"
+                type="checkbox"
+              >
+
+              Requires consultation
+
+              <small class="es-muted-copy">
+                Most businesses can leave this off. Turn it on only if clients must complete a consultation before this service.
+              </small>
+            </label>
+
+
+            <label class="es-check-option">
+              <input
+                id="requiresPatchTest"
+                type="checkbox"
+              >
+
+              Requires patch test
+            </label>
+
+
+            <label class="es-check-option">
+              <input
+                id="serviceActive"
+                type="checkbox"
+                checked
+              >
+
+              Service is active
+            </label>
+
+          </div>
+
+          <label id="postConsultationBookingWrap" hidden>
+            After the consultation
+
+            <select id="postConsultationBooking">
+              <option value="client_can_book">Client can book treatment online</option>
+              <option value="practitioner_managed">Practitioner manages treatment / package</option>
+            </select>
+
+            <small class="es-muted-copy">
+              Practitioner managed is ideal when you choose the exact treatment or package after assessment.
+              Client can book is ideal for services such as Carbon Facial where an established client may book online after a completed consultation.
+            </small>
+          </label>
+
+
+          <div
+            id="formStatus"
+            class="es-status"
+            hidden
+          ></div>
+
+
+          <div class="es-form-actions">
+
+            <button
+              id="saveServiceButton"
+              class="es-button"
+              type="submit"
+            >
+              Save service
+            </button>
+
+            <button
+              id="cancelServiceButton"
+              class="es-secondary-button"
+              type="button"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+      <section class="es-dashboard-panel">
+
+        <div class="es-panel-header">
+
+          <div>
+            <p class="es-eyebrow">
+              Your services
+            </p>
+
+            <h2>
+              Bookable services
+            </h2>
+          </div>
+
+        </div>
+
+
+        <div class="es-services-toolbar">
+          <label>Search<input id="serviceSearch" type="search" placeholder="Search service"></label>
+          <label>Status<select id="serviceStatusFilter"><option value="all">All services</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="consultation">Consultation first</option><option value="patch">Patch test required</option></select></label>
+        </div>
+
+        <div
+          id="serviceFamilyPills"
+          class="es-service-family-pills"
+          aria-label="Service categories"
+        ></div>
+
+        <div
+          id="servicesList"
+          class="es-empty-state"
+        >
+          Loading services…
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+  
+<script type="module">
+  import { renderSidebar } from "/components/sidebar.js";
+  renderSidebar("services");
+</script>
+  
+  <script src="/services/services.js"></script>
+
+</body>
+</html>
