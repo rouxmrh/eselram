@@ -484,6 +484,40 @@ export async function onRequestGet({
 }
 
 
+export async function onRequestPatch({ request, env }) {
+  try {
+    const user = await getUserContext(request, env);
+    if (!user) return unauthorized();
+
+    const body = await request.json();
+    if (String(body.default_provider || "") !== "manual") {
+      return badRequest("Only Pay in person can be selected here without connecting Stripe.");
+    }
+
+    await env.DB.prepare(`
+      UPDATE business_payment_providers
+      SET is_default = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE business_id = ?
+    `).bind(user.business_id).run();
+
+    await env.DB.prepare(`
+      INSERT INTO business_payment_providers (
+        id, business_id, provider_key, is_enabled, is_default,
+        connection_status, environment, webhook_status, last_sync_at
+      ) VALUES (?, ?, 'manual', 1, 1, 'connected', 'manual', 'configured', CURRENT_TIMESTAMP)
+      ON CONFLICT(business_id, provider_key) DO UPDATE SET
+        is_enabled = 1, is_default = 1, connection_status = 'connected',
+        webhook_status = 'configured', updated_at = CURRENT_TIMESTAMP
+    `).bind(`payprov_${crypto.randomUUID()}`, user.business_id).run();
+
+    return Response.json({ ok: true, default_provider: "manual" });
+  } catch (error) {
+    console.error("Manual payment default update failed:", error);
+    return Response.json({ ok: false, error: "Unable to set Pay in person as the default payment method." }, { status: 500 });
+  }
+}
+
+
 export async function onRequestPut({
   request,
   env
@@ -559,7 +593,7 @@ export async function onRequestPut({
 
 
     const makeDefault =
-      body.make_default !== false;
+      body.make_default === true;
 
 
     if (

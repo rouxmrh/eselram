@@ -224,7 +224,9 @@ export async function onRequestGet({
         last_tested_at:
           integration.last_tested_at,
         last_error:
-          integration.last_error
+          looksLikePlaceholderSender(config.from_email)
+            ? null
+            : integration.last_error
       },
       encryption_ready:
         Boolean(

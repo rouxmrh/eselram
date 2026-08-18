@@ -567,6 +567,11 @@ const disconnectStripeIntegrationButton =
     "disconnectStripeIntegrationButton"
   );
 
+const makeManualDefaultButton =
+  document.getElementById(
+    "makeManualDefaultButton"
+  );
+
 
 async function loadStripeIntegration() {
 
@@ -742,6 +747,15 @@ async function loadStripeIntegration() {
             : "Not selected";
     }
 
+    if (makeManualDefaultButton) {
+      makeManualDefaultButton.disabled =
+        integration.default_provider === "manual";
+      makeManualDefaultButton.textContent =
+        integration.default_provider === "manual"
+          ? "Pay in person is default"
+          : "Use Pay in person as default";
+    }
+
 
     disconnectStripeIntegrationButton.hidden =
       !integration.has_secret_key;
@@ -786,6 +800,43 @@ async function loadStripeIntegration() {
 }
 
 
+
+
+makeManualDefaultButton
+  ?.addEventListener(
+    "click",
+    async () => {
+      makeManualDefaultButton.disabled = true;
+      stripeIntegrationMessage.hidden = false;
+      stripeIntegrationMessage.className = "es-status";
+      stripeIntegrationMessage.textContent = "Setting Pay in person as default…";
+
+      try {
+        const response = await fetch(
+          "/api/integrations/payments/stripe",
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json"
+            },
+            body: JSON.stringify({ default_provider: "manual" })
+          }
+        );
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || "Unable to change the default payment method.");
+        }
+        stripeIntegrationMessage.className = "es-status success";
+        stripeIntegrationMessage.textContent = "Pay in person is now the default payment method. Stripe remains optional.";
+        await loadStripeIntegration();
+      } catch (error) {
+        stripeIntegrationMessage.className = "es-status error";
+        stripeIntegrationMessage.textContent = error.message || "Unable to change the default payment method.";
+        makeManualDefaultButton.disabled = false;
+      }
+    }
+  );
 
 
 document
@@ -1255,13 +1306,20 @@ async function loadEmailIntegration() {
         "";
 
 
+    const loadedSendingEmail =
+      integration.from_email || "";
+
+    const personalSendingDomain =
+      /@(gmail\.com|googlemail\.com|outlook\.com|hotmail\.com|live\.com|icloud\.com|me\.com|yahoo\.com|yahoo\.co\.uk|aol\.com|proton\.me|protonmail\.com)$/i;
+
     document
       .getElementById(
         "emailFromEmail"
       )
       .value =
-        integration.from_email ||
-        "";
+        personalSendingDomain.test(loadedSendingEmail)
+          ? ""
+          : loadedSendingEmail;
 
 
     document
@@ -1315,7 +1373,7 @@ async function loadEmailIntegration() {
     }
 
 
-    if (integration.last_error) {
+    if (integration.last_error && !integration.sender_domain_required) {
 
       emailIntegrationMessage.hidden =
         false;
