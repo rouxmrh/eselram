@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Booking confirmed</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css">
+</head>
+<body>
+  <main class="booking-shell">
+    <section class="booking-card">
+      <section class="step active" style="display:block;max-width:700px;margin:0 auto;">
+        <div id="successMark" class="success-mark">✓</div>
+        <div class="eyebrow">BOOKING</div>
+        <h2 id="successTitle">Confirming your payment…</h2>
+        <p id="successText" class="muted">Please keep this page open for a moment while Stripe confirms your payment.</p>
+        <div id="successSummary" class="review-card" hidden></div>
+        <div id="successError" class="message error" hidden style="margin:20px 0 0"></div>
+        <div style="margin-top:20px;">
+          <a
+            id="manageBookingLink"
+            class="primary-button inline"
+            href="#"
+            hidden
+          >
+            Manage appointment
+          </a>
+
+          <a class="text-button" href="/book/" style="margin-left:12px;">
+            Back to booking page
+          </a>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script src="/book/success/success.js" defer></script>
+</body>
+</html>
