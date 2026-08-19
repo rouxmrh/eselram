@@ -1241,6 +1241,9 @@ const gmailProviderCard =
 const resendProviderCard =
   document.getElementById("resendProviderCard");
 
+const resendProviderState =
+  document.getElementById("resendProviderState");
+
 const gmailConnectedAccount =
   document.getElementById("gmailConnectedAccount");
 
@@ -1670,6 +1673,71 @@ function renderEmailDnsRecords(records = []) {
     false;
 }
 
+function normaliseEmailDomainInput(value) {
+  let domain =
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  if (!domain) {
+    return "";
+  }
+
+  try {
+    const candidate =
+      /^[a-z][a-z0-9+.-]*:\/\//i.test(domain)
+        ? domain
+        : `https://${domain}`;
+
+    const parsed =
+      new URL(candidate);
+
+    domain =
+      parsed.hostname || domain;
+  } catch {
+    domain =
+      domain
+        .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
+        .split("/")[0]
+        .split("?")[0]
+        .split("#")[0];
+  }
+
+  return domain
+    .replace(/^www\./i, "")
+    .replace(/\.$/, "")
+    .trim();
+}
+
+function cleanEmailDomainField() {
+  if (!emailSendingDomain) {
+    return "";
+  }
+
+  const cleaned =
+    normaliseEmailDomainInput(
+      emailSendingDomain.value
+    );
+
+  emailSendingDomain.value =
+    cleaned;
+
+  return cleaned;
+}
+
+emailSendingDomain
+  ?.addEventListener(
+    "blur",
+    cleanEmailDomainField
+  );
+
+emailSendingDomain
+  ?.addEventListener(
+    "change",
+    cleanEmailDomainField
+  );
+
+
 async function loadEmailDomain() {
   if (!emailDomainStatus) {
     return;
@@ -1847,10 +1915,7 @@ createEmailDomainButton
     async () => {
 
       const domain =
-        String(
-          emailSendingDomain?.value ||
-          ""
-        ).trim();
+        cleanEmailDomainField();
 
       if (!domain) {
         emailDomainStatus.hidden =
@@ -2113,15 +2178,15 @@ async function loadEmailIntegration() {
 
     const statusLabels = {
       not_configured:
-        "Not configured",
+        "Resend not configured",
       configured:
-        "Connected — domain optional",
+        "Resend connected — domain not verified",
       verified:
-        "Ready to send",
+        "Email sending ready",
       error:
-        "Automated emails not active",
+        "Resend connected — sending not ready",
       disabled:
-        "Disabled"
+        "Resend disabled"
     };
 
 
@@ -2131,6 +2196,19 @@ async function loadEmailIntegration() {
       ] ||
       integration.status ||
       "Not configured";
+
+    if (resendProviderState) {
+      if (integration.status === "verified") {
+        resendProviderState.textContent =
+          "Resend ready to send";
+      } else if (integration.has_api_key) {
+        resendProviderState.textContent =
+          "Resend account connected · sending domain not verified";
+      } else {
+        resendProviderState.textContent =
+          "Resend not connected";
+      }
+    }
 
 
     disconnectEmailIntegrationButton.hidden =
