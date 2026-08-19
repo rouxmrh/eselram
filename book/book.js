@@ -1189,6 +1189,13 @@ async function init() {
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const dd = String(today.getDate()).padStart(2, "0");
+    const phoneInput =
+      $("#phone");
+
+    if (phoneInput) {
+      phoneInput.value = "";
+    }
+
     $("#bookingDate").min = `${yyyy}-${mm}-${dd}`;
 
     const maxAdvanceDays =

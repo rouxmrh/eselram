@@ -1117,10 +1117,17 @@ function openPackageCheckoutDialog(data) {
     typeof window.EselramQr.toDataUrl ===
       "function"
   ) {
+    const qrPaymentUrl =
+      data.payment_id
+        ? `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(
+            data.payment_id
+          )}`
+        : data.checkout_url;
+
     $("#packageCheckoutQr").src =
       window.EselramQr.toDataUrl(
-        data.checkout_url,
-        { quiet: 4 }
+        qrPaymentUrl,
+        { quiet: 5 }
       );
   } else {
     $("#packageCheckoutQr").removeAttribute(

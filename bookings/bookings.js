@@ -3303,7 +3303,8 @@ function showBookingDetails(
     }
 
     ${
-      booking.status === "confirmed"
+      booking.status === "confirmed" &&
+      bookingOutstandingMinor(booking) === 0
         ? `
         <button
           id="detailEditButton"
@@ -3464,6 +3465,27 @@ function detailItem(
    Status actions
    ======================================================= */
 
+function bookingOutstandingMinor(booking) {
+  if (!booking) return 0;
+
+  if (booking.customer_package_id) {
+    return Math.max(
+      Number(booking.package_price_minor || 0) -
+      Number(booking.package_paid_minor || 0) -
+      Number(booking.package_consultation_credit_minor || 0),
+      0
+    );
+  }
+
+  return Math.max(
+    Number(booking.price_minor || 0) -
+    Number(booking.paid_minor || 0) -
+    Number(booking.consultation_credit_minor || 0),
+    0
+  );
+}
+
+
 async function completeBooking(
   id
 ) {
@@ -3476,6 +3498,20 @@ async function completeBooking(
     return;
   }
 
+
+  const outstandingMinor =
+    bookingOutstandingMinor(
+      booking
+    );
+
+  if (outstandingMinor > 0) {
+    window.alert(
+      `This booking still has ${formatMoney(
+        outstandingMinor
+      )} outstanding. Take or record the remaining payment before marking it completed.`
+    );
+    return;
+  }
 
   const confirmed =
     window.confirm(

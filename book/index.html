@@ -13,6 +13,79 @@
     .booking-home-link{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 17px;border:1px solid var(--es-border);border-radius:999px;background:var(--es-surface);color:var(--es-text);font-size:12px;font-weight:800;text-decoration:none}
     .booking-home-link:hover{border-color:var(--primary);color:var(--primary)}
 
+  
+    /* Premium public-booking consent controls */
+    .check-row {
+      position:relative;
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      padding:14px 16px;
+      margin:14px 0;
+      border:1px solid var(--es-border);
+      border-radius:14px;
+      background:var(--es-surface);
+      cursor:pointer;
+      transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .check-row:hover {
+      border-color:rgba(54,81,120,.5);
+      box-shadow:0 7px 20px rgba(24,34,31,.05);
+    }
+
+    .check-row input[type="checkbox"] {
+      appearance:none;
+      -webkit-appearance:none;
+      width:22px;
+      height:22px;
+      min-width:22px;
+      margin:0;
+      border:1.5px solid #aeb6b0;
+      border-radius:7px;
+      background:#fff;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      transition:all .15s ease;
+    }
+
+    .check-row input[type="checkbox"]::after {
+      content:"";
+      width:9px;
+      height:5px;
+      border-left:2px solid #fff;
+      border-bottom:2px solid #fff;
+      transform:rotate(-45deg) scale(0);
+      margin-top:-2px;
+      transition:transform .12s ease;
+    }
+
+    .check-row input[type="checkbox"]:checked {
+      border-color:var(--primary);
+      background:var(--primary);
+    }
+
+    .check-row input[type="checkbox"]:checked::after {
+      transform:rotate(-45deg) scale(1);
+    }
+
+    .check-row input[type="checkbox"]:focus-visible {
+      outline:3px solid rgba(54,81,120,.16);
+      outline-offset:2px;
+    }
+
+    .check-row span {
+      color:var(--es-text);
+      font-size:13px;
+      line-height:1.55;
+      font-weight:650;
+    }
+
+    .confirm-check {
+      background:rgba(54,81,120,.035);
+    }
+
   </style>
 </head>
 <body>
@@ -107,7 +180,7 @@
             </label>
             <label>
               <span>Phone</span>
-              <input id="phone" type="tel" autocomplete="tel" maxlength="50">
+              <input id="phone" type="tel" autocomplete="off" inputmode="tel" maxlength="50" value="">
             </label>
           </div>
 

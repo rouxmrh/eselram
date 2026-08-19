@@ -948,7 +948,7 @@ export async function onRequestPost({
 
     params.set(
       "success_url",
-      `${origin}/payment-result/?status=success&${returnQuery.toString()}`
+      `${origin}/payment-result/?status=success&session_id={CHECKOUT_SESSION_ID}&${returnQuery.toString()}`
     );
 
 

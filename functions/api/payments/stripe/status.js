@@ -1,4 +1,8 @@
 import {
+  sendPaymentReceipt
+} from "../../../../lib/communications.js";
+
+import {
   getBusinessStripeIntegration,
   stripeRequest,
   stripeErrorMessage
@@ -205,6 +209,50 @@ export async function onRequestGet({
         session:
           data
       });
+
+      const customerPackageId =
+        String(
+          data?.metadata?.customer_package_id ||
+          ""
+        ).trim();
+
+      if (customerPackageId) {
+        await env.DB.prepare(`
+          INSERT OR IGNORE INTO customer_package_payments (
+            customer_package_id,
+            payment_id
+          )
+          SELECT ?, ?
+          WHERE EXISTS (
+            SELECT 1
+            FROM customer_packages
+            WHERE id = ?
+              AND business_id = ?
+          )
+        `).bind(
+          customerPackageId,
+          payment.id,
+          customerPackageId,
+          payment.business_id
+        ).run();
+      }
+
+      try {
+        await sendPaymentReceipt({
+          env,
+          businessId:
+            payment.business_id,
+          paymentId:
+            payment.id,
+          baseUrl:
+            new URL(request.url).origin
+        });
+      } catch (emailError) {
+        console.error(
+          "Stripe payment receipt fallback failed:",
+          emailError
+        );
+      }
     }
 
 
