@@ -1356,6 +1356,32 @@ async function loadEmailProviderChoice() {
     const gmail =
       gmailData?.gmail || {};
 
+    if (gmail.migration_required) {
+      if (gmailConnectedAccount) {
+        gmailConnectedAccount.textContent =
+          "Gmail update pending";
+      }
+
+      if (connectGmailButton) {
+        connectGmailButton.hidden = true;
+      }
+
+      if (useGmailButton) {
+        useGmailButton.hidden = true;
+      }
+
+      if (disconnectGmailButton) {
+        disconnectGmailButton.hidden = true;
+      }
+
+      if (emailIntegrationMessage) {
+        emailIntegrationMessage.hidden = false;
+        emailIntegrationMessage.className = "es-status";
+        emailIntegrationMessage.textContent =
+          "Gmail support has been added to Eselram, but this existing installation still needs database migration 036. New installations will receive it automatically.";
+      }
+    }
+
     if (activeEmailProviderLabel) {
       activeEmailProviderLabel.textContent =
         active === "gmail"
@@ -1382,7 +1408,8 @@ async function loadEmailProviderChoice() {
 
     if (connectGmailButton) {
       connectGmailButton.hidden =
-        Boolean(gmail.connected);
+        Boolean(gmail.connected) ||
+        Boolean(gmail.migration_required);
     }
 
     if (useGmailButton) {

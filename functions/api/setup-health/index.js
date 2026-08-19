@@ -39,7 +39,8 @@ const EXPECTED_MIGRATIONS = [
   "032_service_public_booking_modes",
   "033_service_consultation_pathways",
   "034_package_variants",
-  "035_package_payment_rules"
+  "035_package_payment_rules",
+  "036_gmail_email_provider"
 ];
 
 
@@ -150,6 +151,33 @@ export async function onRequestGet({
 
     const businessId =
       user.business_id;
+
+
+    // Gmail support was added after some installations already existed.
+    // Query it directly, but never let a missing/older Gmail table take down
+    // the entire Setup Health endpoint.
+    const gmailIntegrationPromise =
+      env.DB
+        .prepare(`
+          SELECT
+            status,
+            last_tested_at,
+            last_error,
+            config_json
+          FROM business_email_connections
+          WHERE business_id = ?
+            AND provider = 'gmail'
+          LIMIT 1
+        `)
+        .bind(businessId)
+        .first()
+        .catch((error) => {
+          console.warn(
+            "Gmail health data is not available in this installation:",
+            error?.message || error
+          );
+          return null;
+        });
 
 
     const [
@@ -279,22 +307,7 @@ export async function onRequestGet({
           )
           .first(),
 
-        env.DB
-          .prepare(`
-            SELECT
-              status,
-              last_tested_at,
-              last_error,
-              config_json
-            FROM business_email_connections
-            WHERE business_id = ?
-              AND provider = 'gmail'
-            LIMIT 1
-          `)
-          .bind(
-            businessId
-          )
-          .first(),
+        gmailIntegrationPromise,
 
 
         env.DB
@@ -482,11 +495,20 @@ export async function onRequestGet({
       );
 
 
-    const emailComplete =
+    const gmailComplete =
+      ["configured", "verified"].includes(
+        String(gmailIntegration?.status || "")
+      );
+
+    const resendComplete =
       emailIntegration?.provider ===
         "resend" &&
       emailIntegration?.status ===
         "verified";
+
+    const emailComplete =
+      gmailComplete ||
+      resendComplete;
 
 
     const enabledPaymentKeys = String(

@@ -51,7 +51,26 @@ function parseJson(value, fallback = {}) {
   }
 }
 
+async function gmailTableReady(env) {
+  const table =
+    await env.DB
+      .prepare(`
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table'
+          AND name = 'business_email_connections'
+        LIMIT 1
+      `)
+      .first();
+
+  return Boolean(table);
+}
+
 async function row(env, businessId) {
+  if (!(await gmailTableReady(env))) {
+    return null;
+  }
+
   return await env.DB
     .prepare(`
       SELECT
@@ -71,6 +90,24 @@ async function row(env, businessId) {
 export async function onRequestGet({ request, env }) {
   const user = await userContext(request, env);
   if (!user) return unauthorized();
+
+  const tableReady = await gmailTableReady(env);
+
+  if (!tableReady) {
+    return Response.json({
+      ok: true,
+      gmail: {
+        connected: false,
+        email: "",
+        sender_name: user.business_name || "",
+        status: "migration_required",
+        active: false,
+        migration_required: true,
+        last_tested_at: null,
+        last_error: null
+      }
+    });
+  }
 
   const saved = await row(env, user.business_id);
   let email = "";
@@ -122,6 +159,17 @@ export async function onRequestPost({ request, env }) {
   const user = await userContext(request, env);
   if (!user) return unauthorized();
 
+  if (!(await gmailTableReady(env))) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Gmail support is not ready in this installation yet. Apply database migration 036, then try again."
+      },
+      { status: 409 }
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || "").trim();
 
@@ -153,6 +201,10 @@ export async function onRequestPost({ request, env }) {
 export async function onRequestDelete({ request, env }) {
   const user = await userContext(request, env);
   if (!user) return unauthorized();
+
+  if (!(await gmailTableReady(env))) {
+    return Response.json({ ok: true });
+  }
 
   await env.DB
     .prepare(`
