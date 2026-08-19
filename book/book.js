@@ -161,6 +161,41 @@ function clearPendingCheckout() {
   );
 }
 
+function cleanPublicBookingPhone(value) {
+  const raw =
+    String(value || "").trim();
+
+  const digitsOnly =
+    raw.replace(/\D/g, "");
+
+  if (
+    digitsOnly.length >= 6 &&
+    /^0+$/.test(digitsOnly)
+  ) {
+    return "";
+  }
+
+  return raw;
+}
+
+function clearDummyPhoneAutofill() {
+  const phoneInput =
+    $("#phone");
+
+  if (!phoneInput) return;
+
+  const cleaned =
+    cleanPublicBookingPhone(
+      phoneInput.value
+    );
+
+  if (cleaned !== phoneInput.value) {
+    phoneInput.value =
+      cleaned;
+  }
+}
+
+
 function resetConfirmButton() {
   const button = $("#confirmBooking");
   if (!button) return;
@@ -1194,7 +1229,21 @@ async function init() {
 
     if (phoneInput) {
       phoneInput.value = "";
+      phoneInput.setAttribute(
+        "autocomplete",
+        "new-password"
+      );
     }
+
+    window.setTimeout(
+      clearDummyPhoneAutofill,
+      50
+    );
+
+    window.setTimeout(
+      clearDummyPhoneAutofill,
+      350
+    );
 
     $("#bookingDate").min = `${yyyy}-${mm}-${dd}`;
 
@@ -1255,7 +1304,7 @@ $("#detailsForm").addEventListener("submit", async (event) => {
     first_name: firstName,
     last_name: lastName,
     email,
-    phone: $("#phone").value.trim(),
+    phone: cleanPublicBookingPhone($("#phone").value),
     notes: $("#notes").value.trim(),
     marketing_consent: $("#marketingConsent").checked
   };
@@ -1296,6 +1345,31 @@ $("#detailsForm").addEventListener("submit", async (event) => {
   renderReview();
   setStep(4);
 });
+
+$("#phone")?.addEventListener(
+  "focus",
+  clearDummyPhoneAutofill
+);
+
+$("#phone")?.addEventListener(
+  "input",
+  clearDummyPhoneAutofill
+);
+
+$("#phone")?.addEventListener(
+  "change",
+  clearDummyPhoneAutofill
+);
+
+window.addEventListener(
+  "pageshow",
+  () => {
+    window.setTimeout(
+      clearDummyPhoneAutofill,
+      0
+    );
+  }
+);
 
 $("#confirmBooking").addEventListener("click", confirmBooking);
 
