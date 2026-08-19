@@ -1718,11 +1718,16 @@ async function createPackagePaymentCheckout(
       );
     }
 
+    const qrPaymentUrl =
+      `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(
+          data.checkout.payment_id
+        )}`;
+
     takePaymentQrCode.src =
       window.EselramQr.toDataUrl(
-        data.checkout.url,
+        qrPaymentUrl,
         {
-          quiet: 4
+          quiet: 5
         }
       );
 
@@ -1862,11 +1867,16 @@ async function createTakePaymentCheckout(
       );
     }
 
+    const qrPaymentUrl =
+      `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(
+          data.checkout.payment_id
+        )}`;
+
     takePaymentQrCode.src =
       window.EselramQr.toDataUrl(
-        data.checkout.url,
+        qrPaymentUrl,
         {
-          quiet: 4
+          quiet: 5
         }
       );
 

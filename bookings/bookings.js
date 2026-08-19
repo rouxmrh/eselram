@@ -3093,11 +3093,16 @@ async function createStripePaymentLink(
         );
       }
 
+      const qrPaymentUrl =
+        `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(
+          data.checkout.payment_id
+        )}`;
+
       paymentQrCode.src =
         window.EselramQr.toDataUrl(
-          data.checkout.url,
+          qrPaymentUrl,
           {
-            quiet: 4
+            quiet: 5
           }
         );
     }

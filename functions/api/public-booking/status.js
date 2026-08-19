@@ -9,6 +9,20 @@ import {
   serverError
 } from "../../../lib/public-booking.js";
 
+import {
+  getBusinessStripeIntegration,
+  stripeRequest
+} from "../../../lib/stripe-business.js";
+
+import {
+  sendAppointmentCommunication,
+  sendPaymentReceipt
+} from "../../../lib/communications.js";
+
+import {
+  runServiceFormAutomation
+} from "../../../lib/form-automation.js";
+
 export async function onRequestGet({ request, env }) {
   try {
     const business = await getPublicBusiness(env);
@@ -70,6 +84,59 @@ export async function onRequestGet({ request, env }) {
       );
     }
 
+    const baseUrl = new URL(request.url).origin;
+
+    // The Stripe webhook is the primary asynchronous confirmation path, but a
+    // customer returning from Checkout must not depend on a webhook being
+    // configured. Verify the Checkout Session directly as a safe fallback.
+    if (
+      !["paid", "partially_refunded", "refunded"].includes(
+        String(row.payment_status || "")
+      )
+    ) {
+      const integration =
+        await getBusinessStripeIntegration(
+          env,
+          business.id
+        );
+
+      if (!integration.error) {
+        const stripeResult =
+          await stripeRequest({
+            secretKey: integration.secretKey,
+            path: `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`
+          });
+
+        if (
+          stripeResult.response.ok &&
+          stripeResult.data?.payment_status === "paid"
+        ) {
+          await env.DB
+            .prepare(`
+              UPDATE payments
+              SET
+                status = 'paid',
+                payment_method = ?,
+                paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP),
+                notes = 'Stripe Checkout payment confirmed on booking return',
+                updated_at = CURRENT_TIMESTAMP
+              WHERE id = ? AND business_id = ?
+            `)
+            .bind(
+              String(
+                stripeResult.data?.payment_method_types?.[0] ||
+                "card"
+              ),
+              row.payment_id,
+              business.id
+            )
+            .run();
+
+          row.payment_status = "paid";
+        }
+      }
+    }
+
     if (
       ["paid", "partially_refunded", "refunded"].includes(
         String(row.payment_status || "")
@@ -85,6 +152,63 @@ export async function onRequestGet({ request, env }) {
         .bind(appointmentId, business.id)
         .run();
       row.status = "confirmed";
+    }
+
+    const paymentConfirmed =
+      ["paid", "partially_refunded", "refunded"].includes(
+        String(row.payment_status || "")
+      );
+
+    if (paymentConfirmed && row.status === "confirmed") {
+      // All communication helpers are idempotent through their unique keys, so
+      // this safely covers both webhook-first and browser-return-first flows.
+      try {
+        await sendPaymentReceipt({
+          env,
+          businessId: business.id,
+          paymentId: row.payment_id,
+          baseUrl
+        });
+      } catch (error) {
+        console.error("Booking return payment receipt failed:", error);
+      }
+
+      try {
+        await sendAppointmentCommunication({
+          env,
+          businessId: business.id,
+          appointmentId,
+          type: "booking_confirmation",
+          uniqueKey: `booking_confirmation:${appointmentId}`,
+          baseUrl
+        });
+      } catch (error) {
+        console.error("Booking return confirmation email failed:", error);
+      }
+
+      try {
+        await runServiceFormAutomation({
+          env,
+          businessId: business.id,
+          appointmentId,
+          triggerEvent: "booking_confirmed",
+          baseUrl
+        });
+      } catch (error) {
+        console.error("Booking return form automation failed:", error);
+      }
+
+      try {
+        await runServiceFormAutomation({
+          env,
+          businessId: business.id,
+          appointmentId,
+          triggerEvent: "payment_received",
+          baseUrl
+        });
+      } catch (error) {
+        console.error("Payment return form automation failed:", error);
+      }
     }
 
     const confirmed =

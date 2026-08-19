@@ -1304,6 +1304,81 @@
       white-space:normal !important;
     }
 
+
+    /* Premium payment-link dialog alignment */
+    #paymentLinkResult .es-payment-qr-wrap {
+      grid-template-columns:minmax(230px,260px) minmax(0,1fr) !important;
+      gap:26px !important;
+    }
+
+    #paymentQrCode {
+      width:250px !important;
+      height:250px !important;
+      max-width:100% !important;
+      padding:12px !important;
+      box-sizing:border-box !important;
+    }
+
+    #paymentLinkResult .es-copy-field {
+      display:grid !important;
+      grid-template-columns:minmax(0,1fr) 118px !important;
+      gap:10px !important;
+      align-items:stretch !important;
+    }
+
+    #paymentLinkResult .es-copy-field input,
+    #paymentLinkResult .es-copy-field button,
+    #paymentLinkResult .es-payment-link-actions > * {
+      height:44px !important;
+      min-height:44px !important;
+      margin:0 !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      text-align:center !important;
+      line-height:1.15 !important;
+      white-space:normal !important;
+      overflow-wrap:anywhere !important;
+    }
+
+    #paymentLinkResult .es-payment-link-actions {
+      display:grid !important;
+      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+      gap:10px !important;
+      margin-top:14px !important;
+      padding-top:0 !important;
+      border-top:0 !important;
+    }
+
+    #paymentLinkResult .es-payment-link-actions > * {
+      width:100% !important;
+      min-width:0 !important;
+      padding:0 14px !important;
+      border-radius:10px !important;
+      text-decoration:none !important;
+      font-size:12px !important;
+      font-weight:800 !important;
+    }
+
+    #paymentLinkResult #recordOtherPayment {
+      grid-column:1 / -1 !important;
+    }
+
+    @media(max-width:680px) {
+      #paymentLinkResult .es-payment-qr-wrap {
+        grid-template-columns:1fr !important;
+      }
+
+      #paymentLinkResult .es-payment-link-actions {
+        grid-template-columns:1fr !important;
+      }
+
+      #paymentLinkResult #recordOtherPayment {
+        grid-column:auto !important;
+      }
+    }
+
 </style>
 </head>
 
@@ -1932,8 +2007,7 @@
             </label>
 
             <div
-              class="es-dialog-actions"
-              style="margin-top:16px;"
+              class="es-dialog-actions es-payment-link-actions"
             >
 
               <a
