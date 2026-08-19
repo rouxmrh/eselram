@@ -9,6 +9,164 @@ let currency = "GBP";
 let activeView = "customers";
 let activePackageCheckout = null;
 
+let packageCheckoutPollTimer = null;
+
+
+function stopPackageCheckoutPolling() {
+  if (packageCheckoutPollTimer) {
+    clearTimeout(
+      packageCheckoutPollTimer
+    );
+
+    packageCheckoutPollTimer =
+      null;
+  }
+}
+
+
+async function verifyActivePackageCheckout({
+  scheduleNext = true
+} = {}) {
+  const saleId =
+    activePackageCheckout
+      ?.sale_id ||
+    "";
+
+  if (!saleId) {
+    stopPackageCheckoutPolling();
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `/api/packages/sale?sale_id=${encodeURIComponent(
+          saleId
+        )}`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          cache:
+            "no-store"
+        }
+      );
+
+    handleAuth(
+      response
+    );
+
+    const data =
+      await response.json();
+
+    if (
+      response.ok &&
+      data.ok &&
+      data.status === "paid"
+    ) {
+      stopPackageCheckoutPolling();
+
+      const status =
+        $("#packageCheckoutStatus");
+
+      status.hidden =
+        false;
+
+      status.className =
+        "es-status success";
+
+      status.textContent =
+        "Payment received. Package activated and confirmation email sent.";
+
+      await load();
+
+      /*
+       * Clear the active sale immediately so a near-simultaneous Close click
+       * cannot run the cancellation endpoint after payment has been verified.
+       */
+      activePackageCheckout =
+        null;
+
+      window.setTimeout(
+        () => {
+          if (
+            $("#packageCheckoutDialog")
+              .open
+          ) {
+            $("#packageCheckoutDialog")
+              .close();
+          }
+        },
+        1200
+      );
+
+      return;
+    }
+
+    if (
+      response.ok &&
+      data.ok &&
+      [
+        "failed",
+        "cancelled"
+      ].includes(
+        data.status
+      )
+    ) {
+      stopPackageCheckoutPolling();
+      return;
+    }
+  } catch (error) {
+    console.error(
+      "Unable to verify package checkout:",
+      error
+    );
+  }
+
+  if (
+    scheduleNext &&
+    activePackageCheckout
+      ?.sale_id === saleId
+  ) {
+    packageCheckoutPollTimer =
+      window.setTimeout(
+        () =>
+          verifyActivePackageCheckout(),
+        2000
+      );
+  }
+}
+
+
+function startPackageCheckoutPolling() {
+  stopPackageCheckoutPolling();
+
+  packageCheckoutPollTimer =
+    window.setTimeout(
+      () =>
+        verifyActivePackageCheckout(),
+      1500
+    );
+}
+
+
+window.addEventListener(
+  "focus",
+  () => {
+    if (
+      activePackageCheckout
+        ?.sale_id
+    ) {
+      verifyActivePackageCheckout({
+        scheduleNext:
+          false
+      });
+    }
+  }
+);
+
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -971,6 +1129,7 @@ function openPackageCheckoutDialog(data) {
   }
 
   $("#packageCheckoutDialog").showModal();
+  startPackageCheckoutPolling();
 }
 
 
@@ -981,12 +1140,36 @@ $("#closePackageCheckoutDialog").addEventListener(
       activePackageCheckout?.sale_id ||
       null;
 
-    $("#packageCheckoutDialog").close();
-    activePackageCheckout = null;
+    stopPackageCheckoutPolling();
 
     if (!saleId) {
+      $("#packageCheckoutDialog").close();
+      activePackageCheckout = null;
       return;
     }
+
+    /*
+     * Verify once before treating the checkout as abandoned. This prevents a
+     * customer who has just paid in the other tab from being turned into a
+     * false failed attempt when staff closes the modal quickly.
+     */
+    try {
+      await verifyActivePackageCheckout({
+        scheduleNext:
+          false
+      });
+    } catch {
+      // Continue to the safe cancellation attempt below.
+    }
+
+    if (
+      !activePackageCheckout
+    ) {
+      return;
+    }
+
+    $("#packageCheckoutDialog").close();
+    activePackageCheckout = null;
 
     try {
       const response =

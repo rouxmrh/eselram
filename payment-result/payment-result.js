@@ -1,4 +1,4 @@
-(function () {
+(async function () {
   "use strict";
 
   const params =
@@ -22,6 +22,22 @@
     safeWebsite(
       params.get("website")
     );
+
+  const packageSaleId =
+    String(
+      params.get(
+        "package_sale_id"
+      ) ||
+      ""
+    ).trim();
+
+  const sessionId =
+    String(
+      params.get(
+        "session_id"
+      ) ||
+      ""
+    ).trim();
 
   const mark =
     document.getElementById(
@@ -47,6 +63,60 @@
     document.getElementById(
       "returnButton"
     );
+
+
+  if (
+    status !== "cancelled" &&
+    packageSaleId &&
+    sessionId
+  ) {
+    eyebrow.textContent =
+      "Confirming payment";
+
+    title.textContent =
+      "Finishing your package";
+
+    message.textContent =
+      "Your Stripe payment was received. We are activating your package now.";
+
+    try {
+      const response =
+        await fetch(
+          `/api/package-payment/confirm?sale_id=${encodeURIComponent(
+            packageSaleId
+          )}&session_id=${encodeURIComponent(
+            sessionId
+          )}`,
+          {
+            headers: {
+              Accept:
+                "application/json"
+            },
+            cache:
+              "no-store"
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.ok ||
+        data.paid !== true
+      ) {
+        throw new Error(
+          data.error ||
+          "Package confirmation is still processing."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Package payment confirmation fallback failed:",
+        error
+      );
+    }
+  }
 
 
   if (

@@ -253,6 +253,17 @@ export async function onRequestGet({
 
             WHERE
               p.business_id = ?
+              AND NOT (
+                p.status = 'failed'
+                AND EXISTS (
+                  SELECT 1
+                  FROM package_sales ps_failed
+                  WHERE
+                    ps_failed.business_id = p.business_id
+                    AND ps_failed.payment_id = p.id
+                    AND ps_failed.status = 'failed'
+                )
+              )
 
             ORDER BY
               datetime(

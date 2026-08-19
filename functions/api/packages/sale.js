@@ -13,6 +13,14 @@ import {
   findAvailableConsultationCredit
 } from "../../../lib/consultation-credit.js";
 
+import {
+  sendPaymentReceipt
+} from "../../../lib/communications.js";
+
+import {
+  finalizePackageSale
+} from "../../../lib/package-sales.js";
+
 
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
@@ -137,11 +145,13 @@ async function cancelPendingPackageSale({
     }
   }
 
+  /*
+   * An expired, unpaid Checkout session is not a financial transaction.
+   * Remove the temporary package-sale/payment rows instead of turning an
+   * abandoned checkout into a red "Failed" payment in Finance Centre.
+   */
   await env.DB.prepare(`
-    UPDATE package_sales
-    SET
-      status = 'failed',
-      updated_at = CURRENT_TIMESTAMP
+    DELETE FROM package_sales
     WHERE
       id = ?
       AND business_id = ?
@@ -153,12 +163,7 @@ async function cancelPendingPackageSale({
 
   if (sale.payment_id) {
     await env.DB.prepare(`
-      UPDATE payments
-      SET
-        status = 'failed',
-        notes =
-          'Package checkout cancelled before payment',
-        updated_at = CURRENT_TIMESTAMP
+      DELETE FROM payments
       WHERE
         id = ?
         AND business_id = ?
@@ -219,6 +224,300 @@ async function cancelSupersededPackageSales({
       businessId,
       sale
     });
+  }
+}
+
+
+
+export async function onRequestGet({
+  request,
+  env
+}) {
+  try {
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
+
+    if (!user) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Authentication required."
+        },
+        {
+          status: 401
+        }
+      );
+    }
+
+    const url =
+      new URL(
+        request.url
+      );
+
+    const saleId =
+      String(
+        url.searchParams.get(
+          "sale_id"
+        ) ||
+        ""
+      ).trim();
+
+    if (!saleId) {
+      return badRequest(
+        "Package sale is required."
+      );
+    }
+
+    const sale =
+      await env.DB.prepare(`
+        SELECT
+          ps.id,
+          ps.payment_id,
+          ps.provider_reference,
+          ps.customer_package_id,
+          ps.status,
+          p.status AS payment_status
+        FROM package_sales ps
+        LEFT JOIN payments p
+          ON p.id = ps.payment_id
+         AND p.business_id = ps.business_id
+        WHERE
+          ps.id = ?
+          AND ps.business_id = ?
+          AND ps.source = 'staff'
+        LIMIT 1
+      `).bind(
+        saleId,
+        user.business_id
+      ).first();
+
+    if (!sale) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Package sale not found."
+        },
+        {
+          status: 404
+        }
+      );
+    }
+
+    if (
+      sale.status === "paid" &&
+      sale.customer_package_id
+    ) {
+      return Response.json({
+        ok: true,
+        status: "paid",
+        customer_package_id:
+          sale.customer_package_id,
+        payment_id:
+          sale.payment_id || null
+      });
+    }
+
+    if (
+      sale.status !== "pending" ||
+      !sale.provider_reference ||
+      !sale.payment_id
+    ) {
+      return Response.json({
+        ok: true,
+        status:
+          sale.status,
+        customer_package_id:
+          sale.customer_package_id ||
+          null,
+        payment_id:
+          sale.payment_id ||
+          null
+      });
+    }
+
+    const integration =
+      await getBusinessStripeIntegration(
+        env,
+        user.business_id
+      );
+
+    if (
+      integration.error ||
+      integration.row.status !==
+        "verified"
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            integration.error ||
+            "Stripe is unavailable."
+        },
+        {
+          status: 503
+        }
+      );
+    }
+
+    const result =
+      await stripeRequest({
+        secretKey:
+          integration.secretKey,
+        path:
+          `/v1/checkout/sessions/${encodeURIComponent(
+            sale.provider_reference
+          )}`
+      });
+
+    if (!result.response.ok) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            stripeErrorMessage(
+              result.data,
+              "Unable to verify package payment."
+            )
+        },
+        {
+          status: 502
+        }
+      );
+    }
+
+    const session =
+      result.data || {};
+
+    if (
+      String(
+        session?.metadata
+          ?.package_sale_id ||
+        ""
+      ) !== sale.id ||
+      String(
+        session?.metadata
+          ?.business_id ||
+        ""
+      ) !== user.business_id
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Stripe package payment reference did not match this sale."
+        },
+        {
+          status: 409
+        }
+      );
+    }
+
+    if (
+      session.payment_status ===
+      "paid"
+    ) {
+      await env.DB.prepare(`
+        UPDATE payments
+        SET
+          status = 'paid',
+          provider_reference = ?,
+          payment_method = ?,
+          paid_at =
+            COALESCE(
+              paid_at,
+              CURRENT_TIMESTAMP
+            ),
+          notes =
+            'Stripe package payment confirmed directly',
+          updated_at =
+            CURRENT_TIMESTAMP
+        WHERE
+          id = ?
+          AND business_id = ?
+      `).bind(
+        session.id,
+        String(
+          session.payment_method_types?.[0] ||
+          "card"
+        ),
+        sale.payment_id,
+        user.business_id
+      ).run();
+
+      const finalized =
+        await finalizePackageSale({
+          env,
+          session,
+          paid: true
+        });
+
+      try {
+        await sendPaymentReceipt({
+          env,
+          businessId:
+            user.business_id,
+          paymentId:
+            sale.payment_id
+        });
+      } catch (error) {
+        console.error(
+          "Package payment confirmation email failed:",
+          error
+        );
+      }
+
+      return Response.json({
+        ok: true,
+        status: "paid",
+        customer_package_id:
+          finalized
+            ?.customer_package_id ||
+          null,
+        payment_id:
+          sale.payment_id
+      });
+    }
+
+    if (
+      session.status ===
+      "expired"
+    ) {
+      return Response.json({
+        ok: true,
+        status: "failed",
+        payment_id:
+          sale.payment_id
+      });
+    }
+
+    return Response.json({
+      ok: true,
+      status: "pending",
+      payment_id:
+        sale.payment_id
+    });
+
+  } catch (error) {
+    console.error(
+      "Package sale status failed:",
+      error
+    );
+
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to verify package payment."
+      },
+      {
+        status: 500
+      }
+    );
   }
 }
 
@@ -602,7 +901,9 @@ export async function onRequestPost({ request, env }) {
 
     params.set(
       "success_url",
-      `${origin}/payment-result/?status=success&${returnQuery.toString()}`
+      `${origin}/payment-result/?status=success&package_sale_id=${encodeURIComponent(
+        saleId
+      )}&session_id={CHECKOUT_SESSION_ID}&${returnQuery.toString()}`
     );
     params.set(
       "cancel_url",
@@ -644,17 +945,26 @@ export async function onRequestPost({ request, env }) {
         "Unable to create Stripe Checkout."
       );
 
+      /*
+       * Stripe could not create the Checkout session, so no payment attempt
+       * actually exists. Remove the temporary records instead of polluting
+       * Payment activity with a technical "Failed" transaction.
+       */
       await env.DB.prepare(`
-        UPDATE package_sales
-        SET status = 'failed', updated_at = CURRENT_TIMESTAMP
+        DELETE FROM package_sales
         WHERE id = ? AND business_id = ?
-      `).bind(saleId, user.business_id).run();
+      `).bind(
+        saleId,
+        user.business_id
+      ).run();
 
       await env.DB.prepare(`
-        UPDATE payments
-        SET status = 'failed', notes = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND business_id = ?
-      `).bind(message.slice(0, 1000), paymentId, user.business_id).run();
+        DELETE FROM payments
+        WHERE id = ? AND business_id = ? AND status = 'pending'
+      `).bind(
+        paymentId,
+        user.business_id
+      ).run();
 
       return Response.json({ ok: false, error: message }, { status: 502 });
     }
