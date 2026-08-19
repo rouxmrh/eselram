@@ -1793,29 +1793,30 @@ function renderBookings() {
                     ${
                       bookingOutstandingMinor(
                         booking
-                      ) === 0
+                      ) > 0
                         ? `
                           <button
-                            class="es-booking-action"
+                            class="es-booking-action es-booking-action-payment"
                             type="button"
-                            data-complete="${escapeHtml(
+                            data-take-payment="${escapeHtml(
                               booking.id
                             )}"
                           >
-                            Complete
+                            Take payment
                           </button>
                         `
-                        : `
-                          <button
-                            class="es-booking-action"
-                            type="button"
-                            disabled
-                            title="Take or record the outstanding payment before completing this booking."
-                          >
-                            Payment due
-                          </button>
-                        `
+                        : ""
                     }
+
+                    <button
+                      class="es-booking-action"
+                      type="button"
+                      data-complete="${escapeHtml(
+                        booking.id
+                      )}"
+                    >
+                      Complete
+                    </button>
 
                     <button
                       class="es-booking-action danger"
@@ -2247,6 +2248,34 @@ function bindBookingRowActions() {
             if (booking) {
 
               openBookingForm(
+                booking
+              );
+            }
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-take-payment]"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const booking =
+              getBooking(
+                button.dataset
+                  .takePayment
+              );
+
+            if (booking) {
+              createStripePaymentLink(
                 booking
               );
             }
@@ -3324,8 +3353,7 @@ function showBookingDetails(
     }
 
     ${
-      booking.status === "confirmed" &&
-      bookingOutstandingMinor(booking) === 0
+      booking.status === "confirmed"
         ? `
         <button
           id="detailEditButton"
@@ -3339,6 +3367,13 @@ function showBookingDetails(
           id="detailCompleteButton"
           class="es-secondary-button"
           type="button"
+          ${
+            bookingOutstandingMinor(
+              booking
+            ) > 0
+              ? 'title="Outstanding payment must be taken or recorded before completion."'
+              : ""
+          }
         >
           Mark completed
         </button>
@@ -3402,7 +3437,7 @@ function showBookingDetails(
       .getElementById(
         "detailEditButton"
       )
-      .addEventListener(
+      ?.addEventListener(
         "click",
         () => {
 
@@ -3419,7 +3454,7 @@ function showBookingDetails(
       .getElementById(
         "detailCompleteButton"
       )
-      .addEventListener(
+      ?.addEventListener(
         "click",
         () =>
           completeBooking(
@@ -3432,7 +3467,7 @@ function showBookingDetails(
       .getElementById(
         "detailCancelButton"
       )
-      .addEventListener(
+      ?.addEventListener(
         "click",
         () =>
           cancelBooking(
