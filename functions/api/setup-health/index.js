@@ -158,6 +158,7 @@ export async function onRequestGet({
       hours,
       services,
       emailIntegration,
+      gmailIntegration,
       paymentSummary,
       templateSummary,
       fileUploadSummary,
@@ -271,6 +272,23 @@ export async function onRequestGet({
               business_id = ?
               AND integration_type = 'email'
 
+            LIMIT 1
+          `)
+          .bind(
+            businessId
+          )
+          .first(),
+
+        env.DB
+          .prepare(`
+            SELECT
+              status,
+              last_tested_at,
+              last_error,
+              config_json
+            FROM business_email_connections
+            WHERE business_id = ?
+              AND provider = 'gmail'
             LIMIT 1
           `)
           .bind(
@@ -704,17 +722,21 @@ export async function onRequestGet({
         complete:
           emailComplete,
         status:
-          emailComplete
-            ? "Ready to send"
-            : emailIntegration?.provider === "resend"
-              ? "Domain verification required"
-              : "Optional setup",
+          gmailComplete
+            ? "Gmail ready"
+            : resendComplete
+              ? "Resend ready"
+              : emailIntegration?.provider === "resend"
+                ? "Gmail or domain setup available"
+                : "Optional setup",
         detail:
-          emailComplete
-            ? "The business's own Resend connection and sending address have passed a test."
-            : emailIntegration?.provider === "resend"
-              ? "Resend is connected. Verify a business sending domain before automated client emails are enabled."
-              : "Email can be configured later. A verified business sending domain is required before automated client emails are enabled.",
+          gmailComplete
+            ? "Gmail is connected and can send automated client emails without a business domain."
+            : resendComplete
+              ? "The business's Resend connection and verified sending domain are ready."
+              : emailIntegration?.provider === "resend"
+                ? "Connect Gmail for domain-free sending, or verify a business domain to send through Resend."
+                : "Connect Gmail or configure Resend later. A website is not required.",
         href:
           "/settings/#email",
         required:

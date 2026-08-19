@@ -1232,6 +1232,34 @@ const sendEmailTestButton =
     "sendEmailTestButton"
   );
 
+const activeEmailProviderLabel =
+  document.getElementById("activeEmailProviderLabel");
+
+const gmailProviderCard =
+  document.getElementById("gmailProviderCard");
+
+const resendProviderCard =
+  document.getElementById("resendProviderCard");
+
+const gmailConnectedAccount =
+  document.getElementById("gmailConnectedAccount");
+
+const connectGmailButton =
+  document.getElementById("connectGmailButton");
+
+const useGmailButton =
+  document.getElementById("useGmailButton");
+
+const disconnectGmailButton =
+  document.getElementById("disconnectGmailButton");
+
+const useResendButton =
+  document.getElementById("useResendButton");
+
+const resendSettingsSection =
+  document.getElementById("resendSettingsSection");
+
+
 
 const emailSendingDomain =
   document.getElementById(
@@ -1268,6 +1296,234 @@ const emailDomainActions =
     "emailDomainActions"
   );
 
+
+
+
+async function setEmailProvider(provider) {
+  const response = await fetch(
+    "/api/integrations/email/provider",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({ provider })
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.ok) {
+    throw new Error(
+      data.error ||
+      "Unable to change the email provider."
+    );
+  }
+
+  await loadEmailProviderChoice();
+}
+
+async function loadEmailProviderChoice() {
+  try {
+    const [providerResponse, gmailResponse] =
+      await Promise.all([
+        fetch(
+          "/api/integrations/email/provider",
+          {
+            headers: { Accept: "application/json" },
+            cache: "no-store"
+          }
+        ),
+        fetch(
+          "/api/integrations/email/gmail",
+          {
+            headers: { Accept: "application/json" },
+            cache: "no-store"
+          }
+        )
+      ]);
+
+    const providerData =
+      await providerResponse.json();
+    const gmailData =
+      await gmailResponse.json();
+
+    const active =
+      providerData?.active_provider ||
+      "resend";
+
+    const gmail =
+      gmailData?.gmail || {};
+
+    if (activeEmailProviderLabel) {
+      activeEmailProviderLabel.textContent =
+        active === "gmail"
+          ? "Gmail"
+          : "Resend";
+    }
+
+    gmailProviderCard?.classList.toggle(
+      "is-active",
+      active === "gmail"
+    );
+
+    resendProviderCard?.classList.toggle(
+      "is-active",
+      active === "resend"
+    );
+
+    if (gmailConnectedAccount) {
+      gmailConnectedAccount.textContent =
+        gmail.connected
+          ? `Connected as ${gmail.email}`
+          : "Not connected";
+    }
+
+    if (connectGmailButton) {
+      connectGmailButton.hidden =
+        Boolean(gmail.connected);
+    }
+
+    if (useGmailButton) {
+      useGmailButton.hidden =
+        !gmail.connected ||
+        active === "gmail";
+    }
+
+    if (disconnectGmailButton) {
+      disconnectGmailButton.hidden =
+        !gmail.connected;
+    }
+
+    if (useResendButton) {
+      useResendButton.hidden =
+        active === "resend";
+    }
+
+    if (resendSettingsSection) {
+      // Keep Resend configuration visible even when Gmail is active so a
+      // business can prepare a branded domain before switching later.
+      resendSettingsSection.hidden = false;
+    }
+
+    if (
+      emailIntegrationStatus &&
+      active === "gmail" &&
+      gmail.connected
+    ) {
+      emailIntegrationStatus.textContent =
+        "Gmail ready";
+    }
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    if (
+      params.get("gmail") === "connected" &&
+      emailIntegrationMessage
+    ) {
+      emailIntegrationMessage.hidden = false;
+      emailIntegrationMessage.className =
+        "es-status success";
+      emailIntegrationMessage.textContent =
+        "Gmail connected. Eselram can now send client emails directly from this Gmail account without a business domain.";
+      history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}#email`
+      );
+    }
+
+    if (
+      params.get("gmail") === "error" &&
+      emailIntegrationMessage
+    ) {
+      emailIntegrationMessage.hidden = false;
+      emailIntegrationMessage.className =
+        "es-status error";
+      emailIntegrationMessage.textContent =
+        "Gmail could not be connected. Try again and approve the Gmail send permission.";
+    }
+  } catch (error) {
+    console.error(
+      "Unable to load email provider choice:",
+      error
+    );
+  }
+}
+
+useGmailButton
+  ?.addEventListener(
+    "click",
+    async () => {
+      try {
+        await setEmailProvider("gmail");
+      } catch (error) {
+        emailIntegrationMessage.hidden = false;
+        emailIntegrationMessage.className =
+          "es-status error";
+        emailIntegrationMessage.textContent =
+          error.message;
+      }
+    }
+  );
+
+useResendButton
+  ?.addEventListener(
+    "click",
+    async () => {
+      try {
+        await setEmailProvider("resend");
+        await loadEmailIntegration();
+      } catch (error) {
+        emailIntegrationMessage.hidden = false;
+        emailIntegrationMessage.className =
+          "es-status error";
+        emailIntegrationMessage.textContent =
+          error.message;
+      }
+    }
+  );
+
+disconnectGmailButton
+  ?.addEventListener(
+    "click",
+    async () => {
+      if (
+        !confirm(
+          "Disconnect Gmail from Eselram?"
+        )
+      ) {
+        return;
+      }
+
+      const response = await fetch(
+        "/api/integrations/email/gmail",
+        {
+          method: "DELETE",
+          headers: { Accept: "application/json" }
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        emailIntegrationMessage.hidden = false;
+        emailIntegrationMessage.className =
+          "es-status error";
+        emailIntegrationMessage.textContent =
+          data.error ||
+          "Unable to disconnect Gmail.";
+        return;
+      }
+
+      await loadEmailProviderChoice();
+      await loadEmailIntegration();
+    }
+  );
 
 
 function clearNode(node) {
@@ -3253,3 +3509,6 @@ notificationSettingsForm
 
 loadTabFromHash();
 loadSettings();
+
+
+loadEmailProviderChoice();

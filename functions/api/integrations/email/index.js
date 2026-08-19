@@ -8,6 +8,10 @@ import {
   decryptIntegrationSecret
 } from "../../../../lib/integration-crypto.js";
 
+import {
+  sendBusinessEmail
+} from "../../../../lib/email-delivery.js";
+
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
 
@@ -488,12 +492,9 @@ export async function onRequestPost({
     const body =
       await request.json();
 
-    const action =
-      String(
-        body.action || ""
-      ).trim();
-
-    if (action !== "test") {
+    if (
+      String(body.action || "").trim() !== "test"
+    ) {
       return badRequest(
         "Invalid email integration action."
       );
@@ -513,162 +514,61 @@ export async function onRequestPost({
       );
     }
 
-    const integration =
-      await getIntegration(
+    const result =
+      await sendBusinessEmail(
         env,
-        user.business_id
-      );
-
-    if (
-      !integration ||
-      !integration.encrypted_credentials
-    ) {
-      return badRequest(
-        "Save the email integration before testing it."
-      );
-    }
-
-    const config =
-      parseJson(
-        integration.config_json,
-        {}
-      );
-
-    const decrypted =
-      JSON.parse(
-        await decryptIntegrationSecret(
-          integration.encrypted_credentials,
-          env.ESELRAM_ENCRYPTION_KEY
-        )
-      );
-
-    const apiKey =
-      String(
-        decrypted.api_key || ""
-      ).trim();
-
-    if (!apiKey) {
-      return badRequest(
-        "The stored Resend API key is missing."
-      );
-    }
-
-    const fromName =
-      String(
-        config.from_name || ""
-      ).trim();
-
-    const fromEmail =
-      normaliseEmail(
-        config.from_email
-      );
-
-    if (
-      !fromEmail ||
-      !isValidEmail(fromEmail)
-    ) {
-      return badRequest(
-        "Set up and verify a sending domain first. Once verified, Eselram will use an address such as notifications@yourdomain.co.uk."
-      );
-    }
-
-    const resendResponse =
-      await fetch(
-        "https://api.resend.com/emails",
+        user.business_id,
         {
-          method: "POST",
-          headers: {
-            Authorization:
-              `Bearer ${apiKey}`,
-            "Content-Type":
-              "application/json"
-          },
-          body:
-            JSON.stringify({
-              from:
-                `${fromName} <${fromEmail}>`,
-              to: [
-                testEmail
-              ],
-              subject:
-                "Eselram email connection test",
-              html:
-                `<p>Your Eselram email integration is working.</p><p>This message was sent using your business's own Resend account.</p>`,
-              text:
-                "Your Eselram email integration is working. This message was sent using your business's own Resend account."
-            })
+          to:
+            testEmail,
+          subject:
+            "Eselram email connection test",
+          html:
+            "<p>Your Eselram email connection is working.</p><p>This message was sent using the email provider selected in Eselram.</p>",
+          text:
+            "Your Eselram email connection is working. This message was sent using the email provider selected in Eselram."
         }
       );
 
-    let resendData = {};
-
-    try {
-      resendData =
-        await resendResponse.json();
-    } catch {
-      resendData = {};
-    }
-
-    if (!resendResponse.ok) {
-      const providerError =
-        String(
-          resendData?.message ||
-          resendData?.error ||
-          "Resend rejected the test email."
-        );
-
+    if (result.provider === "resend") {
       await env.DB
         .prepare(`
           UPDATE business_integrations
           SET
-            status = 'error',
+            status = 'verified',
             last_tested_at = CURRENT_TIMESTAMP,
-            last_error = ?,
+            last_error = NULL,
             updated_at = CURRENT_TIMESTAMP
-          WHERE
-            business_id = ?
+          WHERE business_id = ?
             AND integration_type = 'email'
+            AND provider = 'resend'
         `)
-        .bind(
-          providerError.slice(0, 1000),
-          user.business_id
-        )
+        .bind(user.business_id)
         .run();
-
-      return Response.json(
-        {
-          ok: false,
-          error: providerError
-        },
-        {
-          status: 502
-        }
-      );
+    } else if (result.provider === "gmail") {
+      await env.DB
+        .prepare(`
+          UPDATE business_email_connections
+          SET
+            status = 'verified',
+            last_tested_at = CURRENT_TIMESTAMP,
+            last_error = NULL,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE business_id = ?
+            AND provider = 'gmail'
+        `)
+        .bind(user.business_id)
+        .run();
     }
-
-    await env.DB
-      .prepare(`
-        UPDATE business_integrations
-        SET
-          status = 'verified',
-          last_tested_at = CURRENT_TIMESTAMP,
-          last_error = NULL,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE
-          business_id = ?
-          AND integration_type = 'email'
-      `)
-      .bind(
-        user.business_id
-      )
-      .run();
 
     return Response.json({
       ok: true,
       message:
-        `Test email sent to ${testEmail}.`,
+        `Test email sent to ${testEmail} using ${result.provider === "gmail" ? "Gmail" : "Resend"}.`,
+      provider:
+        result.provider,
       provider_id:
-        resendData?.id || null
+        result.id || null
     });
   } catch (error) {
     console.error(
@@ -689,6 +589,7 @@ export async function onRequestPost({
     );
   }
 }
+
 
 export async function onRequestDelete({
   request,

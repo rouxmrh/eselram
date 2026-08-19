@@ -754,7 +754,58 @@
       #tab-email .es-email-domain-row .es-field-button, #tab-email #createEmailDomainButton { width:100%; }
     }
 
-</style>
+
+    #tab-email .es-email-provider-grid {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+      margin:18px 0 22px;
+    }
+    #tab-email .es-email-provider-card {
+      border:1px solid var(--line, #d9ddd8);
+      border-radius:16px;
+      padding:18px;
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:18px;
+      min-height:210px;
+    }
+    #tab-email .es-email-provider-card.is-active {
+      border-color:#365178;
+      box-shadow:0 0 0 1px #365178 inset;
+    }
+    #tab-email .es-email-provider-card h3 {
+      margin:7px 0 7px;
+    }
+    #tab-email .es-email-provider-card p {
+      margin:0 0 12px;
+      line-height:1.55;
+      color:var(--muted, #68706b);
+    }
+    #tab-email .es-email-provider-kicker {
+      display:inline-block;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#365178;
+    }
+    #tab-email .es-email-summary-grid {
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+    #tab-email .es-email-subheader {
+      margin-top:4px;
+    }
+    @media (max-width:760px) {
+      #tab-email .es-email-provider-grid,
+      #tab-email .es-email-summary-grid {
+        grid-template-columns:1fr;
+      }
+    }
+
+  </style>
 
 </head>
 
@@ -1297,6 +1348,7 @@
               </div>
 
             </form>
+            </div>
 
 
             <div class="es-settings-divider"></div>
@@ -1341,7 +1393,7 @@
                 </h2>
 
                 <p class="es-muted-copy">
-                  Resend is used for automated client emails. Your normal business email can stay as your contact and reply address; the sending address must use a domain verified in your Resend account.
+                  Choose how Eselram sends confirmations, reminders and other client emails. Gmail works without a website or domain; Resend is available for businesses that want a branded sending domain.
                 </p>
               </div>
 
@@ -1355,21 +1407,95 @@
             ></div>
 
 
-            <div class="es-integration-summary">
+            <div class="es-integration-summary es-email-summary-grid">
               <div>
                 <span>Business contact / reply email</span>
                 <strong id="emailBusinessContact">—</strong>
               </div>
               <div>
-                <span>Provider</span>
-                <strong>Resend</strong>
+                <span>Active sending method</span>
+                <strong id="activeEmailProviderLabel">Checking…</strong>
               </div>
               <div>
                 <span>Status</span>
-                <strong id="emailIntegrationStatus">Not configured</strong>
+                <strong id="emailIntegrationStatus">Checking…</strong>
               </div>
             </div>
 
+            <div class="es-email-provider-grid">
+              <article
+                id="gmailProviderCard"
+                class="es-email-provider-card"
+              >
+                <div>
+                  <span class="es-email-provider-kicker">No domain needed</span>
+                  <h3>Gmail / Google</h3>
+                  <p>
+                    Send directly from the business's Gmail account. Ideal for Instagram-first or mobile businesses that do not own a website or domain.
+                  </p>
+                  <strong id="gmailConnectedAccount">Not connected</strong>
+                </div>
+
+                <div class="es-settings-actions">
+                  <a
+                    id="connectGmailButton"
+                    class="es-button"
+                    href="/api/integrations/email/gmail/start"
+                  >
+                    Connect Gmail
+                  </a>
+                  <button
+                    id="useGmailButton"
+                    class="es-secondary-button"
+                    type="button"
+                    hidden
+                  >
+                    Use Gmail
+                  </button>
+                  <button
+                    id="disconnectGmailButton"
+                    class="es-secondary-button"
+                    type="button"
+                    hidden
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </article>
+
+              <article
+                id="resendProviderCard"
+                class="es-email-provider-card"
+              >
+                <div>
+                  <span class="es-email-provider-kicker">Branded sending</span>
+                  <h3>Business domain / Resend</h3>
+                  <p>
+                    Send from an address such as notifications@yourclinic.co.uk. A website is not required, but the business must own and verify the domain.
+                  </p>
+                  <strong id="resendProviderState">Connected via installer</strong>
+                </div>
+
+                <div class="es-settings-actions">
+                  <button
+                    id="useResendButton"
+                    class="es-secondary-button"
+                    type="button"
+                  >
+                    Use Resend
+                  </button>
+                </div>
+              </article>
+            </div>
+
+
+            <div id="resendSettingsSection">
+              <div class="es-panel-header es-email-subheader">
+                <div>
+                  <p class="es-eyebrow">Resend settings</p>
+                  <h3>Business-domain sending</h3>
+                </div>
+              </div>
 
             <form id="emailIntegrationForm">
 
@@ -1553,7 +1679,7 @@
                 </h3>
 
                 <p class="es-muted-copy">
-                  Once your sending domain is verified in Resend, save the sending address above and send a test. Your normal business email can be used in the “Send test to” box.
+                  Send a test using whichever provider is active. Gmail can send immediately after connection; Resend requires a verified sending domain for normal client delivery.
                 </p>
               </div>
 
