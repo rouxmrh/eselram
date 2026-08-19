@@ -940,6 +940,24 @@
       }
     }
 
+  
+    #tab-payments .es-payment-methods-line {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:7px;
+    }
+
+    #tab-payments .es-payment-methods-line span {
+      display:inline-flex;
+      align-items:center;
+    }
+
+    #tab-payments .es-payment-methods-line .is-muted {
+      color:var(--muted);
+      font-weight:650;
+    }
+
   </style>
 
 </head>
@@ -1270,9 +1288,18 @@
 
             <div class="es-integration-summary">
               <div>
-                <span>Pay in person</span>
-                <strong id="manualPaymentStatus">Checking…</strong>
+                <span>Available payment methods</span>
+                <strong class="es-payment-methods-line">
+                  <span id="manualPaymentAvailability">✓ Pay in person</span>
+                  <span
+                    id="stripePaymentAvailability"
+                    class="is-muted"
+                  >
+                    · Stripe not connected
+                  </span>
+                </strong>
               </div>
+
               <div>
                 <span>Default payment method</span>
                 <strong id="paymentDefaultProvider">Checking…</strong>

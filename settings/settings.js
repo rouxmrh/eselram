@@ -532,9 +532,14 @@ const stripeDefaultStatus =
     "stripeDefaultStatus"
   );
 
-const manualPaymentStatus =
+const manualPaymentAvailability =
   document.getElementById(
-    "manualPaymentStatus"
+    "manualPaymentAvailability"
+  );
+
+const stripePaymentAvailability =
+  document.getElementById(
+    "stripePaymentAvailability"
   );
 
 const paymentDefaultProvider =
@@ -739,11 +744,32 @@ async function loadStripeIntegration() {
         : "No";
 
 
-    if (manualPaymentStatus) {
-      manualPaymentStatus.textContent =
+    if (manualPaymentAvailability) {
+      manualPaymentAvailability.textContent =
         integration.manual_enabled
-          ? "Enabled"
-          : "Not enabled";
+          ? "✓ Pay in person"
+          : "Pay in person unavailable";
+      manualPaymentAvailability.classList.toggle(
+        "is-muted",
+        integration.manual_enabled !== true
+      );
+    }
+
+    if (stripePaymentAvailability) {
+      const stripeAvailable =
+        integration.provisioned_connection ||
+        integration.connection_status === "connected" ||
+        integration.status === "verified";
+
+      stripePaymentAvailability.textContent =
+        stripeAvailable
+          ? "✓ Stripe"
+          : "· Stripe not connected";
+
+      stripePaymentAvailability.classList.toggle(
+        "is-muted",
+        !stripeAvailable
+      );
     }
 
     if (paymentDefaultProvider) {
