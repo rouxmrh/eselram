@@ -1469,7 +1469,7 @@ async function loadEmailDomain() {
         "es-status";
 
       emailDomainStatus.textContent =
-        "Resend is connected. Add a domain you own to activate automated client emails.";
+        "Automated emails are not active yet. Add a sending domain when you are ready, or continue using Eselram without one.";
 
       emailDomainActions.hidden =
         true;
@@ -1832,11 +1832,11 @@ async function loadEmailIntegration() {
       not_configured:
         "Not configured",
       configured:
-        "Connected — sending test required",
+        "Connected — domain optional",
       verified:
         "Ready to send",
       error:
-        "Sending setup required",
+        "Automated emails not active",
       disabled:
         "Disabled"
     };
@@ -2005,7 +2005,7 @@ emailIntegrationForm
           "es-status success";
 
         emailIntegrationMessage.textContent =
-          "Email settings saved. If the sending domain is verified in Resend, send a test email to activate automated client emails.";
+          "Email settings saved. You can continue without a domain; automated client emails will activate after a sending domain is verified and tested.";
 
 
         await loadEmailIntegration();
