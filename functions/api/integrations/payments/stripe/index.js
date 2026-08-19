@@ -522,7 +522,7 @@ export async function onRequestPatch({ request, env }) {
       SET is_enabled = 1,
           is_default = 1,
           connection_status = 'connected',
-          environment = 'manual',
+          environment = 'live',
           webhook_status = 'configured'
       WHERE business_id = ? AND provider_key = 'manual'
     `).bind(user.business_id).run();
@@ -535,7 +535,7 @@ export async function onRequestPatch({ request, env }) {
         INSERT INTO business_payment_providers (
           id, business_id, provider_key, is_enabled, is_default,
           connection_status, environment, webhook_status
-        ) VALUES (?, ?, 'manual', 1, 1, 'connected', 'manual', 'configured')
+        ) VALUES (?, ?, 'manual', 1, 1, 'connected', 'live', 'configured')
       `).bind(`payprov_${crypto.randomUUID()}`, user.business_id).run();
     }
 
