@@ -684,41 +684,7 @@ async function getAppointment(
         cp.name_snapshot AS package_name,
         cp.status AS package_status,
         cp.expires_on AS package_expires_on,
-        cp.service_id AS package_service_id,
-        cp.price_minor AS package_price_minor,
-
-        COALESCE(
-          (
-            SELECT SUM(
-              CASE
-                WHEN p3.payment_type = 'refund'
-                     AND p3.status = 'paid'
-                  THEN -ABS(p3.amount_minor)
-                WHEN p3.payment_type != 'refund'
-                     AND p3.status IN ('paid','partially_refunded','refunded')
-                  THEN ABS(p3.amount_minor)
-                ELSE 0
-              END
-            )
-            FROM customer_package_payments cpp3
-            JOIN payments p3
-              ON p3.id = cpp3.payment_id
-            WHERE cpp3.customer_package_id = cp.id
-          ),
-          0
-        ) AS package_paid_minor,
-
-        COALESCE(
-          (
-            SELECT SUM(ps3.consultation_credit_minor)
-            FROM package_sales ps3
-            WHERE
-              ps3.business_id = cp.business_id
-              AND ps3.customer_package_id = cp.id
-              AND ps3.status = 'paid'
-          ),
-          0
-        ) AS package_consultation_credit_minor
+        cp.service_id AS package_service_id
 
       FROM appointments a
 
@@ -1078,40 +1044,7 @@ export async function onRequestGet({
             s.duration_minutes,
 
             cp.id AS customer_package_id,
-            cp.name_snapshot AS package_name,
-            cp.price_minor AS package_price_minor,
-
-            COALESCE(
-              (
-                SELECT SUM(
-                  CASE
-                    WHEN p4.payment_type = 'refund'
-                         AND p4.status = 'paid'
-                      THEN -ABS(p4.amount_minor)
-                    WHEN p4.payment_type != 'refund'
-                         AND p4.status IN ('paid','partially_refunded','refunded')
-                      THEN ABS(p4.amount_minor)
-                    ELSE 0
-                  END
-                )
-                FROM customer_package_payments cpp4
-                JOIN payments p4 ON p4.id = cpp4.payment_id
-                WHERE cpp4.customer_package_id = cp.id
-              ),
-              0
-            ) AS package_paid_minor,
-
-            COALESCE(
-              (
-                SELECT SUM(ps4.consultation_credit_minor)
-                FROM package_sales ps4
-                WHERE
-                  ps4.business_id = cp.business_id
-                  AND ps4.customer_package_id = cp.id
-                  AND ps4.status = 'paid'
-              ),
-              0
-            ) AS package_consultation_credit_minor
+            cp.name_snapshot AS package_name
 
           FROM appointments a
 
@@ -1782,44 +1715,6 @@ export async function onRequestPut({
         return Response.json({
           ok: true
         });
-      }
-
-      const appointmentOutstandingMinor =
-        existing.customer_package_id
-          ? 0
-          : Math.max(
-              Number(existing.price_minor || 0) -
-              Number(existing.paid_minor || 0) -
-              Number(existing.consultation_credit_minor || 0),
-              0
-            );
-
-      const packageOutstandingMinor =
-        existing.customer_package_id
-          ? Math.max(
-              Number(existing.package_price_minor || 0) -
-              Number(existing.package_paid_minor || 0) -
-              Number(existing.package_consultation_credit_minor || 0),
-              0
-            )
-          : 0;
-
-      const outstandingMinor =
-        Math.max(
-          appointmentOutstandingMinor,
-          packageOutstandingMinor
-        );
-
-      if (outstandingMinor > 0) {
-        return conflict(
-          `This booking cannot be marked as completed while ${new Intl.NumberFormat(
-            "en-GB",
-            {
-              style: "currency",
-              currency: "GBP"
-            }
-          ).format(outstandingMinor / 100)} remains outstanding. Take or record the remaining payment first.`
-        );
       }
 
 

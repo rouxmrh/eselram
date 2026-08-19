@@ -834,310 +834,6 @@
       }
     }
 
-    /* Premium package checkout experience */
-
-    .es-payment-premium-grid {
-      display:grid;
-      grid-template-columns:minmax(245px,285px) minmax(0,1fr);
-      gap:34px;
-      align-items:stretch;
-      margin:24px 0 8px;
-    }
-
-    .es-payment-premium-qr-card {
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:flex-start;
-      padding:24px 20px 22px;
-      border:1px solid #d7d9d4;
-      border-radius:16px;
-      background:#fff;
-      text-align:center;
-      box-sizing:border-box;
-    }
-
-    .es-payment-premium-qr-card img {
-      width:236px !important;
-      height:236px !important;
-      max-width:100% !important;
-      padding:0 !important;
-      border:0 !important;
-      border-radius:0 !important;
-      background:#fff !important;
-      object-fit:contain;
-      box-sizing:border-box;
-    }
-
-    .es-payment-premium-qr-title {
-      margin:16px 0 4px;
-      font-size:16px;
-      font-weight:850;
-      color:var(--ink);
-    }
-
-    .es-payment-premium-qr-copy {
-      margin:0;
-      max-width:210px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.55;
-    }
-
-    .es-payment-premium-panel {
-      min-width:0;
-      display:flex;
-      flex-direction:column;
-      justify-content:flex-start;
-    }
-
-    .es-payment-premium-label {
-      display:block;
-      margin:2px 0 10px;
-      color:var(--ink);
-      font-size:13px;
-      font-weight:850;
-    }
-
-    .es-payment-premium-copy-row {
-      display:grid !important;
-      grid-template-columns:minmax(0,1fr) 132px !important;
-      gap:12px !important;
-      align-items:stretch !important;
-      margin-bottom:18px;
-    }
-
-    .es-payment-premium-copy-row input,
-    .es-payment-premium-copy-row button {
-      width:100% !important;
-      min-width:0 !important;
-      height:50px !important;
-      min-height:50px !important;
-      margin:0 !important;
-      box-sizing:border-box !important;
-      border-radius:12px !important;
-    }
-
-    .es-payment-premium-copy-row input {
-      padding:0 15px !important;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-
-    .es-payment-premium-copy-row button {
-      padding:0 16px !important;
-      white-space:nowrap !important;
-      display:inline-flex !important;
-      align-items:center !important;
-      justify-content:center !important;
-      font-size:12px !important;
-      font-weight:850 !important;
-      line-height:1 !important;
-      text-align:center !important;
-    }
-
-    .es-payment-premium-actions {
-      display:grid !important;
-      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-      gap:12px !important;
-      margin:0 !important;
-      padding:0 !important;
-      border:0 !important;
-    }
-
-    .es-payment-premium-action {
-      width:100% !important;
-      min-width:0 !important;
-      min-height:82px !important;
-      height:auto !important;
-      margin:0 !important;
-      padding:14px 16px !important;
-      border-radius:14px !important;
-      box-sizing:border-box !important;
-      display:flex !important;
-      flex-direction:column;
-      align-items:center !important;
-      justify-content:center !important;
-      gap:6px;
-      text-align:center !important;
-      text-decoration:none !important;
-      white-space:normal !important;
-      overflow:visible !important;
-      line-height:1.2 !important;
-    }
-
-    .es-payment-premium-action-title {
-      display:block;
-      font-size:13px;
-      font-weight:850;
-      line-height:1.15;
-    }
-
-    .es-payment-premium-action-copy {
-      display:block;
-      color:var(--muted);
-      font-size:11px;
-      font-weight:600;
-      line-height:1.25;
-    }
-
-    .es-button .es-payment-premium-action-copy {
-      color:rgba(255,255,255,.82);
-    }
-
-    .es-payment-premium-action--wide {
-      grid-column:1 / -1;
-      min-height:72px !important;
-    }
-
-    .es-payment-premium-icon {
-      width:22px;
-      height:22px;
-      display:block;
-      flex:0 0 auto;
-    }
-
-    .es-payment-premium-footer {
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-      margin-top:22px;
-      padding-top:18px;
-      border-top:1px solid var(--line);
-      color:var(--muted);
-      font-size:11px;
-      line-height:1.5;
-    }
-
-    .es-payment-premium-footer svg {
-      width:18px;
-      height:18px;
-      margin-top:1px;
-      flex:0 0 auto;
-    }
-
-    .es-payment-premium-footer strong {
-      color:var(--ink);
-      font-weight:750;
-    }
-
-    @media(max-width:760px) {
-      .es-payment-premium-grid {
-        grid-template-columns:1fr;
-        gap:18px;
-      }
-
-      .es-payment-premium-qr-card {
-        max-width:360px;
-        width:100%;
-        margin:0 auto;
-      }
-
-      .es-payment-premium-actions {
-        grid-template-columns:1fr !important;
-      }
-
-      .es-payment-premium-action--wide {
-        grid-column:auto;
-      }
-    }
-
-    @media(max-width:520px) {
-      .es-payment-premium-copy-row {
-        grid-template-columns:1fr !important;
-      }
-
-      .es-payment-premium-action {
-        min-height:68px !important;
-      }
-    }
-    #packageCheckoutDialog.es-package-dialog {
-      width:min(880px, calc(100vw - 36px));
-      max-width:880px;
-      margin:auto;
-      overflow:visible;
-    }
-
-    #packageCheckoutDialog .es-package-dialog-inner {
-      width:auto;
-      max-width:none;
-      padding:24px;
-      box-sizing:border-box;
-      overflow:visible;
-    }
-
-    #packageCheckoutDialog .es-payment-premium-grid {
-      grid-template-columns:minmax(220px,250px) minmax(0,1fr);
-      gap:24px;
-      margin-top:18px;
-    }
-
-    #packageCheckoutDialog .es-payment-premium-qr-card {
-      padding:18px 16px;
-    }
-
-    #packageCheckoutDialog .es-payment-premium-qr-card img {
-      width:205px !important;
-      height:205px !important;
-    }
-
-    #packageCheckoutDialog .es-payment-premium-action {
-      min-height:72px !important;
-      padding:12px 14px !important;
-    }
-
-    #packageCheckoutDialog .es-payment-premium-footer {
-      margin-top:16px;
-      padding-top:14px;
-    }
-
-    @media(max-width:760px) {
-      #packageCheckoutDialog.es-package-dialog {
-        width:min(94vw,620px);
-        overflow:auto;
-      }
-
-      #packageCheckoutDialog .es-package-dialog-inner {
-        padding:20px 16px;
-      }
-
-      #packageCheckoutDialog .es-payment-premium-grid {
-        grid-template-columns:1fr;
-      }
-    }
-
-    .es-package-checkout-header {
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:18px;
-      margin-bottom:6px;
-    }
-
-    .es-package-checkout-header .es-secondary-button {
-      width:96px;
-      min-width:96px;
-      height:44px;
-      min-height:44px;
-      border-radius:9px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    #packageCheckoutAmount {
-      display:block;
-      margin-bottom:16px;
-      padding:18px 20px;
-      border:1px solid var(--es-border);
-      border-radius:14px;
-      background:rgba(54,81,120,.035);
-      color:var(--es-text);
-      font-size:18px;
-      font-weight:850;
-    }
-
 </style>
 </head>
 
@@ -1427,101 +1123,45 @@
 
 <dialog id="packageCheckoutDialog" class="es-package-dialog">
   <div class="es-package-dialog-inner">
+    <h2>Collect package payment</h2>
 
-    <div class="es-package-checkout-header">
-      <div>
-        <p class="es-eyebrow">Clinic payment</p>
-        <h2>Collect package payment</h2>
-        <p id="packageCheckoutContext" class="es-muted-copy"></p>
+    <p id="packageCheckoutContext" class="es-muted-copy"></p>
+
+    <div class="es-package-payment-share">
+      <div class="es-package-payment-qr-wrap">
+        <img id="packageCheckoutQr" alt="Package payment QR code">
       </div>
 
-      <button
-        id="closePackageCheckoutDialog"
-        class="es-secondary-button"
-        type="button"
-      >
-        Close
-      </button>
-    </div>
+      <div class="es-package-payment-share-copy">
+        <strong id="packageCheckoutAmount"></strong>
+        <p class="es-muted-copy">
+          Open the secure Stripe page, let the customer scan the QR code,
+          copy the link, or email it to them.
+        </p>
 
-    <strong id="packageCheckoutAmount"></strong>
+        <input id="packageCheckoutLink" type="text" readonly>
+
+        <div class="es-package-payment-actions">
+          <a id="openPackageCheckoutLink" class="es-button" href="#" target="_blank" rel="noopener">
+            Open payment online
+          </a>
+          <button id="copyPackageCheckoutLink" class="es-secondary-button" type="button">
+            Copy link
+          </button>
+          <button id="emailPackageCheckoutLink" class="es-secondary-button" type="button">
+            Email payment link
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div id="packageCheckoutStatus" class="es-status" hidden></div>
 
-    <div class="es-payment-premium-grid">
-
-      <div class="es-payment-premium-qr-card">
-        <img id="packageCheckoutQr" alt="Package payment QR code">
-        <p class="es-payment-premium-qr-title">Scan to pay</p>
-        <p class="es-payment-premium-qr-copy">
-          Client can scan this with their phone camera.
-        </p>
-      </div>
-
-      <div class="es-payment-premium-panel">
-
-        <label class="es-payment-premium-label" for="packageCheckoutLink">
-          Secure Stripe Checkout link
-        </label>
-
-        <div class="es-payment-premium-copy-row">
-          <input id="packageCheckoutLink" type="text" readonly>
-          <button
-            id="copyPackageCheckoutLink"
-            class="es-secondary-button"
-            type="button"
-          >
-            <svg class="es-payment-premium-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-            <span>Copy link</span>
-          </button>
-        </div>
-
-        <div class="es-payment-premium-actions">
-
-          <a
-            id="openPackageCheckoutLink"
-            class="es-button es-payment-premium-action"
-            href="#"
-            target="_blank"
-            rel="noopener"
-          >
-            <svg class="es-payment-premium-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="es-payment-premium-action-title">
-              Open payment page
-            </span>
-            <span class="es-payment-premium-action-copy">
-              Open in browser
-            </span>
-          </a>
-
-          <button
-            id="emailPackageCheckoutLink"
-            class="es-secondary-button es-payment-premium-action"
-            type="button"
-          >
-            <svg class="es-payment-premium-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="es-payment-premium-action-title">
-              Email payment link
-            </span>
-            <span class="es-payment-premium-action-copy">
-              Send link to client
-            </span>
-          </button>
-
-        </div>
-
-        <div class="es-payment-premium-footer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3M6 10h12v10H6zM12 14v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div>
-            <strong>This payment link is secure and powered by Stripe.</strong><br>
-            Do not share this link publicly.
-          </div>
-        </div>
-
-      </div>
-
+    <div class="es-form-actions">
+      <button id="closePackageCheckoutDialog" class="es-secondary-button" type="button">
+        Close
+      </button>
     </div>
-
   </div>
 </dialog>
 

@@ -67,58 +67,6 @@
 
   if (
     status !== "cancelled" &&
-    sessionId &&
-    !packageSaleId
-  ) {
-    eyebrow.textContent =
-      "Confirming payment";
-
-    title.textContent =
-      "Finishing your payment";
-
-    message.textContent =
-      "Stripe has returned your payment. Eselram is confirming it now.";
-
-    try {
-      const response =
-        await fetch(
-          `/api/payments/stripe/status?session_id=${encodeURIComponent(
-            sessionId
-          )}`,
-          {
-            headers: {
-              Accept:
-                "application/json"
-            },
-            cache:
-              "no-store"
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (
-        !response.ok ||
-        !data.ok ||
-        data.payment?.status !== "paid"
-      ) {
-        throw new Error(
-          data.error ||
-          "Payment confirmation is still processing."
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Payment confirmation fallback failed:",
-        error
-      );
-    }
-  }
-
-
-  if (
-    status !== "cancelled" &&
     packageSaleId &&
     sessionId
   ) {
@@ -224,18 +172,6 @@
     ) {
       window.setTimeout(
         () => {
-          if (window.opener && !window.opener.closed) {
-            try {
-              window.opener.focus();
-            } catch {}
-
-            window.close();
-
-            if (window.closed) {
-              return;
-            }
-          }
-
           window.location.replace(
             website
           );
@@ -243,24 +179,6 @@
         2000
       );
     }
-  }
-
-  if (
-    !website &&
-    status !== "cancelled" &&
-    window.opener &&
-    !window.opener.closed
-  ) {
-    window.setTimeout(
-      () => {
-        try {
-          window.opener.focus();
-        } catch {}
-
-        window.close();
-      },
-      2000
-    );
   }
 
 

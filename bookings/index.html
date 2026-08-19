@@ -534,21 +534,16 @@
 
 
     .es-dialog-close-pill {
-      width:96px;
-      min-width:96px;
-      height:44px;
-      min-height:44px;
-      padding:0 16px;
+      min-width:72px;
+      min-height:36px;
+      height:36px;
+      padding:0 14px;
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      border-radius:9px;
-      font-size:13px;
-      font-weight:700;
+      border-radius:999px;
       line-height:1;
       margin:0;
-      box-sizing:border-box;
-      white-space:nowrap;
     }
 
 
@@ -1603,116 +1598,6 @@
       }
     }
 
-  
-    /* Final Manage Bookings action correction.
-       Protect the status pill and give six actions enough real width. */
-    .es-manage-booking-row {
-      grid-template-columns:
-        96px
-        minmax(170px,1fr)
-        102px
-        84px
-        360px !important;
-      column-gap:12px !important;
-      align-items:center !important;
-    }
-
-    .es-manage-booking-row > div:nth-child(4) {
-      width:84px !important;
-      min-width:84px !important;
-      justify-self:start !important;
-      overflow:visible !important;
-    }
-
-    .es-manage-booking-row .es-booking-status {
-      min-width:76px !important;
-      width:auto !important;
-      max-width:84px !important;
-      padding:0 8px !important;
-      margin:0 !important;
-      position:relative !important;
-      z-index:1 !important;
-    }
-
-    .es-manage-booking-row .es-booking-actions {
-      width:360px !important;
-      min-width:360px !important;
-      max-width:360px !important;
-      justify-self:end !important;
-      display:flex !important;
-      align-items:center !important;
-      justify-content:flex-end !important;
-      gap:6px !important;
-      flex-wrap:nowrap !important;
-      overflow:visible !important;
-      position:relative !important;
-      z-index:2 !important;
-    }
-
-    .es-manage-booking-row .es-booking-action {
-      flex:0 0 auto !important;
-      height:36px !important;
-      min-height:36px !important;
-      padding:0 9px !important;
-      font-size:10.5px !important;
-      border-radius:8px !important;
-      white-space:nowrap !important;
-      margin:0 !important;
-    }
-
-    .es-manage-booking-row .es-booking-action-payment {
-      min-width:78px !important;
-    }
-
-    @media(max-width:1120px) {
-      .es-manage-booking-row {
-        grid-template-columns:
-          88px
-          minmax(145px,1fr)
-          92px
-          80px
-          340px !important;
-        column-gap:8px !important;
-      }
-
-      .es-manage-booking-row > div:nth-child(4) {
-        width:80px !important;
-        min-width:80px !important;
-      }
-
-      .es-manage-booking-row .es-booking-actions {
-        width:340px !important;
-        min-width:340px !important;
-        max-width:340px !important;
-        gap:4px !important;
-      }
-
-      .es-manage-booking-row .es-booking-action {
-        padding:0 7px !important;
-        font-size:10px !important;
-      }
-    }
-
-    @media(max-width:960px) {
-      .es-manage-booking-row {
-        grid-template-columns:1fr !important;
-        row-gap:8px !important;
-      }
-
-      .es-manage-booking-row > div:nth-child(4) {
-        width:auto !important;
-        min-width:0 !important;
-      }
-
-      .es-manage-booking-row .es-booking-actions {
-        justify-self:start !important;
-        width:auto !important;
-        min-width:0 !important;
-        max-width:100% !important;
-        flex-wrap:wrap !important;
-      }
-    }
-
   </style>
 </head>
 
@@ -2217,12 +2102,11 @@
 
         <button
           id="closeBookingDialog"
-          class="es-dialog-close"
+          class="es-secondary-button es-dialog-close-pill"
           type="button"
           aria-label="Close"
-          title="Close"
         >
-          ×
+          Close
         </button>
 
       </div>
