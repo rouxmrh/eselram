@@ -212,9 +212,15 @@ export async function onRequestPost({
           : (existingStripeProvider?.webhook_status || "not_configured");
 
       const environment =
-        provider === "manual"
-          ? "manual"
-          : (existingStripeProvider?.environment || "sandbox");
+        provider === "stripe"
+          ? (
+              ["sandbox", "live"].includes(
+                String(existingStripeProvider?.environment || "")
+              )
+                ? existingStripeProvider.environment
+                : "sandbox"
+            )
+          : "live";
 
       const externalAccountReference =
         provider === "stripe"
@@ -317,7 +323,9 @@ export async function onRequestPost({
       {
         ok: false,
         error:
-          "Unable to save payment preferences."
+          error?.message?.includes("CHECK constraint failed")
+            ? "The selected payment methods could not be saved because an invalid payment environment was generated."
+            : "Unable to save payment preferences."
       },
       {
         status: 500
