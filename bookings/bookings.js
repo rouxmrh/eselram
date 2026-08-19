@@ -1790,15 +1790,32 @@ function renderBookings() {
                       Edit
                     </button>
 
-                    <button
-                      class="es-booking-action"
-                      type="button"
-                      data-complete="${escapeHtml(
-                        booking.id
-                      )}"
-                    >
-                      Complete
-                    </button>
+                    ${
+                      bookingOutstandingMinor(
+                        booking
+                      ) === 0
+                        ? `
+                          <button
+                            class="es-booking-action"
+                            type="button"
+                            data-complete="${escapeHtml(
+                              booking.id
+                            )}"
+                          >
+                            Complete
+                          </button>
+                        `
+                        : `
+                          <button
+                            class="es-booking-action"
+                            type="button"
+                            disabled
+                            title="Take or record the outstanding payment before completing this booking."
+                          >
+                            Payment due
+                          </button>
+                        `
+                    }
 
                     <button
                       class="es-booking-action danger"
@@ -2728,9 +2745,13 @@ function formatFormRequestStatus(
 
 function getBooking(id) {
 
+  const targetId =
+    String(id ?? "");
+
   return bookings.find(
     (booking) =>
-      booking.id === id
+      String(booking.id ?? "") ===
+      targetId
   );
 }
 

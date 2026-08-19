@@ -19,14 +19,18 @@
       position:relative;
       display:flex;
       align-items:center;
-      gap:12px;
+      min-height:52px;
       padding:14px 16px;
       margin:14px 0;
       border:1px solid var(--es-border);
       border-radius:14px;
       background:var(--es-surface);
       cursor:pointer;
-      transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
+      transition:
+        border-color .16s ease,
+        box-shadow .16s ease,
+        background .16s ease,
+        color .16s ease;
     }
 
     .check-row:hover {
@@ -35,58 +39,40 @@
     }
 
     .check-row input[type="checkbox"] {
-      appearance:none;
-      -webkit-appearance:none;
-      width:22px;
-      height:22px;
-      min-width:22px;
-      margin:0;
-      border:1.5px solid #aeb6b0;
-      border-radius:7px;
-      background:#fff;
-      display:grid;
-      place-items:center;
-      cursor:pointer;
-      transition:all .15s ease;
-    }
-
-    .check-row input[type="checkbox"]::after {
-      content:"";
-      width:9px;
-      height:5px;
-      border-left:2px solid #fff;
-      border-bottom:2px solid #fff;
-      transform:rotate(-45deg) scale(0);
-      margin-top:-2px;
-      transition:transform .12s ease;
-    }
-
-    .check-row input[type="checkbox"]:checked {
-      border-color:var(--primary);
-      background:var(--primary);
-    }
-
-    .check-row input[type="checkbox"]:checked::after {
-      transform:rotate(-45deg) scale(1);
-    }
-
-    .check-row input[type="checkbox"]:focus-visible {
-      outline:3px solid rgba(54,81,120,.16);
-      outline-offset:2px;
+      position:absolute;
+      width:1px;
+      height:1px;
+      opacity:0;
+      pointer-events:none;
     }
 
     .check-row span {
+      width:100%;
       color:var(--es-text);
       font-size:13px;
       line-height:1.45;
       font-weight:650;
-      display:flex;
-      align-items:center;
-      min-height:22px;
+      text-align:left;
+    }
+
+    .check-row:has(input[type="checkbox"]:checked) {
+      border-color:var(--primary);
+      background:rgba(54,81,120,.10);
+      box-shadow:inset 3px 0 0 var(--primary);
+    }
+
+    .check-row:has(input[type="checkbox"]:checked) span {
+      color:var(--primary);
+      font-weight:750;
+    }
+
+    .check-row:has(input[type="checkbox"]:focus-visible) {
+      outline:3px solid rgba(54,81,120,.16);
+      outline-offset:2px;
     }
 
     .confirm-check {
-      background:rgba(54,81,120,.035);
+      background:rgba(54,81,120,.025);
     }
 
   </style>

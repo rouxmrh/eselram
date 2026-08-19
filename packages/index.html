@@ -1052,10 +1052,59 @@
         min-height:68px !important;
       }
     }
+    #packageCheckoutDialog.es-package-dialog {
+      width:min(880px, calc(100vw - 36px));
+      max-width:880px;
+      margin:auto;
+      overflow:visible;
+    }
+
     #packageCheckoutDialog .es-package-dialog-inner {
-      width:min(920px, calc(100vw - 32px));
-      max-width:920px;
-      padding:28px;
+      width:auto;
+      max-width:none;
+      padding:24px;
+      box-sizing:border-box;
+      overflow:visible;
+    }
+
+    #packageCheckoutDialog .es-payment-premium-grid {
+      grid-template-columns:minmax(220px,250px) minmax(0,1fr);
+      gap:24px;
+      margin-top:18px;
+    }
+
+    #packageCheckoutDialog .es-payment-premium-qr-card {
+      padding:18px 16px;
+    }
+
+    #packageCheckoutDialog .es-payment-premium-qr-card img {
+      width:205px !important;
+      height:205px !important;
+    }
+
+    #packageCheckoutDialog .es-payment-premium-action {
+      min-height:72px !important;
+      padding:12px 14px !important;
+    }
+
+    #packageCheckoutDialog .es-payment-premium-footer {
+      margin-top:16px;
+      padding-top:14px;
+    }
+
+    @media(max-width:760px) {
+      #packageCheckoutDialog.es-package-dialog {
+        width:min(94vw,620px);
+        overflow:auto;
+      }
+
+      #packageCheckoutDialog .es-package-dialog-inner {
+        padding:20px 16px;
+      }
+
+      #packageCheckoutDialog .es-payment-premium-grid {
+        grid-template-columns:1fr;
+      }
     }
 
     .es-package-checkout-header {

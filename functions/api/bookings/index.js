@@ -1812,7 +1812,7 @@ export async function onRequestPut({
 
       if (outstandingMinor > 0) {
         return conflict(
-          `This booking cannot be completed while ${new Intl.NumberFormat(
+          `This booking cannot be marked as completed while ${new Intl.NumberFormat(
             "en-GB",
             {
               style: "currency",
