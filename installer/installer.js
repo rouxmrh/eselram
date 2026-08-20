@@ -52,6 +52,7 @@ async function checkInstallation() {
         "Eselram is ready to be configured.";
 
       statusBox.classList.add("success");
+      statusBox.style.color = "#365178";
 
       getStartedButton.hidden = false;
 
