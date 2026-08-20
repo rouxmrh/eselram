@@ -1140,10 +1140,31 @@ function openPackageCheckoutDialog(data) {
   $("#packageCheckoutContext").textContent =
     "Secure Stripe payment";
 
-  $("#packageCheckoutAmount").textContent =
-    Number(data.discount_minor || 0) > 0
-      ? `${money(data.amount_minor)} ready to collect · ${money(data.discount_minor)} deduction applied`
-      : `${money(data.amount_minor)} ready to collect`;
+  const packageValueMinor = Number(
+    data.package_value_minor ||
+    (Number(data.amount_minor || 0) +
+      Number(data.discount_minor || 0) +
+      Number(data.consultation_credit_minor || 0))
+  );
+  const discountMinor = Number(data.discount_minor || 0);
+  const voucher = data.voucher || null;
+
+  if (discountMinor > 0) {
+    const discountLabel =
+      voucher && String(voucher.discount_type || "").toLowerCase() === "percent"
+        ? `${Number(voucher.value || 0)}% voucher discount ${money(discountMinor)}`
+        : voucher
+          ? `Voucher discount ${money(discountMinor)}`
+          : `Discount ${money(discountMinor)}`;
+
+    $("#packageCheckoutAmount").innerHTML =
+      `<span style="display:block;font-size:14px;font-weight:600;margin-bottom:5px">` +
+      `Package value ${money(packageValueMinor)} · ${discountLabel}</span>` +
+      `<span style="display:block">${money(data.amount_minor)} ready to collect</span>`;
+  } else {
+    $("#packageCheckoutAmount").textContent =
+      `${money(data.amount_minor)} ready to collect`;
+  }
 
   $("#packageCheckoutLink").value =
     data.checkout_url;

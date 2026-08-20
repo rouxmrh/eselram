@@ -1131,7 +1131,17 @@ export async function onRequestPost({ request, env }) {
       amount_minor: amountMinor,
       currency: stripeCurrency,
       consultation_credit_minor: consultationCreditMinor,
+      package_value_minor: price,
       discount_minor: deductionResult.discountMinor,
+      deduction_type: deductionResult.type,
+      deduction_label: deductionResult.label || "",
+      voucher: deductionResult.voucher
+        ? {
+            code: deductionResult.voucher.code,
+            discount_type: deductionResult.voucher.discount_type,
+            value: Number(deductionResult.voucher.value || 0)
+          }
+        : null,
       payment_required: true
     });
   } catch (error) {
