@@ -193,7 +193,6 @@ export async function onRequestGet({
                   AND p.business_id = c.business_id
                   AND p.status = 'paid'
                   AND p.payment_type != 'refund'
-                  AND NOT (p.provider = 'none' AND COALESCE(p.payment_method, '') = 'discount')
               ) AS total_paid_minor
 
             FROM customers c
@@ -523,7 +522,6 @@ export async function onRequestGet({
               WHERE
                 p.business_id = ?
                 AND p.customer_id = ?
-                AND NOT (p.provider = 'none' AND COALESCE(p.payment_method, '') = 'discount')
 
               ORDER BY
                 COALESCE(
@@ -1560,7 +1558,6 @@ export async function onRequestGet({
                 AND p.business_id = c.business_id
                 AND p.status = 'paid'
                 AND p.payment_type != 'refund'
-                  AND NOT (p.provider = 'none' AND COALESCE(p.payment_method, '') = 'discount')
             ) AS total_paid_minor
 
           FROM customers c

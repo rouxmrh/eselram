@@ -202,7 +202,6 @@ export async function onRequestGet({
               business_id = ?
               AND status = 'paid'
               AND payment_type != 'refund'
-              AND NOT (provider = 'none' AND COALESCE(payment_method, '') = 'discount')
               AND strftime(
                 '%Y-%m',
                 COALESCE(
