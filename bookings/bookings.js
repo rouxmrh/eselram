@@ -2795,12 +2795,56 @@ const recordOtherPayment =
     "recordOtherPayment"
   );
 
+const bookingDeductionType = document.getElementById("bookingDeductionType");
+const bookingDeductionValueWrap = document.getElementById("bookingDeductionValueWrap");
+const bookingDeductionValue = document.getElementById("bookingDeductionValue");
+const bookingVoucherWrap = document.getElementById("bookingVoucherWrap");
+const bookingVoucher = document.getElementById("bookingVoucher");
+const prepareBookingPayment = document.getElementById("prepareBookingPayment");
+let bookingPaymentVouchers = [];
+
 let currentPaymentLinkPaymentId =
   null;
 
 let currentPaymentLinkBookingId =
   null;
 
+
+
+async function loadBookingPaymentVouchers() {
+  const response = await fetch("/api/vouchers", {headers:{Accept:"application/json"},cache:"no-store"});
+  handleAuthentication(response);
+  const data = await response.json();
+  if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load vouchers.");
+  bookingPaymentVouchers = data.vouchers || [];
+  bookingVoucher.innerHTML = bookingPaymentVouchers.filter(v => v.is_active !== false).map(v =>
+    `<option value="${escapeHtml(v.id)}">${escapeHtml(v.code)} · ${escapeHtml(v.name)} (${v.discount_type === "percent" ? `${v.value}%` : formatMoney(Math.round(Number(v.value || 0) * 100))})</option>`
+  ).join("") || '<option value="">No active vouchers</option>';
+}
+bookingDeductionType?.addEventListener("change",()=>{
+  const type=bookingDeductionType.value;
+  bookingDeductionValueWrap.hidden=!["amount","percent"].includes(type);
+  bookingVoucherWrap.hidden=type!=="voucher";
+  if(type==="percent"){bookingDeductionValue.step="1";bookingDeductionValue.max="100";}else{bookingDeductionValue.step="0.01";bookingDeductionValue.removeAttribute("max");}
+});
+function bookingDeductionPayload(){
+  const type=bookingDeductionType?.value||"none";
+  if(type==="amount") return {type,amount_minor:Math.round(Number(bookingDeductionValue.value||0)*100)};
+  if(type==="percent") return {type,percent:Number(bookingDeductionValue.value||0)};
+  if(type==="voucher") return {type,voucher_id:bookingVoucher.value};
+  return {type:"none"};
+}
+prepareBookingPayment?.addEventListener("click",async()=>{
+  if(!currentPaymentLinkBookingId)return;
+  prepareBookingPayment.disabled=true; paymentLinkResult.hidden=true; paymentLinkStatus.hidden=false; paymentLinkStatus.className="es-status"; paymentLinkStatus.textContent="Creating secure Stripe Checkout…";
+  try{
+    const response=await fetch("/api/payments/stripe/checkout",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({appointment_id:currentPaymentLinkBookingId,deduction:bookingDeductionPayload()})});
+    handleAuthentication(response); const data=await response.json(); if(!response.ok||!data.ok)throw new Error(data.error||"Unable to create payment link.");
+    generatedPaymentLink.value=data.checkout.url; openPaymentLink.href=data.checkout.url; currentPaymentLinkPaymentId=data.checkout.payment_id;
+    if(paymentQrCode){if(!window.EselramQr||typeof window.EselramQr.toDataUrl!=="function")throw new Error("Eselram QR generator is unavailable."); const qrPaymentUrl=`${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(data.checkout.payment_id)}`; paymentQrCode.src=window.EselramQr.toDataUrl(qrPaymentUrl,{quiet:5});}
+    paymentLinkResult.hidden=false; paymentLinkStatus.className="es-status success"; const discount=Number(data.checkout.discount_minor||0); paymentLinkStatus.textContent=discount>0?`${formatMoney(data.checkout.amount_minor)} ready to collect · ${formatMoney(discount)} deduction applied.`:`${formatMoney(data.checkout.amount_minor)} ready to collect.`;
+  }catch(error){paymentLinkStatus.className="es-status error";paymentLinkStatus.textContent=error.message||"Unable to create payment link.";}finally{prepareBookingPayment.disabled=false;}
+});
 
 document
   .getElementById(
@@ -3032,99 +3076,16 @@ async function createStripePaymentLink(
     paymentLinkDialog.showModal();
   }
 
-  try {
-    const response =
-      await fetch(
-        "/api/payments/stripe/checkout",
-        {
-          method:
-            "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Accept:
-              "application/json"
-          },
-          body:
-            JSON.stringify({
-              appointment_id:
-                booking.id
-            })
-        }
-      );
-
-    handleAuthentication(
-      response
-    );
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-      throw new Error(
-        data.error ||
-        "Unable to create payment link."
-      );
-    }
-
-    generatedPaymentLink.value =
-      data.checkout.url;
-
-    openPaymentLink.href =
-      data.checkout.url;
-
-    currentPaymentLinkPaymentId =
-      data.checkout.payment_id;
-
-    if (
-      paymentQrCode
-    ) {
-      if (
-        !window.EselramQr ||
-        typeof window.EselramQr
-          .toDataUrl !==
-          "function"
-      ) {
-        throw new Error(
-          "Eselram QR generator is unavailable."
-        );
-      }
-
-      const qrPaymentUrl =
-        `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(
-          data.checkout.payment_id
-        )}`;
-
-      paymentQrCode.src =
-        window.EselramQr.toDataUrl(
-          qrPaymentUrl,
-          {
-            quiet: 5
-          }
-        );
-    }
-
-    paymentLinkResult.hidden =
-      false;
-
-    paymentLinkStatus.className =
-      "es-status success";
-
-    paymentLinkStatus.textContent =
-      `${formatMoney(
-        data.checkout.amount_minor
-      )} ready to collect.`;
-  } catch (error) {
-    paymentLinkStatus.className =
-      "es-status error";
-
-    paymentLinkStatus.textContent =
-      error.message ||
-      "Unable to create payment link.";
-  }
+  bookingDeductionType.value = "none";
+  bookingDeductionValue.value = "";
+  bookingDeductionValueWrap.hidden = true;
+  bookingVoucherWrap.hidden = true;
+  generatedPaymentLink.value = "";
+  paymentLinkResult.hidden = true;
+  try { await loadBookingPaymentVouchers(); } catch {}
+  paymentLinkStatus.hidden = false;
+  paymentLinkStatus.className = "es-status";
+  paymentLinkStatus.textContent = "Choose a deduction if needed, then select Prepare payment.";
 }
 
 function showBookingDetails(

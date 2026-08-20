@@ -12,6 +12,10 @@ import {
   finalizePackageSale
 } from "../../../lib/package-sales.js";
 
+import {
+  setDiscountAdjustmentStatus
+} from "../../../lib/payment-discounts.js";
+
 
 function badRequest(message) {
   return Response.json(
@@ -231,6 +235,14 @@ export async function onRequestGet({
         session,
         paid: true
       });
+
+    await setDiscountAdjustmentStatus({
+      env,
+      businessId: sale.business_id,
+      paymentId: sale.payment_id,
+      status: "paid",
+      customerPackageId: finalized?.customer_package_id || null
+    });
 
     try {
       await sendPaymentReceipt({

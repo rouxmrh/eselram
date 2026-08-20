@@ -9,6 +9,12 @@ import {
   stripeErrorMessage
 } from "../../../../lib/stripe-business.js";
 
+import {
+  calculatePaymentDeduction,
+  createDiscountAdjustment,
+  setDiscountAdjustmentStatus
+} from "../../../../lib/payment-discounts.js";
+
 
 async function getUserContext(
   request,
@@ -391,6 +397,10 @@ async function getReusablePendingCheckout({
       )
       .run();
 
+    await setDiscountAdjustmentStatus({
+      env, businessId, paymentId: pending.id, status: "failed"
+    });
+
 
     return {
       checkout: null,
@@ -462,6 +472,10 @@ async function getReusablePendingCheckout({
       )
       .run();
 
+    await setDiscountAdjustmentStatus({
+      env, businessId, paymentId: pending.id, status: paid ? "paid" : "failed"
+    });
+
 
     return {
       checkout: null,
@@ -495,6 +509,10 @@ async function getReusablePendingCheckout({
       businessId
     )
     .run();
+
+  await setDiscountAdjustmentStatus({
+    env, businessId, paymentId: pending.id, status: "failed"
+  });
 
 
   return {
@@ -796,6 +814,25 @@ export async function onRequestPost({
     }
 
 
+    let deductionResult;
+    try {
+      deductionResult = await calculatePaymentDeduction({
+        env,
+        businessId: user.business_id,
+        baseAmountMinor: plan.amountMinor,
+        deduction: body.deduction
+      });
+    } catch (error) {
+      return badRequest(error.message || "Unable to apply deduction.");
+    }
+
+    const originalAmountMinor = plan.amountMinor;
+    let chargePlan = {
+      ...plan,
+      amountMinor: Math.max(0, plan.amountMinor - deductionResult.discountMinor)
+    };
+
+
     const reusableResult =
       await getReusablePendingCheckout({
         env,
@@ -804,7 +841,7 @@ export async function onRequestPost({
           user.business_id,
         appointmentId:
           appointment.id,
-        plan
+        plan: chargePlan
       });
 
 
@@ -855,6 +892,22 @@ export async function onRequestPost({
           plan.error
         );
       }
+
+      try {
+        deductionResult = await calculatePaymentDeduction({
+          env,
+          businessId: user.business_id,
+          baseAmountMinor: plan.amountMinor,
+          deduction: body.deduction
+        });
+      } catch (error) {
+        return badRequest(error.message || "Unable to apply deduction.");
+      }
+
+      chargePlan = {
+        ...plan,
+        amountMinor: Math.max(0, plan.amountMinor - deductionResult.discountMinor)
+      };
     }
 
 
@@ -908,10 +961,26 @@ export async function onRequestPost({
         appointment.id,
         appointment.customer_id,
         plan.paymentType,
-        plan.amountMinor,
+        chargePlan.amountMinor,
         currency.toUpperCase()
       )
       .run();
+
+
+    await createDiscountAdjustment({
+      env,
+      businessId: user.business_id,
+      paymentId,
+      appointmentId: appointment.id,
+      customerId: appointment.customer_id,
+      paymentType: plan.paymentType,
+      currency,
+      discountMinor: deductionResult.discountMinor,
+      deductionType: deductionResult.type,
+      label: deductionResult.label,
+      voucher: deductionResult.voucher,
+      status: "pending"
+    });
 
 
     const origin =
@@ -948,7 +1017,7 @@ export async function onRequestPost({
 
     params.set(
       "success_url",
-      `${origin}/payment-result/?status=success&${returnQuery.toString()}`
+      `${origin}/payment-result/?status=success&session_id={CHECKOUT_SESSION_ID}&${returnQuery.toString()}`
     );
 
 
@@ -986,7 +1055,9 @@ export async function onRequestPost({
 
     params.set(
       "line_items[0][price_data][product_data][name]",
-      plan.label
+      deductionResult.discountMinor > 0
+        ? `${plan.label} (after deduction)`
+        : plan.label
     );
 
 
@@ -1012,6 +1083,14 @@ export async function onRequestPost({
       "metadata[appointment_id]",
       appointment.id
     );
+
+    if (deductionResult.discountMinor > 0) {
+      params.set("metadata[discount_minor]", String(deductionResult.discountMinor));
+      params.set("metadata[discount_type]", deductionResult.type);
+      if (deductionResult.voucher?.code) {
+        params.set("metadata[voucher_code]", deductionResult.voucher.code);
+      }
+    }
 
 
     params.set(
@@ -1131,7 +1210,11 @@ export async function onRequestPost({
         url:
           data.url,
         amount_minor:
-          plan.amountMinor,
+          chargePlan.amountMinor,
+        original_amount_minor:
+          originalAmountMinor,
+        discount_minor:
+          deductionResult.discountMinor,
         currency:
           currency.toUpperCase(),
         payment_type:

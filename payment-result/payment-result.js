@@ -120,6 +120,30 @@
 
 
   if (
+    status !== "cancelled" &&
+    sessionId &&
+    !packageSaleId
+  ) {
+    eyebrow.textContent = "Confirming payment";
+    title.textContent = "Finishing your payment";
+    message.textContent = "Your Stripe payment was received. We are confirming it now.";
+
+    try {
+      const response = await fetch(
+        `/api/payments/stripe/status?session_id=${encodeURIComponent(sessionId)}`,
+        { headers:{Accept:"application/json"}, cache:"no-store" }
+      );
+      const data = await response.json();
+      if (!response.ok || !data.ok || data.payment?.status !== "paid") {
+        throw new Error(data.error || "Payment confirmation is still processing.");
+      }
+    } catch (error) {
+      console.error("Payment confirmation fallback failed:", error);
+    }
+  }
+
+
+  if (
     status ===
     "cancelled"
   ) {
@@ -172,13 +196,23 @@
     ) {
       window.setTimeout(
         () => {
-          window.location.replace(
-            website
-          );
+          try { window.close(); } catch {}
+          window.setTimeout(() => {
+            if (!document.hidden) {
+              window.location.replace(website);
+            }
+          }, 250);
         },
-        2000
+        3000
       );
     }
+  }
+
+
+  if (!website && status !== "cancelled") {
+    window.setTimeout(() => {
+      try { window.close(); } catch {}
+    }, 3000);
   }
 
 

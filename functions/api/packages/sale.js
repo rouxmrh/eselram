@@ -21,6 +21,12 @@ import {
   finalizePackageSale
 } from "../../../lib/package-sales.js";
 
+import {
+  calculatePaymentDeduction,
+  createDiscountAdjustment,
+  setDiscountAdjustmentStatus
+} from "../../../lib/payment-discounts.js";
+
 
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
@@ -162,6 +168,19 @@ async function cancelPendingPackageSale({
   ).run();
 
   if (sale.payment_id) {
+    await env.DB.prepare(`
+      DELETE FROM payments
+      WHERE
+        business_id = ?
+        AND provider = 'none'
+        AND payment_method = 'discount'
+        AND notes LIKE ?
+        AND status = 'pending'
+    `).bind(
+      businessId,
+      `Discount adjustment for payment=${sale.payment_id}%`
+    ).run();
+
     await env.DB.prepare(`
       DELETE FROM payments
       WHERE
@@ -455,6 +474,14 @@ export async function onRequestGet({
           session,
           paid: true
         });
+
+      await setDiscountAdjustmentStatus({
+        env,
+        businessId: user.business_id,
+        paymentId: sale.payment_id,
+        status: "paid",
+        customerPackageId: finalized?.customer_package_id || null
+      });
 
       try {
         await sendPaymentReceipt({
@@ -752,8 +779,33 @@ export async function onRequestPost({ request, env }) {
         ? Math.min(deposit, price)
         : price;
 
-    const amountMinor = Math.max(
+    const amountAfterConsultationCredit = Math.max(
       amountBeforeCredit - consultationCreditMinor,
+      0
+    );
+
+    let deductionResult = {
+      discountMinor: 0,
+      type: "none",
+      label: "",
+      voucher: null
+    };
+
+    if (amountAfterConsultationCredit > 0) {
+      try {
+        deductionResult = await calculatePaymentDeduction({
+          env,
+          businessId: user.business_id,
+          baseAmountMinor: amountAfterConsultationCredit,
+          deduction: body.deduction
+        });
+      } catch (error) {
+        return badRequest(error.message || "Unable to apply deduction.");
+      }
+    }
+
+    const amountMinor = Math.max(
+      amountAfterConsultationCredit - deductionResult.discountMinor,
       0
     );
 
@@ -858,6 +910,20 @@ export async function onRequestPost({ request, env }) {
       `Package sale: ${resolvedName} · consultation credit ${consultationCreditMinor}`
     ).run();
 
+    await createDiscountAdjustment({
+      env,
+      businessId: user.business_id,
+      paymentId,
+      customerId: customer.id,
+      paymentType: paymentChoice === "deposit" ? "deposit" : "full",
+      currency: stripeCurrency,
+      discountMinor: deductionResult.discountMinor,
+      deductionType: deductionResult.type,
+      label: deductionResult.label,
+      voucher: deductionResult.voucher,
+      status: "pending"
+    });
+
     await env.DB.prepare(`
       INSERT INTO package_sales (
         id, business_id, customer_id, package_template_id, package_variant_id,
@@ -928,6 +994,11 @@ export async function onRequestPost({ request, env }) {
       params.set("metadata[package_variant_id]", variant.id);
     }
     params.set("metadata[package_sale_source]", "staff");
+    if (deductionResult.discountMinor > 0) {
+      params.set("metadata[discount_minor]", String(deductionResult.discountMinor));
+      params.set("metadata[discount_type]", deductionResult.type);
+      if (deductionResult.voucher?.code) params.set("metadata[voucher_code]", deductionResult.voucher.code);
+    }
     params.set("payment_intent_data[metadata][payment_id]", paymentId);
     params.set("payment_intent_data[metadata][business_id]", user.business_id);
     params.set("payment_intent_data[metadata][package_sale_id]", saleId);
@@ -956,6 +1027,18 @@ export async function onRequestPost({ request, env }) {
       `).bind(
         saleId,
         user.business_id
+      ).run();
+
+      await env.DB.prepare(`
+        DELETE FROM payments
+        WHERE business_id = ?
+          AND provider = 'none'
+          AND payment_method = 'discount'
+          AND notes LIKE ?
+          AND status = 'pending'
+      `).bind(
+        user.business_id,
+        `Discount adjustment for payment=${paymentId}%`
       ).run();
 
       await env.DB.prepare(`
@@ -989,6 +1072,7 @@ export async function onRequestPost({ request, env }) {
       amount_minor: amountMinor,
       currency: stripeCurrency,
       consultation_credit_minor: consultationCreditMinor,
+      discount_minor: deductionResult.discountMinor,
       payment_required: true
     });
   } catch (error) {

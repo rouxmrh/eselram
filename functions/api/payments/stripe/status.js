@@ -4,6 +4,14 @@ import {
   stripeErrorMessage
 } from "../../../../lib/stripe-business.js";
 
+import {
+  setDiscountAdjustmentStatus
+} from "../../../../lib/payment-discounts.js";
+
+import {
+  sendPaymentReceipt
+} from "../../../../lib/communications.js";
+
 
 function badRequest(
   message
@@ -61,6 +69,14 @@ async function markPaid({
       payment.business_id
     )
     .run();
+
+  await setDiscountAdjustmentStatus({
+    env,
+    businessId: payment.business_id,
+    paymentId: payment.id,
+    status: "paid",
+    customerPackageId: String(session?.metadata?.customer_package_id || "").trim() || null
+  });
 }
 
 
@@ -205,6 +221,16 @@ export async function onRequestGet({
         session:
           data
       });
+
+      try {
+        await sendPaymentReceipt({
+          env,
+          businessId: payment.business_id,
+          paymentId: payment.id
+        });
+      } catch (error) {
+        console.error("Stripe status receipt email failed:", error);
+      }
     }
 
 

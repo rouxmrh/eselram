@@ -1684,6 +1684,13 @@
       }
     }
 
+  
+    #paymentLinkDialog .es-deduction-card{margin:16px 0;padding:16px;border:1px solid var(--es-border);border-radius:14px;background:#f8faf7}
+    #paymentLinkDialog .es-deduction-grid{display:grid;grid-template-columns:1.1fr 1fr auto;gap:10px;align-items:end}
+    #paymentLinkDialog .es-deduction-grid label{margin:0}
+    #paymentLinkDialog .es-deduction-grid input,#paymentLinkDialog .es-deduction-grid select{width:100%}
+    @media(max-width:700px){#paymentLinkDialog .es-deduction-grid{grid-template-columns:1fr}}
+
   </style>
 </head>
 
@@ -2257,6 +2264,27 @@
         id="paymentAmountSummary"
         class="es-status"
       ></div>
+
+      <div class="es-deduction-card">
+        <p class="es-eyebrow" style="margin-top:0;">Optional deduction</p>
+        <div class="es-deduction-grid">
+          <label>Deduction
+            <select id="bookingDeductionType">
+              <option value="none">No deduction</option>
+              <option value="amount">Amount (£)</option>
+              <option value="percent">Discount (%)</option>
+              <option value="voucher">Voucher</option>
+            </select>
+          </label>
+          <label id="bookingDeductionValueWrap" hidden>Value
+            <input id="bookingDeductionValue" type="number" min="0" step="0.01">
+          </label>
+          <label id="bookingVoucherWrap" hidden>Voucher
+            <select id="bookingVoucher"></select>
+          </label>
+          <button id="prepareBookingPayment" class="es-button" type="button">Prepare payment</button>
+        </div>
+      </div>
 
 
       <div

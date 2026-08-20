@@ -1093,6 +1093,11 @@
       }
     }
 
+  
+    .es-package-deduction{padding:14px;border:1px solid var(--es-border);border-radius:12px;background:#f8faf7}
+    .es-package-deduction-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:620px){.es-package-deduction-grid{grid-template-columns:1fr}}
+
   </style>
 </head>
 
@@ -1315,6 +1320,27 @@
           <option value="assign_only">Assign without taking payment</option>
         </select>
       </label>
+
+      <div id="assignDeductionCard" class="es-package-deduction">
+        <p class="es-eyebrow" style="margin-top:0;">Optional deduction</p>
+        <div class="es-package-deduction-grid">
+          <label>Deduction
+            <select id="assignDeductionType">
+              <option value="none">No deduction</option>
+              <option value="amount">Amount (£)</option>
+              <option value="percent">Discount (%)</option>
+              <option value="voucher">Voucher</option>
+            </select>
+          </label>
+          <label id="assignDeductionValueWrap" hidden>Value
+            <input id="assignDeductionValue" type="number" min="0" step="0.01">
+          </label>
+          <label id="assignVoucherWrap" hidden>Voucher
+            <select id="assignVoucher"></select>
+          </label>
+        </div>
+        <p class="es-muted-copy" style="margin-bottom:0;">Vouchers are managed in Payments → Manage vouchers.</p>
+      </div>
 
       <label>
         Package starts on

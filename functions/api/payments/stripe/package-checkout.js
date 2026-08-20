@@ -9,6 +9,12 @@ import {
   stripeErrorMessage
 } from "../../../../lib/stripe-business.js";
 
+import {
+  calculatePaymentDeduction,
+  createDiscountAdjustment,
+  setDiscountAdjustmentStatus
+} from "../../../../lib/payment-discounts.js";
+
 
 async function getUserContext(request, env) {
   const token =
@@ -225,6 +231,20 @@ export async function onRequestPost({request, env}) {
       );
     }
 
+    let deductionResult;
+    try {
+      deductionResult = await calculatePaymentDeduction({
+        env,
+        businessId: user.business_id,
+        baseAmountMinor: outstandingMinor,
+        deduction: body.deduction
+      });
+    } catch (error) {
+      return badRequest(error.message || "Unable to apply deduction.");
+    }
+
+    const chargeMinor = Math.max(0, outstandingMinor - deductionResult.discountMinor);
+
     const integration =
       await getBusinessStripeIntegration(
         env,
@@ -285,10 +305,25 @@ export async function onRequestPost({request, env}) {
       paymentId,
       user.business_id,
       item.customer_id,
-      outstandingMinor,
+      chargeMinor,
       currency,
       `Package balance: ${item.name_snapshot}`
     ).run();
+
+    await createDiscountAdjustment({
+      env,
+      businessId: user.business_id,
+      paymentId,
+      customerId: item.customer_id,
+      customerPackageId,
+      paymentType: "balance",
+      currency,
+      discountMinor: deductionResult.discountMinor,
+      deductionType: deductionResult.type,
+      label: deductionResult.label,
+      voucher: deductionResult.voucher,
+      status: "pending"
+    });
 
     const origin =
       new URL(request.url).origin;
@@ -317,7 +352,7 @@ export async function onRequestPost({request, env}) {
 
     params.set(
       "success_url",
-      `${origin}/payment-result/?status=success&${returnQuery.toString()}`
+      `${origin}/payment-result/?status=success&session_id={CHECKOUT_SESSION_ID}&${returnQuery.toString()}`
     );
 
     params.set(
@@ -342,7 +377,7 @@ export async function onRequestPost({request, env}) {
 
     params.set(
       "line_items[0][price_data][unit_amount]",
-      String(outstandingMinor)
+      String(chargeMinor)
     );
 
     params.set(
@@ -369,6 +404,12 @@ export async function onRequestPost({request, env}) {
       "metadata[customer_package_id]",
       customerPackageId
     );
+
+    if (deductionResult.discountMinor > 0) {
+      params.set("metadata[discount_minor]", String(deductionResult.discountMinor));
+      params.set("metadata[discount_type]", deductionResult.type);
+      if (deductionResult.voucher?.code) params.set("metadata[voucher_code]", deductionResult.voucher.code);
+    }
 
     params.set(
       "payment_intent_data[metadata][payment_id]",
@@ -423,6 +464,10 @@ export async function onRequestPost({request, env}) {
         user.business_id
       ).run();
 
+      await setDiscountAdjustmentStatus({
+        env, businessId: user.business_id, paymentId, status: "failed"
+      });
+
       return Response.json(
         {
           ok:false,
@@ -454,7 +499,9 @@ export async function onRequestPost({request, env}) {
         payment_id:paymentId,
         session_id:result.data.id,
         url:result.data.url,
-        amount_minor:outstandingMinor,
+        amount_minor:chargeMinor,
+        original_amount_minor:outstandingMinor,
+        discount_minor:deductionResult.discountMinor,
         currency,
         payment_type:"balance"
       }

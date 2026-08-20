@@ -253,6 +253,7 @@ export async function onRequestGet({
 
             WHERE
               p.business_id = ?
+              AND NOT (p.provider = 'none' AND COALESCE(p.payment_method, '') = 'discount')
               AND NOT (
                 p.status = 'failed'
                 AND EXISTS (
@@ -519,6 +520,7 @@ export async function onRequestGet({
 
             WHERE
               business_id = ?
+              AND NOT (provider = 'none' AND COALESCE(payment_method, '') = 'discount')
               AND status IN (
                 'paid',
                 'partially_refunded',

@@ -160,6 +160,20 @@ const recordTakePaymentManually =
     "recordTakePaymentManually"
   );
 
+const takePaymentDeductionType = document.getElementById("takePaymentDeductionType");
+const takePaymentDeductionValueWrap = document.getElementById("takePaymentDeductionValueWrap");
+const takePaymentDeductionValue = document.getElementById("takePaymentDeductionValue");
+const takePaymentVoucherWrap = document.getElementById("takePaymentVoucherWrap");
+const takePaymentVoucher = document.getElementById("takePaymentVoucher");
+const prepareTakePayment = document.getElementById("prepareTakePayment");
+const manageVouchersButton = document.getElementById("manageVouchersButton");
+const vouchersDialog = document.getElementById("vouchersDialog");
+const closeVouchersDialog = document.getElementById("closeVouchersDialog");
+const voucherRows = document.getElementById("voucherRows");
+const addVoucherButton = document.getElementById("addVoucherButton");
+const saveVouchersButton = document.getElementById("saveVouchersButton");
+const voucherStatus = document.getElementById("voucherStatus");
+
 
 let payments = [];
 let outstanding = [];
@@ -173,7 +187,124 @@ let activeTakePaymentAppointment = null;
 let activeTakePaymentPackage = null;
 let activeTakePaymentPaymentId = null;
 let activeRecordPackage = null;
+let paymentVouchers = [];
 
+
+
+function escapeVoucherHtml(value) {
+  return String(value ?? "").replace(/[&<>"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[char]));
+}
+
+async function loadPaymentVouchers() {
+  const response = await fetch("/api/vouchers", { headers:{Accept:"application/json"}, cache:"no-store" });
+  handleAuthentication(response);
+  const data = await response.json();
+  if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load vouchers.");
+  paymentVouchers = data.vouchers || [];
+  takePaymentVoucher.innerHTML = paymentVouchers.filter(v => v.is_active !== false).map(v =>
+    `<option value="${escapeVoucherHtml(v.id)}">${escapeVoucherHtml(v.code)} · ${escapeVoucherHtml(v.name)} (${v.discount_type === "percent" ? `${v.value}%` : formatMoney(Math.round(Number(v.value || 0) * 100))})</option>`
+  ).join("") || '<option value="">No active vouchers</option>';
+  return paymentVouchers;
+}
+
+function renderVoucherRows() {
+  voucherRows.innerHTML = paymentVouchers.map((v, i) => `
+    <div class="es-voucher-row" data-voucher-index="${i}">
+      <input class="voucher-code" value="${escapeVoucherHtml(v.code)}" placeholder="CODE" aria-label="Voucher code">
+      <select class="voucher-type" aria-label="Voucher type">
+        <option value="amount" ${v.discount_type === "amount" ? "selected" : ""}>Amount (£)</option>
+        <option value="percent" ${v.discount_type === "percent" ? "selected" : ""}>Discount (%)</option>
+      </select>
+      <input class="voucher-value" type="number" min="0.01" step="0.01" value="${Number(v.value || 0)}" aria-label="Voucher value">
+      <label style="display:flex;align-items:center;gap:6px;margin:0;"><input class="voucher-active" type="checkbox" ${v.is_active !== false ? "checked" : ""}> Active</label>
+    </div>`).join("") || '<div class="es-empty-state">No vouchers yet.</div>';
+}
+
+function readVoucherRows() {
+  return [...voucherRows.querySelectorAll("[data-voucher-index]")].map((row, i) => ({
+    id: paymentVouchers[i]?.id || `vch_${crypto.randomUUID()}`,
+    code: row.querySelector(".voucher-code").value.trim().toUpperCase(),
+    name: row.querySelector(".voucher-code").value.trim().toUpperCase(),
+    discount_type: row.querySelector(".voucher-type").value,
+    value: Number(row.querySelector(".voucher-value").value || 0),
+    is_active: row.querySelector(".voucher-active").checked
+  })).filter(v => v.code && v.value > 0);
+}
+
+manageVouchersButton?.addEventListener("click", async () => {
+  voucherStatus.hidden = true;
+  try { await loadPaymentVouchers(); renderVoucherRows(); vouchersDialog.showModal(); }
+  catch (error) { alert(error.message || "Unable to load vouchers."); }
+});
+closeVouchersDialog?.addEventListener("click", () => vouchersDialog.close());
+addVoucherButton?.addEventListener("click", () => {
+  paymentVouchers.push({id:`vch_${crypto.randomUUID()}`,code:"",name:"",discount_type:"amount",value:0,is_active:true});
+  renderVoucherRows();
+});
+saveVouchersButton?.addEventListener("click", async () => {
+  voucherStatus.hidden = false; voucherStatus.className = "es-status"; voucherStatus.textContent = "Saving vouchers…";
+  try {
+    const response = await fetch("/api/vouchers", {method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({vouchers:readVoucherRows()})});
+    handleAuthentication(response); const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to save vouchers.");
+    paymentVouchers = data.vouchers || []; renderVoucherRows(); await loadPaymentVouchers();
+    voucherStatus.className = "es-status success"; voucherStatus.textContent = "Vouchers saved.";
+  } catch (error) { voucherStatus.className = "es-status error"; voucherStatus.textContent = error.message || "Unable to save vouchers."; }
+});
+
+takePaymentDeductionType?.addEventListener("change", () => {
+  const type = takePaymentDeductionType.value;
+  takePaymentDeductionValueWrap.hidden = !["amount","percent"].includes(type);
+  takePaymentVoucherWrap.hidden = type !== "voucher";
+  if (type === "percent") { takePaymentDeductionValue.step = "1"; takePaymentDeductionValue.max = "100"; }
+  else { takePaymentDeductionValue.step = "0.01"; takePaymentDeductionValue.removeAttribute("max"); }
+});
+
+function currentDeductionPayload() {
+  const type = takePaymentDeductionType?.value || "none";
+  if (type === "amount") return {type, amount_minor:Math.round(Number(takePaymentDeductionValue.value || 0) * 100)};
+  if (type === "percent") return {type, percent:Number(takePaymentDeductionValue.value || 0)};
+  if (type === "voucher") return {type, voucher_id:takePaymentVoucher.value};
+  return {type:"none"};
+}
+
+async function prepareActiveTakePaymentCheckout() {
+  const isPackage = Boolean(activeTakePaymentPackage);
+  const item = activeTakePaymentPackage || activeTakePaymentAppointment;
+  if (!item) return;
+
+  prepareTakePayment.disabled = true;
+  takePaymentResult.hidden = true;
+  takePaymentStatus.hidden = false;
+  takePaymentStatus.className = "es-status";
+  takePaymentStatus.textContent = "Creating secure Stripe Checkout…";
+
+  try {
+    const endpoint = isPackage ? "/api/payments/stripe/package-checkout" : "/api/payments/stripe/checkout";
+    const body = isPackage
+      ? {customer_package_id:item.id, deduction:currentDeductionPayload()}
+      : {appointment_id:item.id, deduction:currentDeductionPayload()};
+    const response = await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body)});
+    handleAuthentication(response); const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to create payment link.");
+
+    takePaymentLink.value = data.checkout.url;
+    openTakePaymentLink.href = data.checkout.url;
+    activeTakePaymentPaymentId = data.checkout.payment_id;
+    if (!window.EselramQr || typeof window.EselramQr.toDataUrl !== "function") throw new Error("Eselram QR generator is unavailable.");
+    const qrPaymentUrl = `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(data.checkout.payment_id)}`;
+    takePaymentQrCode.src = window.EselramQr.toDataUrl(qrPaymentUrl,{quiet:5});
+    takePaymentResult.hidden = false;
+    takePaymentStatus.className = "es-status success";
+    const discount = Number(data.checkout.discount_minor || 0);
+    takePaymentStatus.textContent = discount > 0
+      ? `${formatMoney(data.checkout.amount_minor)} ready to collect · ${formatMoney(discount)} deduction applied.`
+      : `${formatMoney(data.checkout.amount_minor)} ready to collect.`;
+  } catch (error) {
+    takePaymentStatus.className = "es-status error"; takePaymentStatus.textContent = error.message || "Unable to create payment link.";
+  } finally { prepareTakePayment.disabled = false; }
+}
+prepareTakePayment?.addEventListener("click", prepareActiveTakePaymentCheckout);
 
 document
   .getElementById(
@@ -1664,94 +1795,17 @@ async function createPackagePaymentCheckout(
     takePaymentDialog.showModal();
   }
 
-  try {
-    const response =
-      await fetch(
-        "/api/payments/stripe/package-checkout",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Accept:
-              "application/json"
-          },
-          body:
-            JSON.stringify({
-              customer_package_id:
-                item.id
-            })
-        }
-      );
-
-    handleAuthentication(response);
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-      throw new Error(
-        data.error ||
-        "Unable to create package payment link."
-      );
-    }
-
-    takePaymentLink.value =
-      data.checkout.url;
-
-    openTakePaymentLink.href =
-      data.checkout.url;
-
-    activeTakePaymentPaymentId =
-      data.checkout.payment_id;
-
-    if (
-      !window.EselramQr ||
-      typeof window.EselramQr.toDataUrl !==
-        "function"
-    ) {
-      throw new Error(
-        "Eselram QR generator is unavailable."
-      );
-    }
-
-    const qrPaymentUrl =
-      `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(
-          data.checkout.payment_id
-        )}`;
-
-    takePaymentQrCode.src =
-      window.EselramQr.toDataUrl(
-        qrPaymentUrl,
-        {
-          quiet: 5
-        }
-      );
-
-    takePaymentResult.hidden =
-      false;
-
-    takePaymentStatus.className =
-      "es-status success";
-
-    takePaymentStatus.textContent =
-      `${formatMoney(
-        data.checkout.amount_minor
-      )} ready to collect.`;
-
-  } catch (error) {
-    takePaymentStatus.className =
-      "es-status error";
-
-    takePaymentStatus.textContent =
-      error.message ||
-      "Unable to create package payment link.";
-  }
+  takePaymentDeductionType.value = "none";
+  takePaymentDeductionValue.value = "";
+  takePaymentDeductionValueWrap.hidden = true;
+  takePaymentVoucherWrap.hidden = true;
+  takePaymentResult.hidden = true;
+  activeTakePaymentPaymentId = null;
+  try { await loadPaymentVouchers(); } catch {}
+  takePaymentStatus.hidden = false;
+  takePaymentStatus.className = "es-status";
+  takePaymentStatus.textContent = "Choose a deduction if needed, then select Prepare payment.";
 }
-
 
 async function createTakePaymentCheckout(
   appointment
@@ -1812,95 +1866,17 @@ async function createTakePaymentCheckout(
     takePaymentDialog.showModal();
   }
 
-  try {
-    const response =
-      await fetch(
-        "/api/payments/stripe/checkout",
-        {
-          method:
-            "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Accept:
-              "application/json"
-          },
-          body:
-            JSON.stringify({
-              appointment_id:
-                appointment.id
-            })
-        }
-      );
-
-    handleAuthentication(response);
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-      throw new Error(
-        data.error ||
-        "Unable to create payment link."
-      );
-    }
-
-    takePaymentLink.value =
-      data.checkout.url;
-
-    openTakePaymentLink.href =
-      data.checkout.url;
-
-    activeTakePaymentPaymentId =
-      data.checkout.payment_id;
-
-    if (
-      !window.EselramQr ||
-      typeof window.EselramQr.toDataUrl !==
-        "function"
-    ) {
-      throw new Error(
-        "Eselram QR generator is unavailable."
-      );
-    }
-
-    const qrPaymentUrl =
-      `${location.origin}/api/payments/stripe/checkout-redirect?payment_id=${encodeURIComponent(
-          data.checkout.payment_id
-        )}`;
-
-    takePaymentQrCode.src =
-      window.EselramQr.toDataUrl(
-        qrPaymentUrl,
-        {
-          quiet: 5
-        }
-      );
-
-    takePaymentResult.hidden =
-      false;
-
-    takePaymentStatus.className =
-      "es-status success";
-
-    takePaymentStatus.textContent =
-      `${formatMoney(
-        data.checkout.amount_minor
-      )} ready to collect.`;
-
-  } catch (error) {
-    takePaymentStatus.className =
-      "es-status error";
-
-    takePaymentStatus.textContent =
-      error.message ||
-      "Unable to create payment link.";
-  }
+  takePaymentDeductionType.value = "none";
+  takePaymentDeductionValue.value = "";
+  takePaymentDeductionValueWrap.hidden = true;
+  takePaymentVoucherWrap.hidden = true;
+  takePaymentResult.hidden = true;
+  activeTakePaymentPaymentId = null;
+  try { await loadPaymentVouchers(); } catch {}
+  takePaymentStatus.hidden = false;
+  takePaymentStatus.className = "es-status";
+  takePaymentStatus.textContent = "Choose a deduction if needed, then select Prepare payment.";
 }
-
 
 /* =======================================================
    Drawer / refunds

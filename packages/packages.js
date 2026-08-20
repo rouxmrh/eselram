@@ -972,11 +972,39 @@ function openTemplateDialog(template = null) {
   $("#templateDialog").showModal();
 }
 
-function openAssignDialog() {
+let packagePaymentVouchers = [];
+
+async function loadPackagePaymentVouchers() {
+  try {
+    const response = await fetch("/api/vouchers", {headers:{Accept:"application/json"},cache:"no-store"});
+    handleAuth(response);
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load vouchers.");
+    packagePaymentVouchers = data.vouchers || [];
+    $("#assignVoucher").innerHTML = packagePaymentVouchers.filter(v => v.is_active !== false).map(v =>
+      `<option value="${escapeHtml(v.id)}">${escapeHtml(v.code)} · ${escapeHtml(v.name)} (${v.discount_type === "percent" ? `${v.value}%` : money(Math.round(Number(v.value || 0) * 100))})</option>`
+    ).join("") || '<option value="">No active vouchers</option>';
+  } catch {
+    $("#assignVoucher").innerHTML = '<option value="">No active vouchers</option>';
+  }
+}
+
+function packageDeductionPayload() {
+  const type = $("#assignDeductionType").value;
+  if (type === "amount") return {type, amount_minor:Math.round(Number($("#assignDeductionValue").value || 0) * 100)};
+  if (type === "percent") return {type, percent:Number($("#assignDeductionValue").value || 0)};
+  if (type === "voucher") return {type, voucher_id:$("#assignVoucher").value};
+  return {type:"none"};
+}
+
+async function openAssignDialog() {
   $("#assignForm").reset();
   $("#assignStatus").hidden = true;
   $("#assignStartsOn").value = new Date().toISOString().slice(0, 10);
+  $("#assignDeductionValueWrap").hidden = true;
+  $("#assignVoucherWrap").hidden = true;
   updateAssignVariantOptions();
+  await loadPackagePaymentVouchers();
   $("#assignDialog").showModal();
 }
 
@@ -1022,6 +1050,16 @@ $("#addPackageVariant").addEventListener("click", () => {
 });
 $("#assignTemplate").addEventListener("change", updateAssignVariantOptions);
 $("#assignVariant").addEventListener("change", updateAssignPaymentRule);
+$("#assignPaymentChoice").addEventListener("change", () => {
+  $("#assignDeductionCard").hidden = $("#assignPaymentChoice").value === "assign_only";
+});
+$("#assignDeductionType").addEventListener("change", () => {
+  const type = $("#assignDeductionType").value;
+  $("#assignDeductionValueWrap").hidden = !["amount","percent"].includes(type);
+  $("#assignVoucherWrap").hidden = type !== "voucher";
+  if (type === "percent") { $("#assignDeductionValue").step = "1"; $("#assignDeductionValue").max = "100"; }
+  else { $("#assignDeductionValue").step = "0.01"; $("#assignDeductionValue").removeAttribute("max"); }
+});
 
 $("#newTemplateButton").addEventListener("click", () => openTemplateDialog());
 $("#assignPackageButton").addEventListener("click", openAssignDialog);
@@ -1101,7 +1139,9 @@ function openPackageCheckoutDialog(data) {
     "Secure Stripe payment";
 
   $("#packageCheckoutAmount").textContent =
-    `${money(data.amount_minor)} ready to collect`;
+    Number(data.discount_minor || 0) > 0
+      ? `${money(data.amount_minor)} ready to collect · ${money(data.discount_minor)} deduction applied`
+      : `${money(data.amount_minor)} ready to collect`;
 
   $("#packageCheckoutLink").value =
     data.checkout_url;
@@ -1356,7 +1396,8 @@ $("#assignForm").addEventListener("submit", async event => {
         customer_id: $("#assignCustomer").value,
         package_template_id: $("#assignTemplate").value,
         package_variant_id: $("#assignVariant").value || null,
-        payment_choice: paymentChoice
+        payment_choice: paymentChoice,
+        deduction: packageDeductionPayload()
       })
     });
 
@@ -1387,7 +1428,9 @@ $("#assignForm").addEventListener("submit", async event => {
       checkout_url:
         data.checkout_url,
       amount_minor:
-        data.amount_minor
+        data.amount_minor,
+      discount_minor:
+        data.discount_minor || 0
     });
   } catch (error) {
     status.className = "es-status error";

@@ -683,6 +683,17 @@
       }
     }
 
+  
+    .es-payment-header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .es-deduction-card{margin:16px 0;padding:16px;border:1px solid var(--es-border);border-radius:14px;background:#f8faf7}
+    .es-deduction-grid{display:grid;grid-template-columns:1.1fr 1fr auto;gap:10px;align-items:end}
+    .es-deduction-grid label{margin:0}
+    .es-deduction-grid input,.es-deduction-grid select{width:100%}
+    .es-voucher-list{display:grid;gap:8px;margin:14px 0}
+    .es-voucher-row{display:grid;grid-template-columns:1fr 140px 90px auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--es-border);border-radius:12px}
+    .es-voucher-row input,.es-voucher-row select{width:100%;margin:0}
+    @media(max-width:700px){.es-deduction-grid,.es-voucher-row{grid-template-columns:1fr}.es-payment-header-actions{width:100%}.es-payment-header-actions>*{flex:1}}
+
   </style>
 
 </head>
@@ -715,13 +726,16 @@
           </p>
         </div>
 
-        <button
-          id="newPaymentButton"
-          class="es-button"
-          type="button"
-        >
-          Record payment
-        </button>
+        <div class="es-payment-header-actions">
+          <button id="manageVouchersButton" class="es-secondary-button" type="button">Manage vouchers</button>
+          <button
+            id="newPaymentButton"
+            class="es-button"
+            type="button"
+          >
+            Record payment
+          </button>
+        </div>
 
       </header>
 
@@ -1124,6 +1138,27 @@
         class="es-status"
       ></div>
 
+      <div class="es-deduction-card">
+        <p class="es-eyebrow" style="margin-top:0;">Optional deduction</p>
+        <div class="es-deduction-grid">
+          <label>Deduction
+            <select id="takePaymentDeductionType">
+              <option value="none">No deduction</option>
+              <option value="amount">Amount (£)</option>
+              <option value="percent">Discount (%)</option>
+              <option value="voucher">Voucher</option>
+            </select>
+          </label>
+          <label id="takePaymentDeductionValueWrap" hidden>Value
+            <input id="takePaymentDeductionValue" type="number" min="0" step="0.01">
+          </label>
+          <label id="takePaymentVoucherWrap" hidden>Voucher
+            <select id="takePaymentVoucher"></select>
+          </label>
+          <button id="prepareTakePayment" class="es-button" type="button">Prepare payment</button>
+        </div>
+      </div>
+
       <div
         id="takePaymentStatus"
         class="es-status"
@@ -1231,6 +1266,22 @@
     </div>
   </dialog>
 
+
+  <dialog id="vouchersDialog" class="es-take-payment-dialog">
+    <div class="es-take-payment-inner">
+      <div class="es-take-payment-header">
+        <div><p class="es-eyebrow">Payments</p><h2>Manage vouchers</h2></div>
+        <button id="closeVouchersDialog" class="es-take-payment-close" type="button">Close</button>
+      </div>
+      <p class="es-muted-copy">Create reusable fixed-amount or percentage vouchers for payment deductions.</p>
+      <div id="voucherRows" class="es-voucher-list"></div>
+      <div class="es-form-actions">
+        <button id="addVoucherButton" class="es-secondary-button" type="button">Add voucher</button>
+        <button id="saveVouchersButton" class="es-button" type="button">Save vouchers</button>
+      </div>
+      <div id="voucherStatus" class="es-status" hidden></div>
+    </div>
+  </dialog>
 
   <div
     id="paymentDrawerBackdrop"

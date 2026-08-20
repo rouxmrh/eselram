@@ -16,6 +16,10 @@ import {
   finalizePackageSale
 } from "../../../../lib/package-sales.js";
 
+import {
+  setDiscountAdjustmentStatus
+} from "../../../../lib/payment-discounts.js";
+
 
 const encoder =
   new TextEncoder();
@@ -345,10 +349,21 @@ async function updatePaymentFromSession({
     }
 
 
-    await finalizePackageSale({
+    const packageFinalizeResult = await finalizePackageSale({
       env,
       session,
       paid: true
+    });
+
+    await setDiscountAdjustmentStatus({
+      env,
+      businessId,
+      paymentId,
+      status: "paid",
+      customerPackageId:
+        customerPackageId ||
+        packageFinalizeResult?.customer_package_id ||
+        null
     });
 
 
@@ -495,6 +510,13 @@ async function updatePaymentFromSession({
       env,
       session,
       paid: false
+    });
+
+    await setDiscountAdjustmentStatus({
+      env,
+      businessId,
+      paymentId,
+      status: "failed"
     });
 
     await env.DB
