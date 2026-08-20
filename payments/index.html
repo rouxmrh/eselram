@@ -694,6 +694,113 @@
     .es-voucher-row input,.es-voucher-row select{width:100%;margin:0}
     @media(max-width:700px){.es-deduction-grid,.es-voucher-row{grid-template-columns:1fr}.es-payment-header-actions{width:100%}.es-payment-header-actions>*{flex:1}}
 
+  
+    /* Final Payments button alignment */
+    .es-payment-header-actions {
+      display:flex !important;
+      align-items:center !important;
+      justify-content:flex-end !important;
+      gap:10px !important;
+      flex-wrap:nowrap !important;
+    }
+
+    .es-payment-header-actions #manageVouchersButton,
+    .es-payment-header-actions #newPaymentButton {
+      width:170px !important;
+      min-width:170px !important;
+      height:44px !important;
+      min-height:44px !important;
+      margin:0 !important;
+      padding:0 16px !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      text-align:center !important;
+      line-height:1 !important;
+      white-space:nowrap !important;
+    }
+
+    #vouchersDialog .es-form-actions {
+      display:flex !important;
+      align-items:center !important;
+      justify-content:flex-start !important;
+      gap:10px !important;
+      flex-wrap:nowrap !important;
+    }
+
+    #vouchersDialog #addVoucherButton,
+    #vouchersDialog #saveVouchersButton {
+      width:145px !important;
+      min-width:145px !important;
+      height:42px !important;
+      min-height:42px !important;
+      margin:0 !important;
+      padding:0 14px !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      text-align:center !important;
+      line-height:1 !important;
+      white-space:nowrap !important;
+    }
+
+    #paymentDrawerActions {
+      display:flex !important;
+      align-items:center !important;
+      justify-content:flex-start !important;
+      gap:9px !important;
+      flex-wrap:nowrap !important;
+    }
+
+    #paymentDrawerActions > .es-button,
+    #paymentDrawerActions > .es-secondary-button {
+      flex:1 1 0 !important;
+      min-width:0 !important;
+      height:48px !important;
+      min-height:48px !important;
+      margin:0 !important;
+      padding:0 12px !important;
+      box-sizing:border-box !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      text-align:center !important;
+      line-height:1.15 !important;
+      white-space:nowrap !important;
+      text-decoration:none !important;
+    }
+
+    #paymentDrawerActions a,
+    #paymentDrawerActions a:hover,
+    #paymentDrawerActions a:focus,
+    #paymentDrawerActions a:visited {
+      text-decoration:none !important;
+    }
+
+    @media(max-width:620px) {
+      .es-payment-header-actions,
+      #vouchersDialog .es-form-actions,
+      #paymentDrawerActions {
+        flex-wrap:wrap !important;
+      }
+
+      .es-payment-header-actions #manageVouchersButton,
+      .es-payment-header-actions #newPaymentButton,
+      #vouchersDialog #addVoucherButton,
+      #vouchersDialog #saveVouchersButton {
+        width:auto !important;
+        min-width:132px !important;
+        flex:1 1 132px !important;
+      }
+
+      #paymentDrawerActions > .es-button,
+      #paymentDrawerActions > .es-secondary-button {
+        flex:1 1 140px !important;
+      }
+    }
+
   </style>
 
 </head>
