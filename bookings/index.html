@@ -541,9 +541,37 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
+      border:1px solid var(--es-border);
       border-radius:999px;
+      background:var(--es-surface);
+      color:var(--es-text);
+      font-size:12px;
+      font-weight:800;
       line-height:1;
+      box-shadow:0 4px 12px rgba(28,34,30,.05);
+      cursor:pointer;
       margin:0;
+    }
+
+    .es-dialog-close-pill:hover {
+      background:#f7f8f6;
+    }
+
+    /* Match the Booking-details Take payment modal to the Payments-page modal. */
+    #paymentLinkDialog {
+      width:min(760px,94vw);
+      max-height:90vh;
+      border-radius:20px;
+      box-shadow:0 24px 70px rgba(28,34,30,.18);
+    }
+
+    #paymentLinkDialog .es-booking-dialog-inner {
+      padding:26px;
+    }
+
+    #paymentLinkDialog .es-booking-dialog-header {
+      gap:18px;
+      margin-bottom:18px;
     }
 
 
@@ -1598,6 +1626,64 @@
       }
     }
 
+  
+    /* Final Take Payment modal polish — Booking details */
+    #paymentLinkDialog {
+      width:min(820px, calc(100vw - 32px)) !important;
+      max-height:calc(100vh - 28px) !important;
+      border-radius:22px !important;
+      overflow:auto !important;
+    }
+    #paymentLinkDialog .es-booking-dialog-inner { padding:30px !important; }
+    #paymentLinkDialog .es-booking-dialog-header {
+      align-items:flex-start !important;
+      gap:24px !important;
+      margin-bottom:24px !important;
+    }
+    #paymentLinkDialog #closePaymentLinkDialog {
+      flex:0 0 auto !important;
+      min-width:72px !important;
+      width:auto !important;
+      height:36px !important;
+      min-height:36px !important;
+      padding:0 16px !important;
+      border:1px solid var(--es-border) !important;
+      border-radius:999px !important;
+      background:var(--es-surface) !important;
+      color:var(--es-text) !important;
+      font-size:12px !important;
+      font-weight:800 !important;
+      line-height:1 !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      box-shadow:0 4px 12px rgba(28,34,30,.05) !important;
+      cursor:pointer !important;
+    }
+    #paymentLinkDialog .es-payment-premium-grid {
+      grid-template-columns:minmax(270px,300px) minmax(330px,1fr) !important;
+      gap:34px !important;
+      margin-top:26px !important;
+    }
+    #paymentLinkDialog .es-payment-premium-qr-card { padding:28px 22px 24px !important; }
+    #paymentLinkDialog .es-payment-premium-copy-row {
+      grid-template-columns:minmax(190px,1fr) 132px !important;
+      gap:12px !important;
+    }
+    #paymentLinkDialog .es-payment-premium-copy-row input {
+      min-width:0 !important;
+      width:100% !important;
+    }
+    #paymentLinkDialog .es-payment-premium-actions { gap:12px !important; }
+    @media(max-width:760px) {
+      #paymentLinkDialog { width:min(94vw,820px) !important; }
+      #paymentLinkDialog .es-booking-dialog-inner { padding:22px !important; }
+      #paymentLinkDialog .es-payment-premium-grid {
+        grid-template-columns:1fr !important;
+        gap:20px !important;
+      }
+    }
+
   </style>
 </head>
 
@@ -2152,11 +2238,11 @@
 
         <button
           id="closePaymentLinkDialog"
-          class="es-dialog-close"
+          class="es-dialog-close-pill"
           type="button"
           aria-label="Close"
         >
-          ×
+          Close
         </button>
 
       </div>
