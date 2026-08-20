@@ -158,7 +158,7 @@ export async function onRequestGet({ env }) {
       getPublicBookingPatchTestCopyOverrides(env, business.id)
     ]);
 
-    const stripeReady = stripeIntegration?.status === "verified";
+    const stripeReady = ["verified", "connected", "configured"].includes(String(stripeIntegration?.status || "").toLowerCase());
 
     const publicServices = (services.results || []).map((service) => {
       const requiresOnlinePayment =

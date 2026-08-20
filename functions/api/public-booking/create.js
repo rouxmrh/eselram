@@ -359,11 +359,7 @@ export async function onRequestPost({ request, env }) {
           business.id
         );
 
-      if (
-        stripeIntegration.error ||
-        stripeIntegration.row?.status !==
-          "verified"
-      ) {
+      if (stripeIntegration.error) {
         if (createdCustomerId) {
           await deleteUnusedCustomer(
             env,

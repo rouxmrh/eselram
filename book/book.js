@@ -525,7 +525,7 @@ function renderSelectedBookingGroup(groupName) {
           class="primary-button service-choice-button"
           type="button"
           id="bookStandaloneConsultation"
-          ${consultationService.online_booking_available ? "" : "disabled"}
+          
         >
           Book consultation
         </button>
@@ -695,7 +695,7 @@ function renderSelectedBookingGroup(groupName) {
       <span>${Number(service.duration_minutes || 0)} min · ${escapeHtml(bookingDepositText(service))}</span>
       ${service.description ? `<span>${escapeHtml(service.description)}</span>` : ""}
     `;
-    bookButton.disabled = !service.online_booking_available;
+    bookButton.disabled = false;
   }
 
   panel.querySelectorAll("[data-direct-service]").forEach(button => {
@@ -1151,7 +1151,8 @@ async function releaseReturnedCheckout() {
 async function init() {
   try {
     const response = await fetch("/api/public-booking/config", {
-      headers: { Accept: "application/json" }
+      headers: { Accept: "application/json" },
+      cache: "no-store"
     });
     const data = await response.json();
     if (!response.ok || !data.ok) {
