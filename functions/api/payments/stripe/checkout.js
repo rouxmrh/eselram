@@ -1048,7 +1048,7 @@ export async function onRequestPost({
     params.set(
       "line_items[0][price_data][unit_amount]",
       String(
-        plan.amountMinor
+        chargePlan.amountMinor
       )
     );
 
