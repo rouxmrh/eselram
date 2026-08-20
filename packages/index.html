@@ -834,7 +834,266 @@
       }
     }
 
-</style>
+
+    /* Match Collect package payment to the Take payment experience. */
+    #packageCheckoutDialog {
+      width:min(760px, calc(100vw - 32px));
+      max-height:calc(100vh - 32px);
+      overflow:auto;
+      border-radius:20px;
+      box-shadow:0 24px 70px rgba(28,34,30,.18);
+    }
+
+    #packageCheckoutDialog .es-package-dialog-inner {
+      padding:26px;
+    }
+
+    .es-package-checkout-header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:20px;
+      margin-bottom:22px;
+    }
+
+    .es-package-checkout-header h2 {
+      margin:4px 0 0;
+    }
+
+    .es-package-checkout-close {
+      min-width:72px;
+      height:36px;
+      min-height:36px;
+      padding:0 14px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--es-border);
+      border-radius:999px;
+      background:var(--es-surface);
+      color:var(--es-text);
+      font-size:12px;
+      font-weight:800;
+      line-height:1;
+      box-shadow:0 4px 12px rgba(28,34,30,.05);
+      cursor:pointer;
+    }
+
+    .es-package-checkout-close:hover {
+      background:#f7f8f6;
+    }
+
+    #packageCheckoutDialog .es-package-payment-share {
+      display:grid;
+      grid-template-columns:minmax(245px,285px) minmax(0,1fr);
+      gap:34px;
+      align-items:stretch;
+      margin:24px 0 8px;
+    }
+
+    #packageCheckoutDialog .es-package-payment-qr-wrap {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      min-height:0;
+      padding:24px 20px 22px;
+      border:1px solid #d7d9d4;
+      border-radius:16px;
+      background:#fff;
+      text-align:center;
+      box-sizing:border-box;
+    }
+
+    #packageCheckoutDialog .es-package-payment-qr-wrap img {
+      width:236px;
+      height:236px;
+      max-width:100%;
+      padding:0;
+      border:0;
+      background:#fff;
+      object-fit:contain;
+      box-sizing:border-box;
+    }
+
+    .es-package-payment-qr-title {
+      margin:16px 0 4px;
+      font-size:16px;
+      font-weight:850;
+      color:var(--es-text);
+    }
+
+    .es-package-payment-qr-copy {
+      margin:0;
+      max-width:210px;
+      color:var(--es-muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    #packageCheckoutDialog .es-package-payment-share-copy {
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:0;
+    }
+
+    #packageCheckoutDialog .es-package-payment-share-copy > strong {
+      display:block;
+      margin:2px 0 10px;
+      color:var(--es-text);
+      font-size:22px;
+      font-weight:850;
+      line-height:1.2;
+    }
+
+    .es-package-checkout-label {
+      display:block;
+      margin:18px 0 10px;
+      color:var(--es-text);
+      font-size:13px;
+      font-weight:850;
+    }
+
+    .es-package-checkout-copy-row {
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 132px;
+      gap:12px;
+      align-items:stretch;
+      margin-bottom:18px;
+    }
+
+    .es-package-checkout-copy-row input,
+    .es-package-checkout-copy-row button {
+      width:100%;
+      min-width:0;
+      height:50px;
+      min-height:50px;
+      margin:0;
+      box-sizing:border-box;
+      border-radius:12px;
+    }
+
+    .es-package-checkout-copy-row input {
+      padding:0 15px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .es-package-checkout-copy-row button {
+      padding:0 16px;
+      white-space:nowrap;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      font-weight:850;
+    }
+
+    #packageCheckoutDialog .es-package-payment-actions {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      margin:0;
+      padding:0;
+      border:0;
+    }
+
+    #packageCheckoutDialog .es-package-payment-actions > * {
+      width:100%;
+      min-width:0;
+      min-height:82px;
+      height:auto;
+      margin:0;
+      padding:14px 16px;
+      border-radius:14px;
+      box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      text-align:center;
+      text-decoration:none;
+      white-space:normal;
+      line-height:1.2;
+    }
+
+    .es-package-payment-icon {
+      width:22px;
+      height:22px;
+      display:block;
+      flex:0 0 auto;
+    }
+
+    .es-package-payment-action-title {
+      display:block;
+      font-size:13px;
+      font-weight:850;
+      line-height:1.15;
+    }
+
+    .es-package-payment-action-copy {
+      display:block;
+      color:var(--es-muted);
+      font-size:11px;
+      font-weight:600;
+      line-height:1.25;
+    }
+
+    #packageCheckoutDialog .es-button .es-package-payment-action-copy {
+      color:rgba(255,255,255,.82);
+    }
+
+    .es-package-payment-footer {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin-top:22px;
+      padding-top:18px;
+      border-top:1px solid var(--es-border);
+      color:var(--es-muted);
+      font-size:11px;
+      line-height:1.5;
+    }
+
+    .es-package-payment-footer svg {
+      width:18px;
+      height:18px;
+      margin-top:1px;
+      flex:0 0 auto;
+    }
+
+    .es-package-payment-footer strong {
+      color:var(--es-text);
+      font-weight:750;
+    }
+
+    @media(max-width:760px) {
+      #packageCheckoutDialog .es-package-payment-share {
+        grid-template-columns:1fr;
+        gap:18px;
+      }
+
+      #packageCheckoutDialog .es-package-payment-qr-wrap {
+        max-width:360px;
+        width:100%;
+        margin:0 auto;
+      }
+
+      #packageCheckoutDialog .es-package-payment-actions {
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media(max-width:520px) {
+      .es-package-checkout-copy-row {
+        grid-template-columns:1fr;
+      }
+    }
+
+  </style>
 </head>
 
 <body class="es-dashboard-body">
@@ -1123,13 +1382,30 @@
 
 <dialog id="packageCheckoutDialog" class="es-package-dialog">
   <div class="es-package-dialog-inner">
-    <h2>Collect package payment</h2>
+    <div class="es-package-checkout-header">
+      <div>
+        <p class="es-eyebrow">Clinic payment</p>
+        <h2>Collect package payment</h2>
+      </div>
+
+      <button
+        id="closePackageCheckoutDialog"
+        class="es-package-checkout-close"
+        type="button"
+      >
+        Close
+      </button>
+    </div>
 
     <p id="packageCheckoutContext" class="es-muted-copy"></p>
 
     <div class="es-package-payment-share">
       <div class="es-package-payment-qr-wrap">
         <img id="packageCheckoutQr" alt="Package payment QR code">
+        <p class="es-package-payment-qr-title">Scan to pay</p>
+        <p class="es-package-payment-qr-copy">
+          Client can scan this with their phone camera.
+        </p>
       </div>
 
       <div class="es-package-payment-share-copy">
@@ -1139,29 +1415,41 @@
           copy the link, or email it to them.
         </p>
 
-        <input id="packageCheckoutLink" type="text" readonly>
+        <label class="es-package-checkout-label" for="packageCheckoutLink">
+          Secure Stripe Checkout link
+        </label>
 
-        <div class="es-package-payment-actions">
-          <a id="openPackageCheckoutLink" class="es-button" href="#" target="_blank" rel="noopener">
-            Open payment online
-          </a>
+        <div class="es-package-checkout-copy-row">
+          <input id="packageCheckoutLink" type="text" readonly>
           <button id="copyPackageCheckoutLink" class="es-secondary-button" type="button">
             Copy link
           </button>
+        </div>
+
+        <div class="es-package-payment-actions">
+          <a id="openPackageCheckoutLink" class="es-button" href="#" target="_blank" rel="noopener">
+            <svg class="es-package-payment-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="es-package-payment-action-title">Open payment page</span>
+          </a>
+
           <button id="emailPackageCheckoutLink" class="es-secondary-button" type="button">
-            Email payment link
+            <svg class="es-package-payment-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="es-package-payment-action-title">Email payment link</span>
+            <span class="es-package-payment-action-copy">Send link to client</span>
           </button>
+        </div>
+
+        <div class="es-package-payment-footer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3M6 10h12v10H6zM12 14v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            <strong>This payment link is secure and powered by Stripe.</strong><br>
+            Do not share this link publicly.
+          </div>
         </div>
       </div>
     </div>
 
     <div id="packageCheckoutStatus" class="es-status" hidden></div>
-
-    <div class="es-form-actions">
-      <button id="closePackageCheckoutDialog" class="es-secondary-button" type="button">
-        Close
-      </button>
-    </div>
   </div>
 </dialog>
 
