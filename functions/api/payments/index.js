@@ -253,6 +253,7 @@ export async function onRequestGet({
 
             WHERE
               p.business_id = ?
+              AND COALESCE(p.payment_method, '') != 'discount'
               AND NOT (p.provider = 'none' AND COALESCE(p.payment_method, '') = 'discount')
               AND NOT (
                 p.status = 'failed'

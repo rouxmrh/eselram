@@ -167,6 +167,7 @@ export async function onRequestPost({request, env}) {
               JOIN payments p
                 ON p.id=cpp.payment_id
               WHERE cpp.customer_package_id=cp.id
+                AND COALESCE(p.payment_method, '') != 'discount'
             ),
             0
           ) AS paid_minor,
