@@ -77,7 +77,9 @@ async function verifyActivePackageCheckout({
         "es-status success";
 
       status.textContent =
-        "Payment received. Package activated and confirmation email sent.";
+        data.receipt_sent === false
+          ? "Payment received and package activated. The confirmation email could not be sent yet; Eselram will retry when this payment status is checked again."
+          : "Payment received. Package activated and confirmation email sent.";
 
       await load();
 

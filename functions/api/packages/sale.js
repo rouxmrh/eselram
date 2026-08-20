@@ -331,13 +331,50 @@ export async function onRequestGet({
       sale.status === "paid" &&
       sale.customer_package_id
     ) {
+      let receiptSent = false;
+      let receiptError = null;
+
+      if (sale.payment_id) {
+        try {
+          const receiptResult =
+            await sendPaymentReceipt({
+              env,
+              businessId: user.business_id,
+              paymentId: sale.payment_id
+            });
+
+          receiptSent =
+            Boolean(
+              receiptResult?.ok === true
+            );
+
+          if (!receiptSent) {
+            receiptError =
+              receiptResult?.error ||
+              receiptResult?.reason ||
+              "Unable to send package payment confirmation email.";
+          }
+        } catch (error) {
+          receiptError =
+            error?.message ||
+            "Unable to send package payment confirmation email.";
+
+          console.error(
+            "Paid package receipt retry failed:",
+            error
+          );
+        }
+      }
+
       return Response.json({
         ok: true,
         status: "paid",
         customer_package_id:
           sale.customer_package_id,
         payment_id:
-          sale.payment_id || null
+          sale.payment_id || null,
+        receipt_sent: receiptSent,
+        receipt_error: receiptError
       });
     }
 
@@ -483,15 +520,35 @@ export async function onRequestGet({
         customerPackageId: finalized?.customer_package_id || null
       });
 
+      let receiptSent = false;
+      let receiptError = null;
+
       try {
-        await sendPaymentReceipt({
-          env,
-          businessId:
-            user.business_id,
-          paymentId:
-            sale.payment_id
-        });
+        const receiptResult =
+          await sendPaymentReceipt({
+            env,
+            businessId:
+              user.business_id,
+            paymentId:
+              sale.payment_id
+          });
+
+        receiptSent =
+          Boolean(
+            receiptResult?.ok === true
+          );
+
+        if (!receiptSent) {
+          receiptError =
+            receiptResult?.error ||
+            receiptResult?.reason ||
+            "Unable to send package payment confirmation email.";
+        }
       } catch (error) {
+        receiptError =
+          error?.message ||
+          "Unable to send package payment confirmation email.";
+
         console.error(
           "Package payment confirmation email failed:",
           error
@@ -506,7 +563,9 @@ export async function onRequestGet({
             ?.customer_package_id ||
           null,
         payment_id:
-          sale.payment_id
+          sale.payment_id,
+        receipt_sent: receiptSent,
+        receipt_error: receiptError
       });
     }
 
