@@ -214,11 +214,9 @@ export async function onRequestGet({ env }) {
         linked_client_bookable:
           Number(service.linked_client_bookable || 0),
         online_booking_available:
-          !requiresOnlinePayment ||
-          (Number(service.stripe_allowed || 0) === 1 && stripeReady),
+          !requiresOnlinePayment || stripeReady,
         unavailable_reason:
-          requiresOnlinePayment &&
-          !(Number(service.stripe_allowed || 0) === 1 && stripeReady)
+          requiresOnlinePayment && !stripeReady
             ? "Online payment is not currently available for this service."
             : null
       };

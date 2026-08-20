@@ -351,35 +351,7 @@ export async function onRequestPost({ request, env }) {
     let stripeIntegration = null;
 
     if (requiresOnlinePayment) {
-      const providerLink =
-        await env.DB
-          .prepare(`
-            SELECT 1
-            FROM service_payment_providers
-            WHERE
-              service_id = ?
-              AND provider_key =
-                  'stripe'
-            LIMIT 1
-          `)
-          .bind(
-            service.id
-          )
-          .first();
-
-      if (!providerLink) {
-        if (createdCustomerId) {
-          await deleteUnusedCustomer(
-            env,
-            business.id,
-            createdCustomerId
-          );
-        }
-
-        return badRequest(
-          "Online payment is not configured for this service."
-        );
-      }
+      // Stripe availability is verified at business level below.
 
       stripeIntegration =
         await getBusinessStripeIntegration(
