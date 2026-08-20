@@ -1098,6 +1098,127 @@
     .es-package-deduction-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media(max-width:620px){.es-package-deduction-grid{grid-template-columns:1fr}}
 
+  
+    /* Sell package dialog — fit comfortably on desktop without internal scrolling */
+    #assignDialog {
+      width:min(820px, calc(100vw - 32px)) !important;
+      max-height:calc(100vh - 28px) !important;
+      overflow:hidden !important;
+      border-radius:20px !important;
+    }
+
+    #assignDialog .es-package-dialog-inner {
+      padding:24px 26px !important;
+    }
+
+    #assignDialog .es-package-dialog-inner > h2 {
+      margin:0 0 18px !important;
+    }
+
+    #assignDialog #assignForm {
+      display:grid !important;
+      grid-template-columns:1fr 1fr !important;
+      gap:12px 16px !important;
+      align-items:start !important;
+    }
+
+    #assignDialog #assignForm > label {
+      display:grid !important;
+      gap:6px !important;
+      margin:0 !important;
+      min-width:0 !important;
+    }
+
+    #assignDialog #assignForm > label:nth-child(1) { grid-column:1; }
+    #assignDialog #assignForm > label:nth-child(2) { grid-column:2; }
+    #assignDialog #assignForm > label:nth-child(3) { grid-column:1; }
+    #assignDialog #assignForm > label:nth-child(4) { grid-column:2; }
+
+    #assignDialog #assignDeductionCard {
+      grid-column:1 / -1 !important;
+      padding:12px 14px !important;
+      margin:0 !important;
+    }
+
+    #assignDialog #assignDeductionCard .es-eyebrow {
+      margin:0 0 9px !important;
+    }
+
+    #assignDialog .es-package-deduction-grid {
+      grid-template-columns:minmax(190px,.8fr) minmax(300px,1.35fr) !important;
+      gap:12px !important;
+      align-items:end !important;
+    }
+
+    #assignDialog #assignVoucherWrap,
+    #assignDialog #assignDeductionValueWrap {
+      min-width:0 !important;
+    }
+
+    #assignDialog #assignVoucher {
+      width:100% !important;
+      min-width:0 !important;
+      padding-right:34px !important;
+      font-size:12px !important;
+      text-overflow:ellipsis !important;
+    }
+
+    #assignDialog #assignForm > label:nth-child(6) {
+      grid-column:1 !important;
+    }
+
+    #assignDialog #assignForm > label:nth-child(7) {
+      grid-column:2 !important;
+    }
+
+    #assignDialog #assignNotes {
+      min-height:72px !important;
+      height:72px !important;
+      resize:none !important;
+    }
+
+    #assignDialog #assignStatus,
+    #assignDialog .es-form-actions {
+      grid-column:1 / -1 !important;
+    }
+
+    #assignDialog .es-form-actions {
+      margin-top:2px !important;
+    }
+
+    #assignDialog input,
+    #assignDialog select {
+      min-height:44px !important;
+      height:44px !important;
+    }
+
+    #assignDialog .es-muted-copy {
+      margin-top:8px !important;
+      font-size:11px !important;
+      line-height:1.35 !important;
+    }
+
+    @media(max-width:720px) {
+      #assignDialog {
+        overflow:auto !important;
+      }
+
+      #assignDialog #assignForm {
+        grid-template-columns:1fr !important;
+      }
+
+      #assignDialog #assignForm > label,
+      #assignDialog #assignDeductionCard,
+      #assignDialog #assignStatus,
+      #assignDialog .es-form-actions {
+        grid-column:1 !important;
+      }
+
+      #assignDialog .es-package-deduction-grid {
+        grid-template-columns:1fr !important;
+      }
+    }
+
   </style>
 </head>
 

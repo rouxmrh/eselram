@@ -984,7 +984,7 @@ async function loadPackagePaymentVouchers() {
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load vouchers.");
     packagePaymentVouchers = data.vouchers || [];
     $("#assignVoucher").innerHTML = packagePaymentVouchers.filter(v => v.is_active !== false).map(v =>
-      `<option value="${escapeHtml(v.id)}">${escapeHtml(v.code)} · ${escapeHtml(v.name)} (${v.discount_type === "percent" ? `${v.value}%` : money(Math.round(Number(v.value || 0) * 100))})</option>`
+      `<option value="${escapeHtml(v.id)}">${escapeHtml(v.code)} · ${escapeHtml(v.name)} · ${v.discount_type === "percent" ? `${v.value}% off` : `${money(Math.round(Number(v.value || 0) * 100))} off`}</option>`
     ).join("") || '<option value="">No active vouchers</option>';
   } catch {
     $("#assignVoucher").innerHTML = '<option value="">No active vouchers</option>';
