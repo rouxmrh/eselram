@@ -1882,6 +1882,81 @@ async function createTakePaymentCheckout(
    Drawer / refunds
    ======================================================= */
 
+function paymentDiscountDetails(payment) {
+  const notes = String(payment?.notes || "");
+  const amountMatch = notes.match(/(?:^|·)\s*discount_minor=(\d+)/i);
+  const typeMatch = notes.match(/(?:^|·)\s*deduction_type=([^·]+)/i);
+  const voucherMatch = notes.match(/(?:^|·)\s*voucher=([^·]+)/i);
+  const labelMatch = notes.match(/(?:^|·)\s*label=([^·]+)/i);
+
+  const discountMinor = Math.max(0, Number(amountMatch?.[1] || 0));
+  if (!discountMinor) return null;
+
+  const type = String(typeMatch?.[1] || "amount").trim().toLowerCase();
+  const voucherCode = String(voucherMatch?.[1] || "").trim();
+  const label = String(labelMatch?.[1] || "").trim();
+  const percentMatch = label.match(/(\d+(?:\.\d+)?)\s*%/);
+  const percent = percentMatch ? Number(percentMatch[1]) : null;
+
+  let typeLabel = "Amount deduction";
+  if (type === "percent") typeLabel = "Percentage discount";
+  if (type === "voucher") typeLabel = "Voucher";
+
+  return {
+    discountMinor,
+    originalMinor: Number(payment.amount_minor || 0) + discountMinor,
+    type,
+    typeLabel,
+    voucherCode,
+    percent,
+    label
+  };
+}
+
+function cleanPaymentNotes(notes) {
+  const text = String(notes || "").trim();
+  if (!text) return "No notes";
+
+  const cleaned = text
+    .split("·")
+    .map(part => part.trim())
+    .filter(Boolean)
+    .filter(part => !/^(discount_minor|deduction_type|voucher|label)=/i.test(part))
+    .filter(part => part !== "discount_balance_applied=1")
+    .filter(part => !/^£[\d,.]+\s+(?:voucher discount|discount|deduction)/i.test(part))
+    .join(" · ")
+    .trim();
+
+  return cleaned || "No notes";
+}
+
+function discountDetailMarkup(payment) {
+  const discount = paymentDiscountDetails(payment);
+  if (!discount) return "";
+
+  return `
+    ${detailItem("Original amount", formatMoney(discount.originalMinor))}
+    ${detailItem("Amount paid", formatMoney(payment.amount_minor))}
+    ${detailItem("Discount amount", formatMoney(discount.discountMinor))}
+    ${detailItem("Discount type", discount.typeLabel)}
+    ${
+      discount.type === "percent" && discount.percent !== null
+        ? detailItem("Percentage", `${discount.percent}%`)
+        : ""
+    }
+    ${
+      discount.type === "voucher" && discount.voucherCode
+        ? detailItem("Voucher code", discount.voucherCode)
+        : ""
+    }
+    ${
+      discount.type === "voucher" && discount.percent !== null
+        ? detailItem("Voucher value", `${discount.percent}%`)
+        : ""
+    }
+  `;
+}
+
 function showPaymentDetails(
   payment
 ) {
@@ -1964,6 +2039,8 @@ function showPaymentDetails(
         : ""
     }
 
+    ${discountDetailMarkup(payment)}
+
     ${detailItem(
       "Reference",
       payment.provider_reference ||
@@ -1972,8 +2049,7 @@ function showPaymentDetails(
 
     ${detailItem(
       "Notes",
-      payment.notes ||
-      "No notes",
+      cleanPaymentNotes(payment.notes),
       true
     )}
   `;

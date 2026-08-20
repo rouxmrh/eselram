@@ -488,8 +488,17 @@ export async function onRequestGet({
               paid_at,
               CURRENT_TIMESTAMP
             ),
-          notes =
-            'Stripe package payment confirmed directly',
+          notes = CASE
+            WHEN COALESCE(notes, '') = '' THEN
+              'Stripe package payment confirmed directly'
+            WHEN instr(
+              COALESCE(notes, ''),
+              'Stripe package payment confirmed directly'
+            ) > 0 THEN notes
+            ELSE
+              notes ||
+              ' · Stripe package payment confirmed directly'
+          END,
           updated_at =
             CURRENT_TIMESTAMP
         WHERE
