@@ -35,6 +35,44 @@ async function markPaid({
   payment,
   session
 }) {
+  const discountMinor = Math.max(
+    0,
+    Number(session?.metadata?.discount_minor || 0)
+  );
+
+  const discountType =
+    String(session?.metadata?.discount_type || "").trim().toLowerCase();
+
+  const voucherCode =
+    String(session?.metadata?.voucher_code || "").trim().toUpperCase();
+
+  const metadataParts = [];
+
+  if (discountMinor > 0) {
+    metadataParts.push(`discount_minor=${Math.round(discountMinor)}`);
+    metadataParts.push(`deduction_type=${discountType || "amount"}`);
+
+    if (voucherCode) {
+      metadataParts.push(`voucher=${voucherCode}`);
+    }
+
+    if (discountType === "percent") {
+      const originalMinor =
+        Number(payment.amount_minor || 0) + discountMinor;
+
+      const percent =
+        originalMinor > 0
+          ? Math.round((discountMinor / originalMinor) * 10000) / 100
+          : null;
+
+      if (percent) {
+        metadataParts.push(`label=${percent}% discount`);
+      }
+    }
+  }
+
+  const discountMetadata =
+    metadataParts.join(" · ");
 
   await env.DB
     .prepare(`
@@ -50,14 +88,30 @@ async function markPaid({
             CURRENT_TIMESTAMP
           ),
         notes =
-          'Stripe Checkout payment confirmed',
+          CASE
+            WHEN ? != ''
+              AND instr(COALESCE(notes, ''), 'discount_minor=') = 0
+              AND COALESCE(notes, '') = ''
+            THEN ? || ' · Stripe Checkout payment confirmed'
+
+            WHEN ? != ''
+              AND instr(COALESCE(notes, ''), 'discount_minor=') = 0
+            THEN notes || ' · ' || ? || ' · Stripe Checkout payment confirmed'
+
+            WHEN instr(COALESCE(notes, ''), 'Stripe Checkout payment confirmed') > 0
+            THEN notes
+
+            WHEN COALESCE(notes, '') = ''
+            THEN 'Stripe Checkout payment confirmed'
+
+            ELSE notes || ' · Stripe Checkout payment confirmed'
+          END,
         updated_at =
           CURRENT_TIMESTAMP
 
       WHERE
         id = ?
         AND business_id = ?
-        AND status != 'paid'
     `)
     .bind(
       session.id,
@@ -65,6 +119,10 @@ async function markPaid({
         session.payment_method_types?.[0] ||
         "card"
       ),
+      discountMetadata,
+      discountMetadata,
+      discountMetadata,
+      discountMetadata,
       payment.id,
       payment.business_id
     )
@@ -78,7 +136,6 @@ async function markPaid({
     customerPackageId: String(session?.metadata?.customer_package_id || "").trim() || null
   });
 }
-
 
 export async function onRequestGet({
   request,

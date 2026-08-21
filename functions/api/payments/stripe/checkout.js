@@ -451,8 +451,18 @@ async function getReusablePendingCheckout({
           notes =
             CASE
               WHEN ?
-              THEN 'Stripe Checkout payment confirmed while checking existing session'
-              ELSE 'Stripe Checkout session is no longer payable'
+              THEN CASE
+                WHEN instr(COALESCE(notes, ''), 'Stripe Checkout payment confirmed while checking existing session') > 0
+                  THEN notes
+                WHEN COALESCE(notes, '') = ''
+                  THEN 'Stripe Checkout payment confirmed while checking existing session'
+                ELSE notes || ' · Stripe Checkout payment confirmed while checking existing session'
+              END
+              ELSE CASE
+                WHEN COALESCE(notes, '') = ''
+                  THEN 'Stripe Checkout session is no longer payable'
+                ELSE notes || ' · Stripe Checkout session is no longer payable'
+              END
             END,
 
           updated_at =

@@ -1476,7 +1476,7 @@ function renderPayments() {
 
 
             if (payment) {
-              showPaymentDetails(payment);
+              void repairDiscountMetadataIfNeeded(payment);
             }
           }
         );
@@ -1881,6 +1881,67 @@ async function createTakePaymentCheckout(
 /* =======================================================
    Drawer / refunds
    ======================================================= */
+
+async function repairDiscountMetadataIfNeeded(payment) {
+  const notes =
+    String(payment?.notes || "");
+
+  const sessionId =
+    String(payment?.provider_reference || "").trim();
+
+  const needsRepair =
+    payment?.provider === "stripe" &&
+    payment?.status === "paid" &&
+    sessionId.startsWith("cs_") &&
+    !/discount_minor=\d+/i.test(notes);
+
+  if (!needsRepair) {
+    showPaymentDetails(payment);
+    return;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `/api/payments/stripe/status?session_id=${encodeURIComponent(sessionId)}`,
+        {
+          headers: {
+            Accept: "application/json"
+          },
+          cache: "no-store"
+        }
+      );
+
+    const data =
+      await response.json().catch(() => ({}));
+
+    if (response.ok && data.ok) {
+      await loadPayments();
+
+      const refreshed =
+        payments.find(
+          item =>
+            item.id ===
+            payment.id
+        );
+
+      showPaymentDetails(
+        refreshed ||
+        payment
+      );
+
+      return;
+    }
+  } catch (error) {
+    console.error(
+      "Unable to repair Stripe discount metadata:",
+      error
+    );
+  }
+
+  showPaymentDetails(payment);
+}
+
 
 function paymentDiscountDetails(payment) {
   const notes = String(payment?.notes || "");

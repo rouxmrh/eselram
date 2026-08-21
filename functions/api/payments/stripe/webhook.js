@@ -299,7 +299,24 @@ async function updatePaymentFromSession({
               CURRENT_TIMESTAMP
             ),
           notes =
-            'Stripe Checkout payment confirmed by webhook',
+            CASE
+              WHEN COALESCE(?, '') != ''
+                AND instr(COALESCE(notes, ''), 'discount_minor=') = 0
+                AND COALESCE(notes, '') = ''
+              THEN ? || ' · Stripe Checkout payment confirmed by webhook'
+
+              WHEN COALESCE(?, '') != ''
+                AND instr(COALESCE(notes, ''), 'discount_minor=') = 0
+              THEN notes || ' · ' || ? || ' · Stripe Checkout payment confirmed by webhook'
+
+              WHEN instr(COALESCE(notes, ''), 'Stripe Checkout payment confirmed by webhook') > 0
+              THEN notes
+
+              WHEN COALESCE(notes, '') = ''
+              THEN 'Stripe Checkout payment confirmed by webhook'
+
+              ELSE notes || ' · Stripe Checkout payment confirmed by webhook'
+            END,
           updated_at =
             CURRENT_TIMESTAMP
 
@@ -310,6 +327,50 @@ async function updatePaymentFromSession({
       .bind(
         session.id,
         method,
+        (() => {
+          const discountMinor = Math.max(0, Number(session?.metadata?.discount_minor || 0));
+          if (!discountMinor) return "";
+          const parts = [
+            `discount_minor=${Math.round(discountMinor)}`,
+            `deduction_type=${String(session?.metadata?.discount_type || "amount").trim().toLowerCase()}`
+          ];
+          const voucherCode = String(session?.metadata?.voucher_code || "").trim().toUpperCase();
+          if (voucherCode) parts.push(`voucher=${voucherCode}`);
+          return parts.join(" · ");
+        })(),
+        (() => {
+          const discountMinor = Math.max(0, Number(session?.metadata?.discount_minor || 0));
+          if (!discountMinor) return "";
+          const parts = [
+            `discount_minor=${Math.round(discountMinor)}`,
+            `deduction_type=${String(session?.metadata?.discount_type || "amount").trim().toLowerCase()}`
+          ];
+          const voucherCode = String(session?.metadata?.voucher_code || "").trim().toUpperCase();
+          if (voucherCode) parts.push(`voucher=${voucherCode}`);
+          return parts.join(" · ");
+        })(),
+        (() => {
+          const discountMinor = Math.max(0, Number(session?.metadata?.discount_minor || 0));
+          if (!discountMinor) return "";
+          const parts = [
+            `discount_minor=${Math.round(discountMinor)}`,
+            `deduction_type=${String(session?.metadata?.discount_type || "amount").trim().toLowerCase()}`
+          ];
+          const voucherCode = String(session?.metadata?.voucher_code || "").trim().toUpperCase();
+          if (voucherCode) parts.push(`voucher=${voucherCode}`);
+          return parts.join(" · ");
+        })(),
+        (() => {
+          const discountMinor = Math.max(0, Number(session?.metadata?.discount_minor || 0));
+          if (!discountMinor) return "";
+          const parts = [
+            `discount_minor=${Math.round(discountMinor)}`,
+            `deduction_type=${String(session?.metadata?.discount_type || "amount").trim().toLowerCase()}`
+          ];
+          const voucherCode = String(session?.metadata?.voucher_code || "").trim().toUpperCase();
+          if (voucherCode) parts.push(`voucher=${voucherCode}`);
+          return parts.join(" · ");
+        })(),
         paymentId,
         businessId
       )
