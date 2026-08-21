@@ -1332,3 +1332,27 @@ document.addEventListener(
     await cleanupPendingCheckoutOnFreshBookingPage();
   }
 );
+
+
+// When the customer leaves for Stripe and then uses the browser Back button,
+// browsers such as Safari/Chrome can restore /book/ from the back-forward cache.
+// DOMContentLoaded does not run again in that situation, so explicitly release
+// the unpaid provisional appointment here before allowing another checkout.
+window.addEventListener(
+  "pageshow",
+  async (event) => {
+    const navigation =
+      performance.getEntriesByType("navigation")[0];
+
+    const returnedFromHistory =
+      event.persisted ||
+      navigation?.type === "back_forward";
+
+    if (
+      returnedFromHistory &&
+      getPendingCheckout()
+    ) {
+      await cleanupPendingCheckoutOnFreshBookingPage();
+    }
+  }
+);
