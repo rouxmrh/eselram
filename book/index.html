@@ -119,6 +119,60 @@
       }
     }
 
+
+    /* Premium business contact row */
+    #businessContact.booking-contact{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px;
+      margin-top:8px;
+      color:#6f746f;
+      font-size:13px;
+      line-height:1.4;
+    }
+    .booking-contact-item{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      color:#6f746f;
+      text-decoration:none;
+      white-space:nowrap;
+    }
+    .booking-contact-item:hover{color:#365178}
+    .booking-contact-icon{
+      width:24px;
+      height:24px;
+      flex:0 0 24px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid #e0e3df;
+      border-radius:999px;
+      background:#fafbf9;
+      color:#365178;
+    }
+    .booking-contact-icon svg{
+      width:12px;
+      height:12px;
+      fill:none;
+      stroke:currentColor;
+      stroke-width:1.8;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+    .booking-contact-divider{
+      width:1px;
+      height:18px;
+      margin:0 2px;
+      background:#e0e3df;
+    }
+    @media(max-width:620px){
+      #businessContact.booking-contact{gap:7px}
+      .booking-contact-divider{display:none}
+      .booking-contact-item{width:100%}
+    }
+
   </style>
 </head>
 <body>
@@ -281,6 +335,65 @@
       </footer>
     </section>
   </main>
+
+
+  <script>
+    (() => {
+      const contact = document.getElementById("businessContact");
+      if (!contact) return;
+
+      const escapeHtml = value => String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+      const renderPremiumContact = () => {
+        if (contact.dataset.premiumRendered === contact.textContent.trim()) return;
+
+        const raw = contact.textContent.trim();
+        if (!raw || contact.querySelector(".booking-contact-item")) return;
+
+        const parts = raw.split(/\s*[·|]\s*/).map(v => v.trim()).filter(Boolean);
+        const email = parts.find(v => v.includes("@")) || "";
+        const phone = parts.find(v => v !== email) || "";
+
+        if (!email && !phone) return;
+
+        const emailHtml = email ? `
+          <a class="booking-contact-item" href="mailto:${escapeHtml(email)}">
+            <span class="booking-contact-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+            </span>
+            <span>${escapeHtml(email)}</span>
+          </a>` : "";
+
+        const divider = email && phone
+          ? '<span class="booking-contact-divider" aria-hidden="true"></span>'
+          : "";
+
+        const phoneHref = phone.replace(/[^\d+]/g, "");
+        const phoneHtml = phone ? `
+          <a class="booking-contact-item" href="tel:${escapeHtml(phoneHref)}">
+            <span class="booking-contact-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7.2 3.5 10 7.8 8.2 9.6c1.2 2.4 3.1 4.3 5.5 5.5l1.8-1.8 4.3 2.8c.4.3.6.8.4 1.3-.5 1.5-1.9 2.6-3.5 2.6C9.7 20 4 14.3 4 7.3c0-1.6 1.1-3 2.6-3.5.2-.1.4-.1.6-.3z"/></svg>
+            </span>
+            <span>${escapeHtml(phone)}</span>
+          </a>` : "";
+
+        contact.classList.add("booking-contact");
+        contact.innerHTML = emailHtml + divider + phoneHtml;
+      };
+
+      new MutationObserver(renderPremiumContact).observe(contact, {
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
+
+      document.addEventListener("DOMContentLoaded", renderPremiumContact);
+    })();
+  </script>
 
   <script src="/book/book.js?v=20260821-stripe-back-fix" defer></script>
 </body>
