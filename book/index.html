@@ -16,6 +16,109 @@
     .booking-footer-brand{display:inline-flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
     .booking-footer-brand strong{font-weight:800}
     .booking-footer-brand img{display:block;width:26px;height:26px;object-fit:contain}
+
+    /* Premium booking progress */
+    .progress{
+      display:grid;
+      grid-template-columns:auto 1fr auto 1fr auto 1fr auto;
+      align-items:center;
+      gap:12px;
+      padding:18px 32px 20px;
+      border-top:1px solid rgba(36,34,26,.06);
+      border-bottom:1px solid var(--es-border);
+      background:linear-gradient(180deg,#fff 0%,#fbfbfa 100%);
+    }
+
+    .progress-step{
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      min-width:max-content;
+      color:#77756d;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.01em;
+      transition:color .2s ease;
+    }
+
+    .progress-number{
+      width:28px;
+      height:28px;
+      flex:0 0 28px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid #d9ddd8;
+      border-radius:999px;
+      background:#fff;
+      color:#77756d;
+      font-size:11px;
+      font-weight:800;
+      box-shadow:0 2px 8px rgba(28,34,30,.04);
+      transition:all .2s ease;
+    }
+
+    .progress-label{
+      font-weight:800;
+      color:inherit;
+    }
+
+    .progress-line{
+      height:1px;
+      width:100%;
+      min-width:24px;
+      background:linear-gradient(90deg,#d9ddd8,#e9ebe8);
+    }
+
+    .progress-step.active{
+      color:#365178;
+    }
+
+    .progress-step.active .progress-number{
+      border-color:#365178;
+      background:#365178;
+      color:#fff;
+      box-shadow:0 5px 14px rgba(54,81,120,.18);
+      transform:translateY(-1px);
+    }
+
+    .progress-step.active .progress-label{
+      color:#365178;
+    }
+
+    @media(max-width:620px){
+      .progress{
+        gap:6px;
+        padding:14px 14px 16px;
+      }
+
+      .progress-step{
+        gap:5px;
+        font-size:10px;
+      }
+
+      .progress-number{
+        width:24px;
+        height:24px;
+        flex-basis:24px;
+        font-size:10px;
+      }
+
+      .progress-line{
+        min-width:8px;
+      }
+    }
+
+    @media(max-width:430px){
+      .progress-label{
+        display:none;
+      }
+
+      .progress{
+        grid-template-columns:auto 1fr auto 1fr auto 1fr auto;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -35,13 +138,25 @@
       </header>
 
       <div class="progress" aria-label="Booking progress">
-        <span class="progress-step active" data-progress="1">1 <b>Service</b></span>
+        <span class="progress-step active" data-progress="1">
+          <span class="progress-number">1</span>
+          <span class="progress-label">Service</span>
+        </span>
         <span class="progress-line"></span>
-        <span class="progress-step" data-progress="2">2 <b>Time</b></span>
+        <span class="progress-step" data-progress="2">
+          <span class="progress-number">2</span>
+          <span class="progress-label">Time</span>
+        </span>
         <span class="progress-line"></span>
-        <span class="progress-step" data-progress="3">3 <b>Details</b></span>
+        <span class="progress-step" data-progress="3">
+          <span class="progress-number">3</span>
+          <span class="progress-label">Details</span>
+        </span>
         <span class="progress-line"></span>
-        <span class="progress-step" data-progress="4">4 <b>Confirm</b></span>
+        <span class="progress-step" data-progress="4">
+          <span class="progress-number">4</span>
+          <span class="progress-label">Confirm</span>
+        </span>
       </div>
 
       <div id="pageError" class="message error" hidden></div>
