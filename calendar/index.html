@@ -13,7 +13,7 @@
 
   <link
     rel="stylesheet"
-    href="/app/assets/css/eselram.css"
+    href="/app/assets/css/eselram.css?v=20260821-mobile-nav-v2"
   >
 
   <script>
@@ -983,7 +983,7 @@
   </aside>
 
 <script type="module">
-  import { renderSidebar } from "/components/sidebar.js";
+  import { renderSidebar } from "/components/sidebar.js?v=20260821-mobile-nav-v2";
 
   if (new URLSearchParams(window.location.search).get("embedded") !== "1") {
     renderSidebar("bookings");

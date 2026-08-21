@@ -4758,3 +4758,31 @@ body {
     font-size: 14px;
   }
 }
+
+
+/* Mobile navigation v2: keep controls unmistakably visible above page content. */
+@media (max-width: 900px) {
+  #esMobileNavigation {
+    display:block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+
+  #esMobileNavigation .es-mobile-navigation-bar {
+    min-height:64px !important;
+  }
+
+  #esMobileNavigation .es-mobile-back,
+  #esMobileNavigation .es-mobile-menu-button {
+    background:#ffffff !important;
+    color:#365178 !important;
+    -webkit-text-fill-color:#365178 !important;
+    border-color:rgba(255,255,255,.8) !important;
+    box-shadow:0 2px 8px rgba(0,0,0,.08) !important;
+  }
+
+  #esMobileNavigation .es-mobile-navigation-title {
+    color:#ffffff !important;
+    -webkit-text-fill-color:#ffffff !important;
+  }
+}
