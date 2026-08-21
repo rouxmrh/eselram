@@ -181,6 +181,176 @@ export function renderSidebar(activeKey) {
   `;
 
   loadSidebarIdentity();
+  renderMobileNavigation(activeKey);
+}
+
+
+function renderMobileNavigation(activeKey) {
+  const layout = document.querySelector(".es-dashboard-layout");
+  if (!layout) return;
+
+  document.getElementById("esMobileNavigation")?.remove();
+
+  const currentItem =
+    navItems.find(item => item.key === activeKey);
+
+  const mobileNav = document.createElement("div");
+  mobileNav.id = "esMobileNavigation";
+  mobileNav.className = "es-mobile-navigation";
+
+  mobileNav.innerHTML = `
+    <div class="es-mobile-navigation-bar">
+      <button
+        class="es-mobile-back"
+        type="button"
+        aria-label="Go back"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7"/>
+        </svg>
+        <span>Back</span>
+      </button>
+
+      <strong class="es-mobile-navigation-title">
+        ${escapeAttribute(currentItem?.label || pageLabel(activeKey))}
+      </strong>
+
+      <button
+        class="es-mobile-menu-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="esMobileMenu"
+      >
+        <span>Menu</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+      </button>
+    </div>
+
+    <div
+      id="esMobileMenu"
+      class="es-mobile-menu"
+      hidden
+    >
+      <nav aria-label="Mobile navigation">
+        ${navItems.map(item => `
+          <a
+            href="${item.href}"
+            class="${item.key === activeKey ? "active" : ""}"
+          >
+            <span class="es-mobile-menu-icon">
+              ${item.icon}
+            </span>
+            <span>${item.label}</span>
+          </a>
+        `).join("")}
+      </nav>
+
+      <div class="es-mobile-menu-footer">
+        <a href="/auth/logout.html" class="es-mobile-menu-logout">
+          <span class="es-mobile-menu-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10"/>
+              <path d="M13 8l4 4-4 4"/>
+              <path d="M8 12h9"/>
+            </svg>
+          </span>
+          <span>Log out</span>
+        </a>
+      </div>
+    </div>
+
+    <button
+      class="es-mobile-menu-backdrop"
+      type="button"
+      aria-label="Close menu"
+      hidden
+    ></button>
+  `;
+
+  layout.prepend(mobileNav);
+
+  const backButton =
+    mobileNav.querySelector(".es-mobile-back");
+
+  const menuButton =
+    mobileNav.querySelector(".es-mobile-menu-button");
+
+  const menu =
+    mobileNav.querySelector(".es-mobile-menu");
+
+  const backdrop =
+    mobileNav.querySelector(".es-mobile-menu-backdrop");
+
+  backButton?.addEventListener("click", () => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    window.location.href = fallbackBackHref(activeKey);
+  });
+
+  const setMenuOpen = (open) => {
+    if (!menu || !menuButton || !backdrop) return;
+
+    menu.hidden = !open;
+    backdrop.hidden = !open;
+    menuButton.setAttribute(
+      "aria-expanded",
+      open ? "true" : "false"
+    );
+
+    document.body.classList.toggle(
+      "es-mobile-menu-open",
+      open
+    );
+  };
+
+  menuButton?.addEventListener("click", () => {
+    setMenuOpen(menu?.hidden ?? true);
+  });
+
+  backdrop?.addEventListener("click", () => {
+    setMenuOpen(false);
+  });
+
+  mobileNav.querySelectorAll(".es-mobile-menu a")
+    .forEach(link => {
+      link.addEventListener("click", () => setMenuOpen(false));
+    });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && menu && !menu.hidden) {
+      setMenuOpen(false);
+      menuButton?.focus();
+    }
+  });
+}
+
+
+function pageLabel(activeKey) {
+  const labels = {
+    dashboard: "Dashboard",
+    packages: "Packages",
+    "treatment-records": "Clinical Records"
+  };
+
+  return labels[activeKey] || "Eselram";
+}
+
+
+function fallbackBackHref(activeKey) {
+  const parents = {
+    settings: "/settings/",
+    "clinical-records": "/treatment-records/",
+    "treatment-records": "/treatment-records/",
+    packages: "/bookings/",
+    bookings: "/dashboard/"
+  };
+
+  return parents[activeKey] || "/dashboard/";
 }
 
 
