@@ -13,6 +13,9 @@
     .booking-home-link{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 17px;border:1px solid var(--es-border);border-radius:999px;background:var(--es-surface);color:var(--es-text);font-size:12px;font-weight:800;text-decoration:none}
     .booking-home-link:hover{border-color:var(--primary);color:var(--primary)}
 
+    .booking-footer-brand{display:inline-flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
+    .booking-footer-brand strong{font-weight:800}
+    .booking-footer-brand img{display:block;width:26px;height:26px;object-fit:contain}
   </style>
 </head>
 <body>
@@ -156,7 +159,10 @@
 
       <footer class="booking-footer">
         <span id="footerText"></span>
-        <span>Inspired by Eselram.</span>
+        <span class="booking-footer-brand">
+          <span>Inspired by esel<strong>ram</strong></span>
+          <img src="/assets/brand_link.png" alt="" aria-hidden="true">
+        </span>
       </footer>
     </section>
   </main>
