@@ -536,18 +536,6 @@ export async function onRequestGet({
               WHERE
                 p.business_id = ?
                 AND p.customer_id = ?
-                AND NOT (
-                  p.provider = 'stripe'
-                  AND p.status IN ('pending', 'failed')
-                  AND EXISTS (
-                    SELECT 1
-                    FROM package_sales ps_public_checkout
-                    WHERE ps_public_checkout.payment_id = p.id
-                      AND ps_public_checkout.business_id = p.business_id
-                      AND ps_public_checkout.source = 'public'
-                      AND ps_public_checkout.status IN ('pending', 'failed')
-                  )
-                )
 
               ORDER BY
                 COALESCE(
@@ -642,6 +630,18 @@ export async function onRequestGet({
               WHERE
                 p.business_id = ?
                 AND p.customer_id = ?
+                AND NOT (
+                  p.provider = 'stripe'
+                  AND p.status IN ('pending', 'failed')
+                  AND EXISTS (
+                    SELECT 1
+                    FROM package_sales ps_public_checkout
+                    WHERE ps_public_checkout.payment_id = p.id
+                      AND ps_public_checkout.business_id = p.business_id
+                      AND ps_public_checkout.source = 'public'
+                      AND ps_public_checkout.status IN ('pending', 'failed')
+                  )
+                )
 
               ORDER BY
                 datetime(
