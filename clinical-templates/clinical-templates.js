@@ -7,6 +7,17 @@ let templates = [];
 let starters = [];
 let activeTemplate = null;
 
+function stripFileUploadFields(template) {
+  if (!template || typeof template !== "object") return template;
+
+  const copy = structuredClone(template);
+  copy.sections = (copy.sections || []).map(section => ({
+    ...section,
+    fields: (section.fields || []).filter(field => field.field_type !== "file_upload")
+  }));
+  return copy;
+}
+
 document
   .getElementById("newTemplateButton")
   .addEventListener("click", createBlankTemplate);
@@ -29,7 +40,7 @@ async function loadTemplates() {
       throw new Error(data.error || "Unable to load clinical templates.");
     }
 
-    templates = data.templates || [];
+    templates = (data.templates || []).map(stripFileUploadFields);
     starters = data.starters || [];
 
     renderStarterLibrary();
@@ -520,7 +531,6 @@ function renderFields(section, sectionIndex) {
           ${fieldTypeOption(field, "date", "Date")}
           ${fieldTypeOption(field, "number", "Number")}
           ${fieldTypeOption(field, "signature", "Signature")}
-          ${fieldTypeOption(field, "file_upload", "File upload")}
         </select>
       </label>
 

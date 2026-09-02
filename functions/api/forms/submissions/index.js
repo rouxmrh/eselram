@@ -243,15 +243,9 @@ export async function onRequestPost({ request, env }) {
         answers.set(key.slice(7), String(value || ""));
       } else if (key.startsWith("signature:")) {
         signatures.set(key.slice(10), String(value || ""));
-      } else if (key.startsWith("file:") && value instanceof File) {
-        const fieldKey = key.slice(5);
-        uploads.set(
-          fieldKey,
-          [
-            ...(uploads.get(fieldKey) || []),
-            value
-          ]
-        );
+      } else if (key.startsWith("file:")) {
+        // File uploads have been retired from forms. Ignore legacy payloads.
+        continue;
       }
     }
 
@@ -294,12 +288,6 @@ export async function onRequestPost({ request, env }) {
       }
 
       if (field.field_type === "file_upload") {
-        if (!(uploads.get(field.field_key) || []).length) {
-          return Response.json(
-            { ok: false, error: `${field.label} is required.` },
-            { status: 400 }
-          );
-        }
         continue;
       }
 
@@ -311,19 +299,6 @@ export async function onRequestPost({ request, env }) {
           { status: 400 }
         );
       }
-    }
-
-    const hasUploads = Array.from(uploads.values()).some(files => files.length > 0);
-
-    if (hasUploads && !env.FORM_UPLOADS) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "This form includes file uploads, but FORM_UPLOADS storage is not configured yet."
-        },
-        { status: 503 }
-      );
     }
 
     const submissionId = `cfs_${crypto.randomUUID()}`;

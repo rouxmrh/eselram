@@ -247,6 +247,12 @@ function renderSection(section) {
 }
 
 function renderField(field) {
+  // File uploads are intentionally disabled across all client-facing forms.
+  // Existing legacy templates may still contain file_upload fields in D1;
+  // keep them invisible rather than breaking the rest of the form.
+  if (field.field_type === "file_upload") {
+    return "";
+  }
   const key = escapeHtml(field.field_key);
   const requiredMarker = field.is_required === 1
     ? `<span class="es-form-render-required">*</span>`
@@ -347,20 +353,6 @@ function renderField(field) {
             Clear
           </button>
         </div>
-      </div>
-    `;
-  } else if (field.field_type === "file_upload") {
-    control = `
-      <input
-        type="file"
-        name="${key}"
-        data-field-key="${key}"
-        ${field.multiple === 1 ? "multiple" : ""}
-        ${field.is_required === 1 ? "required" : ""}
-        accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
-      >
-      <div class="es-form-render-upload-note">
-        JPG, PNG, WEBP or PDF. Maximum 5 MB per file.
       </div>
     `;
   } else {
@@ -710,18 +702,6 @@ async function submitForm(event) {
       if (!elements.length) continue;
 
       if (field.field_type === "file_upload") {
-        const files = Array.from(elements[0].files || []);
-
-        for (const file of files) {
-          if (file.size > 5 * 1024 * 1024) {
-            errorBox.hidden = false;
-            errorBox.textContent = `${file.name} is larger than 5 MB.`;
-            return;
-          }
-
-          data.append(`file:${field.field_key}`, file);
-        }
-
         continue;
       }
 

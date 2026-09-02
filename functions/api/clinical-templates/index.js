@@ -20,8 +20,7 @@ const allowedFieldTypes = [
   "dropdown",
   "date",
   "number",
-  "signature",
-  "file_upload"
+  "signature"
 ];
 
 async function getUserContext(request, env) {
@@ -607,8 +606,15 @@ function validateTemplate(body) {
     const cleanFields = [];
 
     for (const field of Array.isArray(section.fields) ? section.fields : []) {
-      const label = String(field.label || "").trim();
       const fieldType = String(field.field_type || "").trim();
+
+      // File uploads are no longer supported on forms. If an older template
+      // still contains one, remove it the next time that template is saved.
+      if (fieldType === "file_upload") {
+        continue;
+      }
+
+      const label = String(field.label || "").trim();
 
       if (!label) {
         return { ok: false, error: "Every field needs a label." };
