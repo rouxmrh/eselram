@@ -97,36 +97,51 @@ async function getSubmissionDetail({id,user,env}){
   const snapshot=parseJson(submission.template_snapshot_json,null);
   let sections=[];
 
+  // Build a simple answer-value map so the saved template conditions can be
+  // re-applied when staff review a completed form. Without this, every
+  // treatment-specific section in the snapshot is displayed (Tattoo, Carbon
+  // and Fungal), even though the client only completed one treatment path.
+  const conditionAnswers=new Map(
+    (answerRows.results||[]).map(answer=>[answer.field_key,answer.value_text||""])
+  );
+
   if(snapshot&&Array.isArray(snapshot.sections)){
-    sections=snapshot.sections.map((section,sectionIndex)=>({
-      id:`snapshot_section_${sectionIndex}`,
-      title:section.title||`Section ${sectionIndex+1}`,
-      description:section.description||null,
-      sort_order:Number(section.sort_order??sectionIndex),
-      fields:(Array.isArray(section.fields)?section.fields:[]).map((field,fieldIndex)=>{
-        const answer=answerMap.get(field.field_key);
-        return {
-          id:`snapshot_field_${sectionIndex}_${fieldIndex}`,
-          section_id:`snapshot_section_${sectionIndex}`,
-          label:field.label||answer?.field_label||"Field",
-          field_key:field.field_key,
-          field_type:field.field_type||answer?.field_type||"short_text",
-          sort_order:Number(field.sort_order??fieldIndex),
-          value:answer?.value_text||"",
-          value_json:answer?.value_json||null
-        };
-      })
-    }));
+    sections=snapshot.sections
+      .filter(section=>isSavedConditionSatisfied(section.condition,conditionAnswers))
+      .map((section,sectionIndex)=>({
+        id:`snapshot_section_${sectionIndex}`,
+        title:section.title||`Section ${sectionIndex+1}`,
+        description:section.description||null,
+        sort_order:Number(section.sort_order??sectionIndex),
+        fields:(Array.isArray(section.fields)?section.fields:[])
+          .filter(field=>isSavedConditionSatisfied(field.condition,conditionAnswers))
+          .map((field,fieldIndex)=>{
+            const answer=answerMap.get(field.field_key);
+            return {
+              id:`snapshot_field_${sectionIndex}_${fieldIndex}`,
+              section_id:`snapshot_section_${sectionIndex}`,
+              label:field.label||answer?.field_label||"Field",
+              field_key:field.field_key,
+              field_type:field.field_type||answer?.field_type||"short_text",
+              sort_order:Number(field.sort_order??fieldIndex),
+              value:answer?.value_text||"",
+              value_json:answer?.value_json||null
+            };
+          })
+      }));
   }else{
     const [sectionRows,fieldRows]=await Promise.all([
-      env.DB.prepare(`SELECT id,title,description,sort_order FROM clinical_template_sections WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all(),
-      env.DB.prepare(`SELECT id,section_id,label,field_key,field_type,sort_order FROM clinical_template_fields WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all()
+      env.DB.prepare(`SELECT id,title,description,sort_order,condition_json FROM clinical_template_sections WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all(),
+      env.DB.prepare(`SELECT id,section_id,label,field_key,field_type,sort_order,condition_json FROM clinical_template_fields WHERE business_id=? AND template_id=? ORDER BY sort_order ASC`).bind(user.business_id,submission.template_id).all()
     ]);
 
-    sections=(sectionRows.results||[]).map(s=>({...s,fields:[]}));
-    const sectionMap=new Map(sections.map(s=>[s.id,s]));
+    sections=(sectionRows.results||[])
+      .filter(section=>isSavedConditionSatisfied(parseJson(section.condition_json,null),conditionAnswers))
+      .map(section=>({...section,fields:[]}));
+    const sectionMap=new Map(sections.map(section=>[section.id,section]));
     for(const field of fieldRows.results||[]){
       const section=sectionMap.get(field.section_id);if(!section)continue;
+      if(!isSavedConditionSatisfied(parseJson(field.condition_json,null),conditionAnswers))continue;
       const answer=answerMap.get(field.field_key);
       section.fields.push({...field,value:answer?.value_text||"",value_json:answer?.value_json||null});
     }
@@ -137,6 +152,13 @@ async function getSubmissionDetail({id,user,env}){
   return Response.json({ok:true,submission:{...submission,customer_name:customerName,sections,signatures:signatureRows.results||[],uploads:uploadRows.results||[]}});
 }
 
+
+function isSavedConditionSatisfied(condition,answers){
+  if(!condition||typeof condition!=="object"||!condition.field_key)return true;
+  const current=String(answers.get(String(condition.field_key))||"");
+  const expected=String(condition.value||"");
+  return condition.operator==="not_equals"?current!==expected:current===expected;
+}
 
 function parseJson(value,fallback){
   if(!value)return fallback;
