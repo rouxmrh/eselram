@@ -308,7 +308,11 @@ export async function onRequestPost({request, env}) {
       item.customer_id,
       chargeMinor,
       currency,
-      `Package balance: ${item.name_snapshot}`
+      `Package balance: ${item.name_snapshot}${
+        deductionResult.discountMinor > 0
+          ? ` · discount_minor=${deductionResult.discountMinor} · deduction_type=${deductionResult.type}${deductionResult.voucher?.code ? ` · voucher=${deductionResult.voucher.code}` : ""}${deductionResult.label ? ` · label=${deductionResult.label}` : ""}`
+          : ""
+      }`
     ).run();
 
     await createDiscountAdjustment({

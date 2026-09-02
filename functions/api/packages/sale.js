@@ -975,7 +975,11 @@ export async function onRequestPost({ request, env }) {
       paymentChoice === "deposit" ? "deposit" : "full",
       amountMinor,
       stripeCurrency,
-      `Package sale: ${resolvedName} · consultation credit ${consultationCreditMinor}`
+      `Package sale: ${resolvedName} · consultation credit ${consultationCreditMinor}${
+        deductionResult.discountMinor > 0
+          ? ` · discount_minor=${deductionResult.discountMinor} · deduction_type=${deductionResult.type}${deductionResult.voucher?.code ? ` · voucher=${deductionResult.voucher.code}` : ""}${deductionResult.label ? ` · label=${deductionResult.label}` : ""}`
+          : ""
+      }`
     ).run();
 
     await createDiscountAdjustment({
