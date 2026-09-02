@@ -259,12 +259,23 @@ $("#purchaseForm").addEventListener("submit", async event => {
   }
 });
 
-if (new URLSearchParams(location.search).get("cancelled") === "1") {
+const returnParams = new URLSearchParams(location.search);
+if (returnParams.get("cancelled") === "1") {
   const status = $("#status");
   $("#purchasePanel").hidden = false;
   status.hidden = false;
   status.className = "status error";
   status.textContent = "Payment was cancelled. No package has been activated.";
+
+  const saleId = String(returnParams.get("sale_id") || "").trim();
+  if (saleId) {
+    fetch("/api/public-packages/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ sale_id: saleId }),
+      keepalive: true
+    }).catch(() => {});
+  }
 }
 
 load().catch(error => {

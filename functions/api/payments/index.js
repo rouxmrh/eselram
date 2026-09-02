@@ -12,7 +12,8 @@ import {
 } from "../../../lib/auth.js";
 
 import {
-  cleanupPendingOnlineBookings
+  cleanupPendingOnlineBookings,
+  cleanupPendingPublicPackageSales
 } from "../../../lib/public-booking.js";
 
 
@@ -144,6 +145,7 @@ export async function onRequestGet({
     }
 
     await cleanupPendingOnlineBookings(env, user.business_id);
+    await cleanupPendingPublicPackageSales(env, user.business_id);
 
 
     const [
@@ -282,6 +284,19 @@ export async function onRequestGet({
                     a_public_checkout.id = p.appointment_id
                     AND a_public_checkout.business_id = p.business_id
                     AND a_public_checkout.booking_source = 'online'
+                )
+              )
+              AND NOT (
+                p.provider = 'stripe'
+                AND p.status IN ('pending', 'failed')
+                AND EXISTS (
+                  SELECT 1
+                  FROM package_sales ps_public_checkout
+                  WHERE
+                    ps_public_checkout.payment_id = p.id
+                    AND ps_public_checkout.business_id = p.business_id
+                    AND ps_public_checkout.source = 'public'
+                    AND ps_public_checkout.status IN ('pending', 'failed')
                 )
               )
 
