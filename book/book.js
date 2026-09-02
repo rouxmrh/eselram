@@ -237,38 +237,39 @@ function consultationPaymentText(service) {
     state.config?.business?.locale ||
     "en-GB";
 
-  const price =
-    Number(
-      service.consultation_price_minor ||
-      0
-    );
+  // Dedicated consultation services use the same configurable payment fields
+  // as every other service. This keeps public booking aligned with whatever
+  // each Eselram business has configured (free, full online, deposit online,
+  // or pay at appointment) instead of falling back to legacy consultation
+  // fields that may be empty.
+  const isDedicatedConsultation =
+    String(service.service_type || "standard") === "consultation";
 
-  const timing =
-    service.consultation_payment_timing ||
-    "free";
+  const price = isDedicatedConsultation
+    ? Number(service.price_minor || 0)
+    : Number(service.consultation_price_minor || 0);
 
-  if (
-    timing === "free" ||
-    price <= 0
-  ) {
-    return "Free consultation";
+  const timing = isDedicatedConsultation
+    ? String(service.payment_timing || "pay_at_appointment")
+    : String(service.consultation_payment_timing || "free");
+
+  const deposit = isDedicatedConsultation
+    ? Number(service.deposit_minor || 0)
+    : 0;
+
+  if (timing === "free" || price <= 0) {
+    return "Free";
   }
 
-  if (
-    timing === "online_full"
-  ) {
-    return `${money(
-      price,
-      currency,
-      locale
-    )} consultation fee online`;
+  if (timing === "online_deposit") {
+    return `${money(deposit, currency, locale)} deposit online`;
   }
 
-  return `${money(
-    price,
-    currency,
-    locale
-  )} · pay at consultation`;
+  if (timing === "online_full") {
+    return `${money(price, currency, locale)} paid online`;
+  }
+
+  return `${money(price, currency, locale)} · pay at consultation`;
 }
 
 
