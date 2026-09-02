@@ -832,11 +832,13 @@
     }
 
     .es-photo-dialog {
-      width: min(560px, 94vw);
+      width: min(900px, calc(100vw - 40px));
+      max-height: calc(100vh - 32px);
       padding: 0;
       border: 1px solid var(--es-border);
       border-radius: var(--es-radius-lg);
       background: var(--es-surface);
+      overflow: hidden;
     }
 
     .es-photo-dialog::backdrop {
@@ -844,7 +846,69 @@
     }
 
     .es-photo-dialog-inner {
-      padding: 26px;
+      padding: 22px;
+      max-height: calc(100vh - 34px);
+      overflow: auto;
+      scrollbar-width: none;
+    }
+
+    .es-photo-dialog-inner::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    .es-photo-dialog #customerPhotoForm {
+      display: grid;
+      gap: 12px;
+    }
+
+    .es-photo-dialog .es-customer-photo-upload-items {
+      gap: 14px;
+      margin-top: 2px;
+    }
+
+    .es-photo-dialog .es-customer-photo-upload-item {
+      padding: 14px;
+    }
+
+    .es-photo-dialog .es-customer-photo-upload-preview {
+      grid-template-columns: 72px minmax(0, 1fr);
+      margin-bottom: 10px;
+    }
+
+    .es-photo-dialog .es-customer-photo-upload-preview img {
+      width: 72px;
+      height: 72px;
+    }
+
+    .es-photo-dialog .es-customer-photo-type-pills {
+      margin-bottom: 10px;
+    }
+
+    .es-photo-dialog .es-customer-photo-upload-item textarea {
+      min-height: 72px;
+    }
+
+    .es-photo-dialog .es-settings-divider {
+      margin: 2px 0;
+    }
+
+    .es-photo-dialog .es-form-actions {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .es-photo-dialog .es-form-actions .es-button,
+    .es-photo-dialog .es-form-actions .es-secondary-button {
+      width: 148px;
+      min-width: 148px;
+      min-height: 44px;
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     @media (max-width: 950px) {
@@ -903,6 +967,24 @@
       .es-customer-photo-upload-items,
       .es-photo-compare-grid {
         grid-template-columns: 1fr;
+      }
+
+
+      .es-photo-dialog {
+        width: min(94vw, 560px);
+        max-height: calc(100vh - 20px);
+      }
+
+      .es-photo-dialog-inner {
+        padding: 18px;
+        max-height: calc(100vh - 22px);
+      }
+
+      .es-photo-dialog .es-form-actions .es-button,
+      .es-photo-dialog .es-form-actions .es-secondary-button {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
       }
 
       .es-customer-photo-group-header {
