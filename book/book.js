@@ -449,7 +449,7 @@ function renderSelectedBookingGroup(groupName) {
         practitionerManaged && !hasClientBookableTreatment
           ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
           : hasClientBookableTreatment
-            ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
+            ? "Existing clients can book an eligible treatment online using the same customer details held by the business."
             : ""
       }
     `.replace(/\s+/g, " ").trim();
@@ -491,7 +491,7 @@ function renderSelectedBookingGroup(groupName) {
                 !hasClientBookableTreatment
                   ? "After the consultation, the practitioner will agree the correct treatment or package and manage the treatment bookings."
                   : hasClientBookableTreatment
-                    ? "Existing clients who have completed the required consultation can book an eligible treatment online using the same customer details held by the business."
+                    ? "Existing clients can book an eligible treatment online using the same customer details held by the business."
                     : ""
             }
           )
@@ -556,8 +556,21 @@ function renderSelectedBookingGroup(groupName) {
       }
       panel.querySelectorAll("[data-existing-service]").forEach(button => {
         button.addEventListener("click", () => {
-          const service = clientBookable.find(item => item.id === button.dataset.existingService);
-          if (service) updateExistingService(service);
+          const service = clientBookable.find(
+            item => String(item.id) === String(button.dataset.existingService)
+          );
+          if (!service) return;
+
+          // When there is only one existing-client treatment option, the pill
+          // is also a direct booking action. This avoids presenting a button
+          // that appears clickable but only re-selects the already-selected
+          // service (for example Carbon Facial Single).
+          if (clientBookable.length === 1) {
+            selectServiceRoute(service, "service");
+            return;
+          }
+
+          updateExistingService(service);
         });
       });
       panel.querySelector("#bookExistingTreatment")?.addEventListener(
