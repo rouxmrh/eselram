@@ -2080,3 +2080,178 @@ export async function onRequestPut({
     );
   }
 }
+
+/* =======================================================
+   DELETE customer
+   Safe deletion is intentionally limited to customers with
+   no retained booking, package, payment or clinical history.
+   ======================================================= */
+
+export async function onRequestDelete({
+  request,
+  env
+}) {
+
+  try {
+
+    const user =
+      await getUserContext(
+        request,
+        env
+      );
+
+    if (!user) {
+      return unauthorized();
+    }
+
+    const url =
+      new URL(
+        request.url
+      );
+
+    const id =
+      String(
+        url.searchParams.get("id") ||
+        ""
+      ).trim();
+
+    if (!id) {
+      return badRequest(
+        "Customer id is required."
+      );
+    }
+
+    const customer =
+      await env.DB
+        .prepare(`
+          SELECT id
+          FROM customers
+          WHERE
+            id = ?
+            AND business_id = ?
+          LIMIT 1
+        `)
+        .bind(
+          id,
+          user.business_id
+        )
+        .first();
+
+    if (!customer) {
+      return notFound(
+        "Customer not found."
+      );
+    }
+
+    const blockers =
+      await env.DB
+        .prepare(`
+          SELECT
+            (SELECT COUNT(*)
+             FROM appointments
+             WHERE business_id = ?
+               AND customer_id = ?) AS appointments,
+
+            (SELECT COUNT(*)
+             FROM payments
+             WHERE business_id = ?
+               AND customer_id = ?) AS payments,
+
+            (SELECT COUNT(*)
+             FROM customer_packages
+             WHERE business_id = ?
+               AND customer_id = ?) AS packages,
+
+            (SELECT COUNT(*)
+             FROM package_sales
+             WHERE business_id = ?
+               AND customer_id = ?) AS package_sales,
+
+            (SELECT COUNT(*)
+             FROM clinical_form_requests
+             WHERE business_id = ?
+               AND customer_id = ?) AS form_requests,
+
+            (SELECT COUNT(*)
+             FROM clinical_form_submissions
+             WHERE business_id = ?
+               AND customer_id = ?) AS form_submissions,
+
+            (SELECT COUNT(*)
+             FROM treatment_records
+             WHERE business_id = ?
+               AND customer_id = ?) AS treatment_records,
+
+            (SELECT COUNT(*)
+             FROM customer_photos
+             WHERE business_id = ?
+               AND customer_id = ?) AS photos
+        `)
+        .bind(
+          user.business_id, id,
+          user.business_id, id,
+          user.business_id, id,
+          user.business_id, id,
+          user.business_id, id,
+          user.business_id, id,
+          user.business_id, id,
+          user.business_id, id
+        )
+        .first();
+
+    const hasHistory =
+      Object.values(blockers || {})
+        .some((value) =>
+          Number(value || 0) > 0
+        );
+
+    if (hasHistory) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "This customer cannot be deleted because they have booking, payment, package or clinical history. Keep the customer record for audit history instead."
+        },
+        {
+          status: 409
+        }
+      );
+    }
+
+    await env.DB
+      .prepare(`
+        DELETE FROM customers
+        WHERE
+          id = ?
+          AND business_id = ?
+      `)
+      .bind(
+        id,
+        user.business_id
+      )
+      .run();
+
+    return Response.json({
+      ok: true
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Customer deletion failed:",
+      error
+    );
+
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Unable to delete customer."
+      },
+      {
+        status: 500
+      }
+    );
+  }
+}
+

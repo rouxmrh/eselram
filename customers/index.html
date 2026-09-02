@@ -365,6 +365,17 @@
       margin-top: 0;
     }
 
+    .es-customer-delete-button {
+      border-color: #e5b9b4 !important;
+      background: #fff8f7 !important;
+      color: #a73f35 !important;
+    }
+
+    .es-customer-delete-button:hover {
+      border-color: #d89c95 !important;
+      background: #fff1ef !important;
+    }
+
     .es-customer-timeline {
       display: grid;
       gap: 10px;
@@ -1665,7 +1676,7 @@
           16px
           max(14px, env(safe-area-inset-bottom)) !important;
         display:grid !important;
-        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
         gap:7px !important;
         border-top:1px solid var(--es-border) !important;
         background:rgba(251,252,249,.98) !important;
@@ -1675,7 +1686,8 @@
 
       .es-customer-drawer-actions #editCustomerButton,
       .es-customer-drawer-actions #sendCustomerFormButton,
-      .es-customer-drawer-actions #newCustomerBookingButton {
+      .es-customer-drawer-actions #newCustomerBookingButton,
+      .es-customer-drawer-actions #deleteCustomerButton {
         width:100% !important;
         min-width:0 !important;
         max-width:100% !important;
@@ -1703,7 +1715,8 @@
 
       .es-customer-drawer-actions #editCustomerButton,
       .es-customer-drawer-actions #sendCustomerFormButton,
-      .es-customer-drawer-actions #newCustomerBookingButton {
+      .es-customer-drawer-actions #newCustomerBookingButton,
+      .es-customer-drawer-actions #deleteCustomerButton {
         min-height:40px !important;
       }
     }
@@ -1737,7 +1750,7 @@
           12px
           max(10px, env(safe-area-inset-bottom)) !important;
         display:grid !important;
-        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
         gap:6px !important;
         border-top:1px solid var(--es-border) !important;
         background:rgba(251,252,249,.99) !important;
@@ -1758,7 +1771,8 @@
 
       .es-customer-drawer-actions #editCustomerButton,
       .es-customer-drawer-actions #sendCustomerFormButton,
-      .es-customer-drawer-actions #newCustomerBookingButton {
+      .es-customer-drawer-actions #newCustomerBookingButton,
+      .es-customer-drawer-actions #deleteCustomerButton {
         width:100% !important;
         min-width:0 !important;
         max-width:100% !important;
@@ -1797,7 +1811,8 @@
 
       .es-customer-drawer-actions #editCustomerButton,
       .es-customer-drawer-actions #sendCustomerFormButton,
-      .es-customer-drawer-actions #newCustomerBookingButton {
+      .es-customer-drawer-actions #newCustomerBookingButton,
+      .es-customer-drawer-actions #deleteCustomerButton {
         min-height:38px !important;
         height:38px !important;
         font-size:11px !important;
@@ -2344,6 +2359,14 @@
       >
         New booking
       </a>
+
+      <button
+        id="deleteCustomerButton"
+        class="es-secondary-button es-customer-delete-button"
+        type="button"
+      >
+        Delete customer
+      </button>
 
     </div>
 

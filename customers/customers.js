@@ -176,6 +176,11 @@ const newCustomerBookingButton =
     "newCustomerBookingButton"
   );
 
+const deleteCustomerButton =
+  document.getElementById(
+    "deleteCustomerButton"
+  );
+
 
 let customers = [];
 let customerHubTreatmentRecordsData = [];
@@ -282,6 +287,96 @@ document
       openCustomerForm(
         activeCustomer
       );
+    }
+  );
+
+
+deleteCustomerButton
+  ?.addEventListener(
+    "click",
+    async () => {
+
+      if (!activeCustomer) {
+        return;
+      }
+
+      const customerName =
+        [
+          activeCustomer.first_name,
+          activeCustomer.last_name
+        ]
+          .filter(Boolean)
+          .join(" ") ||
+        "this customer";
+
+      const confirmed =
+        window.confirm(
+          `Delete ${customerName}?\n\nThis is only allowed when the customer has no booking, payment, package or clinical history. This action cannot be undone.`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      deleteCustomerButton.disabled =
+        true;
+
+      const originalLabel =
+        deleteCustomerButton.textContent;
+
+      deleteCustomerButton.textContent =
+        "Deleting…";
+
+      try {
+
+        const response =
+          await fetch(
+            `/api/customers?id=${encodeURIComponent(activeCustomer.id)}`,
+            {
+              method: "DELETE",
+              headers: {
+                Accept: "application/json"
+              }
+            }
+          );
+
+        handleAuthentication(
+          response
+        );
+
+        const data =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+          throw new Error(
+            data.error ||
+            "Unable to delete customer."
+          );
+        }
+
+        activeCustomer = null;
+        closeCustomerDrawer();
+        window.location.href =
+          "/customers/";
+
+      } catch (error) {
+
+        window.alert(
+          error.message ||
+          "Unable to delete customer."
+        );
+
+      } finally {
+
+        deleteCustomerButton.disabled =
+          false;
+
+        deleteCustomerButton.textContent =
+          originalLabel;
+      }
     }
   );
 
