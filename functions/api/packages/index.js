@@ -265,7 +265,61 @@ export async function onRequestGet({ request, env }) {
 
             c.first_name,
             c.last_name,
-            s.name AS service_name,
+            COALESCE(
+              (
+                SELECT variant_service.name
+                FROM package_variants direct_variant
+                JOIN services variant_service
+                  ON variant_service.id = direct_variant.service_id
+                 AND variant_service.business_id = cp.business_id
+                WHERE direct_variant.id = cp.package_variant_id
+                  AND direct_variant.package_template_id = cp.package_template_id
+                  AND direct_variant.business_id = cp.business_id
+                LIMIT 1
+              ),
+              (
+                SELECT sale_service.name
+                FROM package_sales package_sale
+                JOIN package_variants sale_variant
+                  ON sale_variant.id = package_sale.package_variant_id
+                 AND sale_variant.package_template_id = cp.package_template_id
+                 AND sale_variant.business_id = cp.business_id
+                JOIN services sale_service
+                  ON sale_service.id = sale_variant.service_id
+                 AND sale_service.business_id = cp.business_id
+                WHERE package_sale.customer_package_id = cp.id
+                  AND package_sale.business_id = cp.business_id
+                  AND package_sale.status = 'paid'
+                ORDER BY datetime(package_sale.paid_at) DESC, datetime(package_sale.created_at) DESC
+                LIMIT 1
+              ),
+              (
+                SELECT snapshot_service.name
+                FROM package_variants snapshot_variant
+                JOIN package_templates snapshot_template
+                  ON snapshot_template.id = snapshot_variant.package_template_id
+                 AND snapshot_template.business_id = cp.business_id
+                JOIN services snapshot_service
+                  ON snapshot_service.id = snapshot_variant.service_id
+                 AND snapshot_service.business_id = cp.business_id
+                WHERE snapshot_variant.package_template_id = cp.package_template_id
+                  AND snapshot_variant.business_id = cp.business_id
+                  AND snapshot_template.name || ' · ' || snapshot_variant.name = cp.name_snapshot
+                ORDER BY snapshot_variant.sort_order, snapshot_variant.name COLLATE NOCASE
+                LIMIT 1
+              ),
+              (
+                SELECT template_service.name
+                FROM package_templates fallback_template
+                JOIN services template_service
+                  ON template_service.id = fallback_template.service_id
+                 AND template_service.business_id = cp.business_id
+                WHERE fallback_template.id = cp.package_template_id
+                  AND fallback_template.business_id = cp.business_id
+                LIMIT 1
+              ),
+              s.name
+            ) AS service_name,
 
             (
               SELECT COUNT(*)
