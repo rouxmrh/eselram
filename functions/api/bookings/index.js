@@ -11,6 +11,10 @@ import {
   findAvailableConsultationCredit
 } from "../../../lib/consultation-credit.js";
 
+import {
+  cleanupPendingOnlineBookings
+} from "../../../lib/public-booking.js";
+
 
 async function getUserContext(
   request,
@@ -916,6 +920,8 @@ export async function onRequestGet({
       return unauthorized();
     }
 
+    await cleanupPendingOnlineBookings(env, user.business_id);
+
 
     const url =
       new URL(
@@ -1066,6 +1072,37 @@ export async function onRequestGet({
 
           WHERE
             a.business_id = ?
+            AND NOT (
+              a.booking_source = 'online'
+              AND a.status IN ('pending', 'cancelled')
+              AND NOT EXISTS (
+                SELECT 1
+                FROM payments p_paid
+                WHERE
+                  p_paid.appointment_id = a.id
+                  AND p_paid.business_id = a.business_id
+                  AND p_paid.status IN ('paid', 'partially_refunded', 'refunded')
+                  AND p_paid.payment_type != 'refund'
+              )
+              AND (
+                EXISTS (
+                  SELECT 1
+                  FROM payments p_checkout
+                  WHERE
+                    p_checkout.appointment_id = a.id
+                    AND p_checkout.business_id = a.business_id
+                    AND p_checkout.provider = 'stripe'
+                    AND p_checkout.status IN ('pending', 'failed')
+                )
+                OR a.cancellation_reason IN (
+                  'Online booking payment was not completed',
+                  'Customer left online payment before completion',
+                  'Online payment could not be started',
+                  'Online booking could not be completed'
+                )
+                OR a.status = 'pending'
+              )
+            )
 
           ORDER BY
             CASE

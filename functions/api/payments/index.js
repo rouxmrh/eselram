@@ -11,6 +11,10 @@ import {
   hashSessionToken
 } from "../../../lib/auth.js";
 
+import {
+  cleanupPendingOnlineBookings
+} from "../../../lib/public-booking.js";
+
 
 async function getUserContext(
   request,
@@ -139,6 +143,8 @@ export async function onRequestGet({
       return unauthorized();
     }
 
+    await cleanupPendingOnlineBookings(env, user.business_id);
+
 
     const [
       paymentRows,
@@ -266,6 +272,18 @@ export async function onRequestGet({
                     AND ps_failed.status = 'failed'
                 )
               )
+              AND NOT (
+                p.provider = 'stripe'
+                AND p.status IN ('pending', 'failed')
+                AND EXISTS (
+                  SELECT 1
+                  FROM appointments a_public_checkout
+                  WHERE
+                    a_public_checkout.id = p.appointment_id
+                    AND a_public_checkout.business_id = p.business_id
+                    AND a_public_checkout.booking_source = 'online'
+                )
+              )
 
             ORDER BY
               datetime(
@@ -361,6 +379,10 @@ export async function onRequestGet({
               a.business_id = ?
               AND a.status !=
                   'cancelled'
+              AND NOT (
+                a.booking_source = 'online'
+                AND a.status = 'pending'
+              )
 
             ORDER BY
               datetime(a.start_at) DESC

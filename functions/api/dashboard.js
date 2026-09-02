@@ -3,6 +3,10 @@ import {
   hashSessionToken
 } from "../../lib/auth.js";
 
+import {
+  cleanupPendingOnlineBookings
+} from "../../lib/public-booking.js";
+
 
 export async function onRequestGet({
   request,
@@ -89,6 +93,8 @@ export async function onRequestGet({
       );
     }
 
+    await cleanupPendingOnlineBookings(env, session.business_id);
+
 
     const [
       todayBookings,
@@ -113,6 +119,7 @@ export async function onRequestGet({
             WHERE
               business_id = ?
               AND status != 'cancelled'
+              AND NOT (booking_source = 'online' AND status = 'pending')
               AND date(start_at)
                   = date('now')
           `)
@@ -135,6 +142,7 @@ export async function onRequestGet({
                 'pending',
                 'confirmed'
               )
+              AND NOT (booking_source = 'online' AND status = 'pending')
               AND datetime(start_at)
                   >= datetime('now')
               AND datetime(start_at)
@@ -154,10 +162,78 @@ export async function onRequestGet({
             SELECT
               COUNT(*) AS count
 
-            FROM customers
+            FROM customers c
 
             WHERE
-              business_id = ?
+              c.business_id = ?
+              AND NOT (
+                EXISTS (
+                  SELECT 1
+                  FROM appointments ap
+                  WHERE
+                    ap.customer_id = c.id
+                    AND ap.business_id = c.business_id
+                    AND ap.booking_source = 'online'
+                    AND ap.status IN ('pending', 'cancelled')
+                    AND ABS((julianday(ap.created_at) - julianday(c.created_at)) * 86400) <= 120
+                    AND NOT EXISTS (
+                      SELECT 1
+                      FROM payments pp
+                      WHERE
+                        pp.appointment_id = ap.id
+                        AND pp.business_id = ap.business_id
+                        AND pp.status IN ('paid', 'partially_refunded', 'refunded')
+                        AND pp.payment_type != 'refund'
+                    )
+                    AND (
+                      ap.status = 'pending'
+                      OR ap.cancellation_reason IN (
+                        'Online booking payment was not completed',
+                        'Customer left online payment before completion',
+                        'Online payment could not be started',
+                        'Online booking could not be completed'
+                      )
+                      OR EXISTS (
+                        SELECT 1
+                        FROM payments ps
+                        WHERE
+                          ps.appointment_id = ap.id
+                          AND ps.business_id = ap.business_id
+                          AND ps.provider = 'stripe'
+                          AND ps.status IN ('pending', 'failed')
+                      )
+                    )
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM appointments ar
+                  WHERE
+                    ar.customer_id = c.id
+                    AND ar.business_id = c.business_id
+                    AND (
+                      ar.booking_source != 'online'
+                      OR ar.status NOT IN ('pending', 'cancelled')
+                      OR EXISTS (
+                        SELECT 1
+                        FROM payments pr
+                        WHERE
+                          pr.appointment_id = ar.id
+                          AND pr.business_id = ar.business_id
+                          AND pr.status IN ('paid', 'partially_refunded', 'refunded')
+                          AND pr.payment_type != 'refund'
+                      )
+                    )
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM payments pc
+                  WHERE
+                    pc.customer_id = c.id
+                    AND pc.business_id = c.business_id
+                    AND pc.status IN ('paid', 'partially_refunded', 'refunded')
+                    AND pc.payment_type != 'refund'
+                )
+              )
           `)
           .bind(
             session.business_id
@@ -170,13 +246,81 @@ export async function onRequestGet({
             SELECT
               COUNT(*) AS count
 
-            FROM customers
+            FROM customers c
 
             WHERE
-              business_id = ?
+              c.business_id = ?
+              AND NOT (
+                EXISTS (
+                  SELECT 1
+                  FROM appointments ap
+                  WHERE
+                    ap.customer_id = c.id
+                    AND ap.business_id = c.business_id
+                    AND ap.booking_source = 'online'
+                    AND ap.status IN ('pending', 'cancelled')
+                    AND ABS((julianday(ap.created_at) - julianday(c.created_at)) * 86400) <= 120
+                    AND NOT EXISTS (
+                      SELECT 1
+                      FROM payments pp
+                      WHERE
+                        pp.appointment_id = ap.id
+                        AND pp.business_id = ap.business_id
+                        AND pp.status IN ('paid', 'partially_refunded', 'refunded')
+                        AND pp.payment_type != 'refund'
+                    )
+                    AND (
+                      ap.status = 'pending'
+                      OR ap.cancellation_reason IN (
+                        'Online booking payment was not completed',
+                        'Customer left online payment before completion',
+                        'Online payment could not be started',
+                        'Online booking could not be completed'
+                      )
+                      OR EXISTS (
+                        SELECT 1
+                        FROM payments ps
+                        WHERE
+                          ps.appointment_id = ap.id
+                          AND ps.business_id = ap.business_id
+                          AND ps.provider = 'stripe'
+                          AND ps.status IN ('pending', 'failed')
+                      )
+                    )
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM appointments ar
+                  WHERE
+                    ar.customer_id = c.id
+                    AND ar.business_id = c.business_id
+                    AND (
+                      ar.booking_source != 'online'
+                      OR ar.status NOT IN ('pending', 'cancelled')
+                      OR EXISTS (
+                        SELECT 1
+                        FROM payments pr
+                        WHERE
+                          pr.appointment_id = ar.id
+                          AND pr.business_id = ar.business_id
+                          AND pr.status IN ('paid', 'partially_refunded', 'refunded')
+                          AND pr.payment_type != 'refund'
+                      )
+                    )
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM payments pc
+                  WHERE
+                    pc.customer_id = c.id
+                    AND pc.business_id = c.business_id
+                    AND pc.status IN ('paid', 'partially_refunded', 'refunded')
+                    AND pc.payment_type != 'refund'
+                )
+              )
               AND strftime(
                 '%Y-%m',
-                created_at
+                c.created_at
               ) = strftime(
                 '%Y-%m',
                 'now'
@@ -288,6 +432,7 @@ export async function onRequestGet({
             WHERE
               a.business_id = ?
               AND a.status != 'cancelled'
+              AND NOT (a.booking_source = 'online' AND a.status = 'pending')
           `)
           .bind(
             session.business_id
@@ -329,6 +474,7 @@ export async function onRequestGet({
               a.business_id = ?
               AND a.status !=
                   'cancelled'
+              AND NOT (a.booking_source = 'online' AND a.status = 'pending')
               AND date(a.start_at)
                   = date('now')
 
@@ -379,6 +525,7 @@ export async function onRequestGet({
                 'pending',
                 'confirmed'
               )
+              AND NOT (a.booking_source = 'online' AND a.status = 'pending')
               AND datetime(
                 a.start_at
               ) >= datetime('now')
@@ -432,6 +579,7 @@ export async function onRequestGet({
 
               WHERE
                 a.business_id = ?
+                AND NOT (a.booking_source = 'online' AND a.status = 'pending')
 
 
               UNION ALL

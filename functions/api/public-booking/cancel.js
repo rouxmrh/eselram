@@ -31,11 +31,19 @@ export async function onRequestPost({ request, env }) {
       .prepare(`
         SELECT
           a.id,
+          a.customer_id,
+          CASE
+            WHEN ABS((julianday(a.created_at) - julianday(c.created_at)) * 86400) <= 120
+            THEN 1 ELSE 0
+          END AS customer_created_for_checkout,
           a.status AS appointment_status,
           p.id AS payment_id,
           p.status AS payment_status,
           p.provider_reference
         FROM appointments a
+        JOIN customers c
+          ON c.id = a.customer_id
+         AND c.business_id = a.business_id
         JOIN payments p ON p.appointment_id = a.id
         WHERE
           a.id = ?
@@ -175,36 +183,66 @@ export async function onRequestPost({ request, env }) {
       }
     }
 
+    // This is an unpaid provisional public booking, not a genuine booking or
+    // transaction. Remove both records immediately when the customer returns
+    // from Stripe without paying. If they simply close the Stripe tab instead,
+    // cleanupPendingOnlineBookings removes the same records after expiry.
     await env.DB
       .prepare(`
-        UPDATE payments
-        SET
-          status = CASE WHEN status = 'pending' THEN 'failed' ELSE status END,
-          notes = CASE
-            WHEN status = 'pending' THEN 'Public booking Checkout cancelled by customer'
-            ELSE notes
-          END,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND business_id = ?
+        DELETE FROM payments
+        WHERE
+          id = ?
+          AND business_id = ?
+          AND appointment_id = ?
+          AND status NOT IN ('paid', 'partially_refunded', 'refunded')
       `)
-      .bind(paymentId, business.id)
+      .bind(paymentId, business.id, appointmentId)
       .run();
 
     await env.DB
       .prepare(`
-        UPDATE appointments
-        SET
-          status = 'cancelled',
-          cancelled_at = COALESCE(cancelled_at, CURRENT_TIMESTAMP),
-          cancellation_reason = COALESCE(
-            cancellation_reason,
-            'Customer left online payment before completion'
-          ),
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND business_id = ? AND status = 'pending'
+        DELETE FROM appointments
+        WHERE
+          id = ?
+          AND business_id = ?
+          AND booking_source = 'online'
+          AND status = 'pending'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM payments p
+            WHERE
+              p.appointment_id = appointments.id
+              AND p.business_id = appointments.business_id
+              AND p.status IN ('paid', 'partially_refunded', 'refunded')
+              AND p.payment_type != 'refund'
+          )
       `)
       .bind(appointmentId, business.id)
       .run();
+
+    // Remove the customer only when this checkout appears to have created the
+    // customer record itself. Never remove an established/manual customer just
+    // because they abandoned a later online checkout.
+    const customerWasCreatedForCheckout =
+      Number(row.customer_created_for_checkout || 0) === 1;
+
+    if (customerWasCreatedForCheckout && row.customer_id) {
+      await env.DB
+        .prepare(`
+          DELETE FROM customers
+          WHERE
+            id = ?
+            AND business_id = ?
+            AND NOT EXISTS (
+              SELECT 1 FROM appointments a WHERE a.customer_id = customers.id
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM payments p WHERE p.customer_id = customers.id
+            )
+        `)
+        .bind(row.customer_id, business.id)
+        .run();
+    }
 
     return Response.json({ ok: true, paid: false, cancelled: true });
   } catch (error) {
