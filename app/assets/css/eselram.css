@@ -2834,6 +2834,18 @@ textarea:focus {
   grid-column: auto;
 }
 
+/* Keep the Tattoo Characteristics consultation block visually ordered.
+   The template fields remain data-driven; these selectors only control layout. */
+.es-form-render-field[data-field-wrapper="ink_black"] {
+  position: relative;
+  top: 47px;
+}
+
+.es-form-render-field[data-field-wrapper="ink_not_sure"],
+.es-form-render-field[data-field-wrapper="tattoo_coverup"] {
+  grid-column: 1 / -1;
+}
+
 .es-form-render-check-tile {
   position: relative;
   display: flex !important;
@@ -3006,6 +3018,15 @@ textarea:focus {
   }
 
   .es-form-render-field-checkbox {
+    grid-column: 1;
+  }
+
+  .es-form-render-field[data-field-wrapper="ink_black"] {
+    top: 0;
+  }
+
+  .es-form-render-field[data-field-wrapper="ink_not_sure"],
+  .es-form-render-field[data-field-wrapper="tattoo_coverup"] {
     grid-column: 1;
   }
 
