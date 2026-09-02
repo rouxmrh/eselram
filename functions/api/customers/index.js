@@ -6,8 +6,13 @@ import {
 } from "../../../lib/auth.js";
 
 import {
-  cleanupPendingOnlineBookings
+  cleanupPendingOnlineBookings,
+  cleanupPendingPublicPackageSales
 } from "../../../lib/public-booking.js";
+
+import {
+  reconcilePendingPublicPackageSales
+} from "../../../lib/public-package-payment.js";
 
 
 async function getUserContext(
@@ -128,6 +133,8 @@ export async function onRequestGet({
       return unauthorized();
     }
 
+    await reconcilePendingPublicPackageSales({ env, businessId: user.business_id, baseUrl: new URL(request.url).origin });
+    await cleanupPendingPublicPackageSales(env, user.business_id);
     await cleanupPendingOnlineBookings(env, user.business_id);
 
 
@@ -529,6 +536,18 @@ export async function onRequestGet({
               WHERE
                 p.business_id = ?
                 AND p.customer_id = ?
+                AND NOT (
+                  p.provider = 'stripe'
+                  AND p.status IN ('pending', 'failed')
+                  AND EXISTS (
+                    SELECT 1
+                    FROM package_sales ps_public_checkout
+                    WHERE ps_public_checkout.payment_id = p.id
+                      AND ps_public_checkout.business_id = p.business_id
+                      AND ps_public_checkout.source = 'public'
+                      AND ps_public_checkout.status IN ('pending', 'failed')
+                  )
+                )
 
               ORDER BY
                 COALESCE(

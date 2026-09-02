@@ -8,6 +8,13 @@ const saleId =
     "sale_id"
   );
 
+const sessionId =
+  params.get(
+    "session_id"
+  );
+
+let returnConfirmationAttempted = false;
+
 let paidSale = null;
 let businessWebsite = null;
 
@@ -57,6 +64,41 @@ async function check(
   }
 
   try {
+    // Stripe webhooks are the primary asynchronous confirmation path, but
+    // customer installations may not have a webhook available. When Stripe
+    // returns the customer with the Checkout Session id, verify the paid
+    // session directly and finalize the package before polling status.
+    if (
+      !returnConfirmationAttempted &&
+      sessionId &&
+      sessionId.startsWith("cs_")
+    ) {
+      returnConfirmationAttempted = true;
+
+      const confirmResponse = await fetch(
+        "/api/public-packages/confirm",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify({
+            sale_id: saleId,
+            session_id: sessionId
+          })
+        }
+      );
+
+      const confirmData = await confirmResponse.json();
+      if (!confirmResponse.ok || !confirmData.ok) {
+        console.warn(
+          "Initial package payment confirmation did not complete; status check will retry verification.",
+          confirmData.error || "Unable to confirm package payment."
+        );
+      }
+    }
+
     const response =
       await fetch(
         `/api/public-packages/status?sale_id=${encodeURIComponent(

@@ -16,6 +16,10 @@ import {
   cleanupPendingPublicPackageSales
 } from "../../../lib/public-booking.js";
 
+import {
+  reconcilePendingPublicPackageSales
+} from "../../../lib/public-package-payment.js";
+
 
 async function getUserContext(
   request,
@@ -144,6 +148,11 @@ export async function onRequestGet({
       return unauthorized();
     }
 
+    await reconcilePendingPublicPackageSales({
+      env,
+      businessId: user.business_id,
+      baseUrl: new URL(request.url).origin
+    });
     await cleanupPendingOnlineBookings(env, user.business_id);
     await cleanupPendingPublicPackageSales(env, user.business_id);
 
