@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { blake3 } from "@noble/hashes/blake3";
 import archiver from "archiver";
 
-const VERSION = process.argv[2] || process.env.RELEASE_VERSION || "1.0.0-rc2";
+const VERSION = process.argv[2] || process.env.RELEASE_VERSION || "1.0.0-rc3";
 const ROOT = process.cwd();
 const BUILD = path.join(ROOT, ".release-build");
 const PACKAGE = path.join(BUILD, "package");
@@ -70,7 +70,23 @@ for (const entry of await fsp.readdir(ROOT, { withFileTypes: true })) {
   }
 }
 
-run("npx", ["wrangler", "pages", "functions", "build", "functions", "--outfile", path.join(PAYLOAD, "_worker.js"), "--project-directory", ROOT, "--output-routes-path", path.join(PAYLOAD, "_routes.json"), "--minify"]);
+// Wrangler's --outfile form can serialize a multipart Worker upload instead of
+// emitting plain JavaScript. Pages expects payload/_worker.js itself to be an
+// executable Module Worker, so build to a directory and copy the JS entrypoint.
+const WORKER_BUILD = path.join(BUILD, "worker-build");
+await fsp.mkdir(WORKER_BUILD, { recursive: true });
+run("npx", ["wrangler", "pages", "functions", "build", "functions", "--outdir", WORKER_BUILD, "--project-directory", ROOT, "--output-routes-path", path.join(PAYLOAD, "_routes.json"), "--minify"]);
+
+const builtWorker = path.join(WORKER_BUILD, "index.js");
+if (!fs.existsSync(builtWorker)) {
+  throw new Error(`Wrangler did not produce the expected Worker entrypoint: ${builtWorker}`);
+}
+const workerBytes = await fsp.readFile(builtWorker);
+const workerPrefix = workerBytes.subarray(0, Math.min(workerBytes.length, 4096)).toString("utf8");
+if (/Content-Disposition:\s*form-data|^------formdata-/im.test(workerPrefix)) {
+  throw new Error("Protected release build rejected: _worker.js is a multipart upload, not executable JavaScript.");
+}
+await fsp.writeFile(path.join(PAYLOAD, "_worker.js"), workerBytes);
 
 await fsp.mkdir(path.join(PACKAGE, "database", "migrations"), { recursive: true });
 await copyDir(path.join(ROOT, "database", "migrations"), path.join(PACKAGE, "database", "migrations"));
