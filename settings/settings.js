@@ -361,29 +361,108 @@ async function loadUpdateInformation() {
   const versionNode = document.getElementById("installedEselramVersion");
   const messageNode = document.getElementById("updateVersionMessage");
   const statusNode = document.getElementById("updatesStatus");
+  const titleNode = document.getElementById("availableUpdateTitle");
+  const availableMessageNode = document.getElementById("availableUpdateMessage");
+  const checkButton = document.getElementById("checkForUpdatesButton");
+  const updateButton = document.getElementById("openSecureUpdaterButton");
 
   if (!versionNode || !messageNode) return;
 
+  let localVersion = "";
   try {
     const response = await fetch("/eselram-version.json", { cache: "no-store" });
-    if (!response.ok) throw new Error("Version metadata is not available in this release.");
-    const data = await response.json();
-    const version = String(data?.version || "").trim();
-    if (!version) throw new Error("Version metadata is incomplete.");
+    if (response.ok) {
+      const data = await response.json();
+      localVersion = String(data?.version || "").trim();
+    }
+  } catch {}
 
-    versionNode.textContent = version;
-    messageNode.textContent = `Eselram ${version} is installed on this business.`;
-    if (statusNode) statusNode.hidden = true;
-  } catch (error) {
+  if (localVersion) {
+    versionNode.textContent = localVersion;
+    messageNode.textContent = `Eselram ${localVersion} is installed on this business.`;
+  } else {
     versionNode.textContent = "Release information unavailable";
     messageNode.textContent = "Version reporting becomes available after the next protected Eselram release is installed.";
+  }
+
+  if (checkButton) checkButton.disabled = true;
+  if (updateButton) updateButton.hidden = true;
+  if (titleNode) titleNode.textContent = "Checking for updates";
+  if (availableMessageNode) availableMessageNode.textContent = "Checking your licence and the latest protected Eselram release.";
+  if (statusNode) statusNode.hidden = true;
+
+  try {
+    const response = await fetch("/api/updates/status", { cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.ok === false) throw new Error(data?.error || "Unable to check for updates.");
+
+    const installed = String(data.installed_version || localVersion || "").trim();
+    const available = String(data.available_version || installed || "").trim();
+    if (installed) {
+      versionNode.textContent = installed;
+      messageNode.textContent = `Eselram ${installed} is installed on this business.`;
+    }
+
+    if (data.update_available === true && available) {
+      if (titleNode) titleNode.textContent = `Eselram ${available} is available`;
+      if (availableMessageNode) {
+        const notes = String(data.release_notes || "").trim();
+        availableMessageNode.textContent = notes || "A protected Eselram update is ready for this installation.";
+      }
+      if (updateButton) {
+        updateButton.hidden = false;
+        updateButton.textContent = `Update to ${available}`;
+        updateButton.dataset.targetVersion = available;
+      }
+    } else {
+      if (titleNode) titleNode.textContent = "Eselram is up to date";
+      if (availableMessageNode) availableMessageNode.textContent = installed ? `You're running the latest protected release, Eselram ${installed}.` : "This installation is on the latest protected release.";
+    }
+  } catch (error) {
+    if (titleNode) titleNode.textContent = "Secure updates not ready yet";
+    if (availableMessageNode) availableMessageNode.textContent = error.message || "Unable to check for updates right now.";
     if (statusNode) {
-      statusNode.className = "es-status";
-      statusNode.textContent = "Your current installation is unaffected.";
+      statusNode.className = "es-status error";
+      statusNode.textContent = error.message || "Unable to check for updates.";
       statusNode.hidden = false;
     }
+  } finally {
+    if (checkButton) checkButton.disabled = false;
   }
 }
+
+async function openSecureUpdater() {
+  const button = document.getElementById("openSecureUpdaterButton");
+  const statusNode = document.getElementById("updatesStatus");
+  if (!button) return;
+  button.disabled = true;
+  const originalText = button.textContent;
+  button.textContent = "Preparing secure update…";
+  if (statusNode) statusNode.hidden = true;
+
+  try {
+    const response = await fetch("/api/updates/handoff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.ok === false) throw new Error(data?.error || "Unable to open the secure updater.");
+    if (!data?.updater_url) throw new Error("The secure updater did not return a handoff link.");
+    window.location.href = data.updater_url;
+  } catch (error) {
+    if (statusNode) {
+      statusNode.className = "es-status error";
+      statusNode.textContent = error.message || "Unable to open the secure updater.";
+      statusNode.hidden = false;
+    }
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+document.getElementById("checkForUpdatesButton")?.addEventListener("click", loadUpdateInformation);
+document.getElementById("openSecureUpdaterButton")?.addEventListener("click", openSecureUpdater);
 
 
 function showTab(tab) {

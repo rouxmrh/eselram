@@ -2303,9 +2303,12 @@
             </div>
 
             <div class="es-empty-state" style="margin-top:18px; align-items:flex-start; text-align:left;">
-              <strong>Protected updates</strong>
-              <span>Updates are verified before deployment and reuse this installation's existing Cloudflare resources and business configuration.</span>
-              <a id="openSecureUpdaterButton" class="es-button" href="https://auth.eselram.com" rel="noopener">Open secure updater</a>
+              <strong id="availableUpdateTitle">Protected updates</strong>
+              <span id="availableUpdateMessage">Updates are verified before deployment and reuse this installation's existing Cloudflare resources and business configuration.</span>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                <button id="checkForUpdatesButton" class="es-button es-button-secondary" type="button">Check for updates</button>
+                <button id="openSecureUpdaterButton" class="es-button" type="button" hidden>Update Eselram</button>
+              </div>
             </div>
 
             <div id="updatesStatus" class="es-status" hidden></div>
