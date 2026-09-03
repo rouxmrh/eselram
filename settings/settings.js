@@ -43,6 +43,11 @@ const notificationsPanel =
     "tab-notifications"
   );
 
+const updatesPanel =
+  document.getElementById(
+    "tab-updates"
+  );
+
 const placeholderPanel =
   document.getElementById(
     "tab-placeholder"
@@ -352,6 +357,35 @@ form.addEventListener(
 );
 
 
+async function loadUpdateInformation() {
+  const versionNode = document.getElementById("installedEselramVersion");
+  const messageNode = document.getElementById("updateVersionMessage");
+  const statusNode = document.getElementById("updatesStatus");
+
+  if (!versionNode || !messageNode) return;
+
+  try {
+    const response = await fetch("/eselram-version.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("Version metadata is not available in this release.");
+    const data = await response.json();
+    const version = String(data?.version || "").trim();
+    if (!version) throw new Error("Version metadata is incomplete.");
+
+    versionNode.textContent = version;
+    messageNode.textContent = `Eselram ${version} is installed on this business.`;
+    if (statusNode) statusNode.hidden = true;
+  } catch (error) {
+    versionNode.textContent = "Release information unavailable";
+    messageNode.textContent = "Version reporting becomes available after the next protected Eselram release is installed.";
+    if (statusNode) {
+      statusNode.className = "es-status";
+      statusNode.textContent = "Your current installation is unaffected.";
+      statusNode.hidden = false;
+    }
+  }
+}
+
+
 function showTab(tab) {
 
   document
@@ -375,6 +409,7 @@ function showTab(tab) {
   paymentsPanel.hidden = true;
   emailPanel.hidden = true;
   notificationsPanel.hidden = true;
+  updatesPanel.hidden = true;
   placeholderPanel.hidden = true;
 
 
@@ -429,6 +464,15 @@ function showTab(tab) {
     notificationsPanel.hidden = false;
 
     loadNotificationSettings();
+
+    return;
+  }
+
+  if (tab === "updates") {
+
+    updatesPanel.hidden = false;
+
+    loadUpdateInformation();
 
     return;
   }

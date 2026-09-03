@@ -1078,6 +1078,13 @@
             Notifications
           </button>
 
+          <button
+            type="button"
+            data-tab="updates"
+          >
+            Updates
+          </button>
+
           <a
             class="es-settings-nav-link"
             href="/setup/"
@@ -2271,6 +2278,38 @@
 
           </div>
 
+
+          <div
+            id="tab-updates"
+            class="es-settings-panel"
+            hidden
+          >
+            <div class="es-panel-header">
+              <div>
+                <p class="es-eyebrow">Eselram updates</p>
+                <h2>Keep Eselram up to date</h2>
+                <p class="es-muted-copy">Install protected Eselram updates without replacing your business database, file storage, email provider or payment settings.</p>
+              </div>
+            </div>
+
+            <div class="es-services-list">
+              <div class="es-service-card">
+                <div>
+                  <p class="es-eyebrow">Installed version</p>
+                  <h3 id="installedEselramVersion">Checking…</h3>
+                  <p id="updateVersionMessage" class="es-muted-copy">Checking this installation's release information.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="es-empty-state" style="margin-top:18px; align-items:flex-start; text-align:left;">
+              <strong>Protected updates</strong>
+              <span>Updates are verified before deployment and reuse this installation's existing Cloudflare resources and business configuration.</span>
+              <a id="openSecureUpdaterButton" class="es-button" href="https://auth.eselram.com" rel="noopener">Open secure updater</a>
+            </div>
+
+            <div id="updatesStatus" class="es-status" hidden></div>
+          </div>
 
           <div
             id="tab-placeholder"

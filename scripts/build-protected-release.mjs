@@ -99,6 +99,19 @@ for (const rel of await walk(PAYLOAD)) {
   const bytes = await fsp.readFile(path.join(PAYLOAD, rel));
   manifest[rel] = { hash: pagesHash(bytes, rel), size: bytes.length, content_type: contentType(rel) };
 }
+// Expose only the installed product version to the authenticated app UI.
+// This contains no licence key, installation secret or customer identifier.
+await fsp.writeFile(
+  path.join(PAYLOAD, "eselram-version.json"),
+  JSON.stringify({ product: "Eselram", version: VERSION, distribution: "protected-release" }, null, 2)
+);
+const versionBytes = await fsp.readFile(path.join(PAYLOAD, "eselram-version.json"));
+manifest["eselram-version.json"] = {
+  hash: pagesHash(versionBytes, "eselram-version.json"),
+  size: versionBytes.length,
+  content_type: contentType("eselram-version.json")
+};
+
 await fsp.writeFile(path.join(PACKAGE, "ESELRAM-DEPLOY.json"), JSON.stringify({ format: 2, product: "Eselram", version: VERSION, distribution: "protected-release", files: manifest }, null, 2));
 await fsp.writeFile(path.join(PACKAGE, "ESELRAM-RELEASE.json"), JSON.stringify({ product: "Eselram", version: VERSION, format: 2, generated_at: new Date().toISOString() }, null, 2));
 await fsp.writeFile(path.join(PACKAGE, "PROPRIETARY-NOTICE.txt"), "Eselram proprietary release. Licensed installation only. Redistribution is not permitted.\n");
