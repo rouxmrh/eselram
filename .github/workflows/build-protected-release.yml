@@ -1,0 +1,46 @@
+name: Build protected Eselram release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (for example 1.0.0-rc2)
+        required: true
+        default: 1.0.0-rc2
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Eselram master
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install protected-release builder dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build protected release
+        run: npm run release:protected -- "${{ inputs.version }}"
+
+      - name: Verify deployment metadata exists
+        run: |
+          unzip -l "eselram-release-${{ inputs.version }}.zip" | grep -q 'ESELRAM-DEPLOY.json'
+          unzip -l "eselram-release-${{ inputs.version }}.zip" | grep -q 'payload/_worker.js'
+
+      - name: Upload protected release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: eselram-release-${{ inputs.version }}
+          path: |
+            eselram-release-${{ inputs.version }}.zip
+            eselram-release-${{ inputs.version }}.zip.sha256.txt
+          if-no-files-found: error
