@@ -1,0 +1,13 @@
+{
+  "name": "eselram-release-builder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "release:protected": "node scripts/build-protected-release.mjs"
+  },
+  "devDependencies": {
+    "@noble/hashes": "1.8.0",
+    "archiver": "7.0.1",
+    "wrangler": "4.94.0"
+  }
+}
