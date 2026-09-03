@@ -1325,6 +1325,12 @@ const emailDomainActions =
     "emailDomainActions"
   );
 
+const emailDnsProviderStep = document.getElementById("emailDnsProviderStep");
+const emailDnsProviderGuide = document.getElementById("emailDnsProviderGuide");
+const emailDnsProviderGrid = document.getElementById("emailDnsProviderGrid");
+let selectedDnsProvider = "";
+let currentEmailDnsRecords = [];
+
 
 
 
@@ -1615,89 +1621,70 @@ function dnsRecordCell(label, value) {
   return wrap;
 }
 
+function dnsRecordValue(record) {
+  return String(record.value || record.content || "");
+}
+
 function renderEmailDnsRecords(records = []) {
-  if (
-    !emailDnsRecords ||
-    !emailDnsRecordsWrap
-  ) {
-    return;
-  }
-
-  const list =
-    Array.isArray(records)
-      ? records
-      : [];
-
+  if (!emailDnsRecords || !emailDnsRecordsWrap) return;
+  const list = Array.isArray(records) ? records : [];
+  currentEmailDnsRecords = list;
   clearNode(emailDnsRecords);
-
-  if (!list.length) {
-    emailDnsRecordsWrap.hidden =
-      true;
-
-    return;
-  }
+  if (!list.length) { emailDnsRecordsWrap.hidden = true; return; }
 
   for (const record of list) {
-    const row =
-      document.createElement("div");
-
-    row.className =
-      "es-integration-summary";
-
-    row.style.marginTop =
-      "8px";
-
-    row.appendChild(
-      dnsRecordCell(
-        "Type",
-        String(
-          record.type ||
-          record.record_type ||
-          "DNS"
-        )
-      )
-    );
-
-    row.appendChild(
-      dnsRecordCell(
-        "Name",
-        String(
-          record.name ||
-          record.host ||
-          ""
-        )
-      )
-    );
-
-    row.appendChild(
-      dnsRecordCell(
-        "Value",
-        String(
-          record.value ||
-          record.content ||
-          ""
-        )
-      )
-    );
-
-    row.appendChild(
-      dnsRecordCell(
-        "Status",
-        String(
-          record.status ||
-          "Add to DNS"
-        )
-      )
-    );
-
-    emailDnsRecords.appendChild(
-      row
-    );
+    const row = document.createElement("div");
+    row.className = "es-dns-record-row";
+    const grid = document.createElement("div");
+    grid.className = "es-dns-record-grid";
+    const type = document.createElement("span");
+    type.textContent = String(record.type || record.record_type || "DNS");
+    const value = document.createElement("strong");
+    const name = String(record.name || record.host || "");
+    const content = dnsRecordValue(record);
+    value.textContent = `${name} → ${content}`;
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "es-secondary-button es-copy-dns";
+    copy.textContent = "Copy";
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(content); copy.textContent = "Copied ✓"; setTimeout(() => copy.textContent = "Copy", 1500); }
+      catch { copy.textContent = "Select value"; }
+    });
+    grid.append(type, value, copy);
+    row.appendChild(grid);
+    emailDnsRecords.appendChild(row);
   }
-
-  emailDnsRecordsWrap.hidden =
-    false;
+  emailDnsRecordsWrap.hidden = false;
 }
+
+const DNS_PROVIDER_GUIDES = {
+  cloudflare: { name:"Cloudflare", url:"https://dash.cloudflare.com/", text:"Open your domain in Cloudflare, choose DNS → Records, then add the records shown under Advanced below. Leave TTL on Auto. Eselram will check the domain for you afterwards." },
+  godaddy: { name:"GoDaddy", url:"https://dcc.godaddy.com/control/portfolio", text:"Open your domain, choose DNS, then Add New Record for each record shown under Advanced below. Save each one, then return here." },
+  ionos: { name:"IONOS", url:"https://my.ionos.co.uk/", text:"Open Domains & SSL, select your domain, then DNS. Add the records shown under Advanced below and save them." },
+  wix: { name:"Wix", url:"https://manage.wix.com/", text:"Open Domains, select your domain, choose Advanced → Manage DNS Records, then add the records shown under Advanced below." },
+  squarespace: { name:"Squarespace", url:"https://account.squarespace.com/", text:"Open Domains, select your domain, choose DNS Settings, then add the records shown under Advanced below." },
+  other: { name:"your domain provider", url:"", text:"Open the DNS settings where your domain is managed. Add the records shown under Advanced below, save them, then return to Eselram." }
+};
+
+function showDnsProviderGuide(provider) {
+  selectedDnsProvider = provider;
+  if (!emailDnsProviderGuide) return;
+  document.querySelectorAll(".es-dns-provider").forEach(btn => btn.classList.toggle("is-selected", btn.dataset.dnsProvider === provider));
+  const guide = DNS_PROVIDER_GUIDES[provider] || DNS_PROVIDER_GUIDES.other;
+  clearNode(emailDnsProviderGuide);
+  const strong = document.createElement("strong");
+  strong.textContent = `Set up with ${guide.name}`;
+  const p = document.createElement("p"); p.textContent = guide.text; p.style.margin = "0";
+  emailDnsProviderGuide.append(strong, p);
+  if (guide.url) { const a=document.createElement("a"); a.href=guide.url; a.target="_blank"; a.rel="noopener noreferrer"; a.textContent=`Open ${guide.name}`; a.style.display="inline-block"; a.style.marginTop="10px"; emailDnsProviderGuide.appendChild(a); }
+  emailDnsProviderGuide.hidden = false;
+}
+
+emailDnsProviderGrid?.addEventListener("click", event => {
+  const button = event.target.closest("[data-dns-provider]");
+  if (button) showDnsProviderGuide(button.dataset.dnsProvider);
+});
 
 function normaliseEmailDomainInput(value) {
   let domain =
@@ -1864,8 +1851,8 @@ async function loadEmailDomain() {
       return;
     }
 
-    emailDomainActions.hidden =
-      false;
+    emailDomainActions.hidden = false;
+    if (emailDnsProviderStep) emailDnsProviderStep.hidden = false;
 
     renderEmailDnsRecords(
       domain.records || []
@@ -1904,7 +1891,7 @@ async function loadEmailDomain() {
         "es-status";
 
       emailDomainStatus.textContent =
-        `${domain.domain_name} is ${domain.domain_status || "pending"}. Add the DNS records below, then check verification.`;
+        `${domain.domain_name} is ${domain.domain_status || "pending"}. Choose where your domain is managed, follow the simple steps, then click Check my domain.`;
 
       if (sendingInput) {
         sendingInput.value =
@@ -1918,7 +1905,7 @@ async function loadEmailDomain() {
         false;
 
       verifyEmailDomainButton.textContent =
-        "Check verification";
+        "Check my domain";
     }
 
   } catch (error) {
@@ -1966,7 +1953,7 @@ createEmailDomainButton
         "es-status";
 
       emailDomainStatus.textContent =
-        "Creating the domain in your Resend account…";
+        "Preparing your business domain…";
 
       try {
         const response =
@@ -2037,7 +2024,7 @@ verifyEmailDomainButton
         "es-status";
 
       emailDomainStatus.textContent =
-        "Checking the domain with Resend…";
+        "Checking your domain…";
 
       try {
         const response =

@@ -958,7 +958,23 @@
       font-weight:650;
     }
 
-  </style>
+  
+    #tab-email .es-email-guide-step { width:100%; margin-top:16px; padding:18px; box-sizing:border-box; border:1px solid var(--line,#d9ddd7); border-radius:14px; background:#fff; }
+    #tab-email .es-email-guide-step > strong { display:block; margin-bottom:5px; }
+    #tab-email .es-dns-provider-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:14px; }
+    #tab-email .es-dns-provider { min-height:44px; border:1px solid var(--line,#d9ddd7); border-radius:10px; background:#fff; font:inherit; font-weight:700; cursor:pointer; }
+    #tab-email .es-dns-provider:hover, #tab-email .es-dns-provider.is-selected { border-color:#365178; box-shadow:0 0 0 1px #365178 inset; }
+    #tab-email .es-email-provider-guide { margin-top:14px; padding:15px 16px; border-radius:12px; background:#f7f8f6; line-height:1.55; }
+    #tab-email .es-email-provider-guide strong { display:block; margin-bottom:5px; }
+    #tab-email .es-email-provider-guide a { font-weight:800; color:#365178; }
+    #tab-email .es-email-advanced { width:100%; margin-top:16px; padding:14px 16px; box-sizing:border-box; border:1px solid var(--line,#d9ddd7); border-radius:12px; background:#fff; }
+    #tab-email .es-email-advanced summary { cursor:pointer; font-weight:800; }
+    #tab-email .es-dns-record-row { margin-top:10px; padding:14px; border:1px solid var(--line,#d9ddd7); border-radius:12px; background:#fff; }
+    #tab-email .es-dns-record-grid { display:grid; grid-template-columns:100px minmax(0,1fr) 110px; gap:10px; align-items:center; }
+    #tab-email .es-dns-record-grid strong { word-break:break-all; }
+    #tab-email .es-copy-dns { min-height:38px; }
+    @media(max-width:760px){ #tab-email .es-dns-provider-grid{grid-template-columns:repeat(2,minmax(0,1fr));} #tab-email .es-dns-record-grid{grid-template-columns:1fr;} }
+</style>
 
 </head>
 
@@ -1589,10 +1605,10 @@
                 class="es-email-provider-card"
               >
                 <div>
-                  <span class="es-email-provider-kicker">No domain needed</span>
+                  <span class="es-email-provider-kicker">Recommended · Easy setup</span>
                   <h3>Gmail / Google</h3>
                   <p>
-                    Send directly from the business's Gmail account. Ideal for Instagram-first or mobile businesses that do not own a website or domain.
+                    No domain required. Connect your Google account and start sending.
                   </p>
                   <strong id="gmailConnectedAccount">Not connected</strong>
                 </div>
@@ -1629,10 +1645,10 @@
                 class="es-email-provider-card"
               >
                 <div>
-                  <span class="es-email-provider-kicker">Branded sending</span>
-                  <h3>Business domain / Resend</h3>
+                  <span class="es-email-provider-kicker">Professional branded email</span>
+                  <h3>Resend</h3>
                   <p>
-                    Send from an address such as notifications@yourclinic.co.uk. A website is not required, but the business must own and verify the domain.
+                    Send from your business domain. Eselram will guide you through setup.
                   </p>
                   <strong id="resendProviderState">Resend account connected</strong>
                 </div>
@@ -1725,24 +1741,25 @@
                 <div class="es-email-domain-row">
                   <label>
                     Business domain
-
-                    <input
-                      id="emailSendingDomain"
-                      type="text"
-                      placeholder="yourclinic.co.uk"
-                      autocomplete="off"
-                    >
+                    <input id="emailSendingDomain" type="text" placeholder="yourclinic.co.uk" autocomplete="off">
                   </label>
-
                   <div class="es-field-button">
-                    <button
-                      id="createEmailDomainButton"
-                      class="es-secondary-button"
-                      type="button"
-                    >
-                      Add sending domain
-                    </button>
+                    <button id="createEmailDomainButton" class="es-secondary-button" type="button">Set up my domain</button>
                   </div>
+                </div>
+
+                <div id="emailDnsProviderStep" class="es-email-guide-step" hidden>
+                  <strong>Where is your domain managed?</strong>
+                  <p class="es-field-help">Choose the company where you manage your domain or DNS. Eselram will show the right steps.</p>
+                  <div class="es-dns-provider-grid" id="emailDnsProviderGrid">
+                    <button type="button" class="es-dns-provider" data-dns-provider="cloudflare">Cloudflare</button>
+                    <button type="button" class="es-dns-provider" data-dns-provider="godaddy">GoDaddy</button>
+                    <button type="button" class="es-dns-provider" data-dns-provider="ionos">IONOS</button>
+                    <button type="button" class="es-dns-provider" data-dns-provider="wix">Wix</button>
+                    <button type="button" class="es-dns-provider" data-dns-provider="squarespace">Squarespace</button>
+                    <button type="button" class="es-dns-provider" data-dns-provider="other">Other</button>
+                  </div>
+                  <div id="emailDnsProviderGuide" class="es-email-provider-guide" hidden></div>
                 </div>
 
                 <div class="es-email-no-domain-note">
@@ -1757,17 +1774,11 @@
                   style="width:100%;"
                 ></div>
 
-                <div
-                  id="emailDnsRecordsWrap"
-                  hidden
-                  style="width:100%; text-align:left;"
-                >
-                  <strong>DNS records to add</strong>
-                  <p class="es-field-help">
-                    Add these records wherever your domain DNS is managed, then click Check verification.
-                  </p>
+                <details id="emailDnsRecordsWrap" class="es-email-advanced" hidden>
+                  <summary>Advanced · View DNS records</summary>
+                  <p class="es-field-help">These are the technical records supplied by Resend. Use the Copy buttons if your domain provider asks you to add them manually.</p>
                   <div id="emailDnsRecords"></div>
-                </div>
+                </details>
 
                 <div
                   id="emailDomainActions"
@@ -1780,17 +1791,8 @@
                     class="es-secondary-button"
                     type="button"
                   >
-                    Check verification
+                    Check my domain
                   </button>
-
-                  <a
-                    class="es-secondary-button"
-                    href="https://resend.com/domains"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open Resend
-                  </a>
                 </div>
               </div>
 
