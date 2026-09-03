@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example 1.0.0-rc2)
+        description: Release version (for example 1.0.0-rc4)
         required: true
-        default: 1.0.0-rc2
+        default: 1.0.0-rc4
 
 permissions:
   contents: read
@@ -31,10 +31,21 @@ jobs:
       - name: Build protected release
         run: npm run release:protected -- "${{ inputs.version }}"
 
-      - name: Verify deployment metadata exists
+      - name: Verify deployment metadata and Pages Worker
+        shell: bash
         run: |
-          unzip -l "eselram-release-${{ inputs.version }}.zip" | grep -q 'ESELRAM-DEPLOY.json'
-          unzip -l "eselram-release-${{ inputs.version }}.zip" | grep -q 'payload/_worker.js'
+          set -euo pipefail
+          RELEASE="eselram-release-${{ inputs.version }}.zip"
+          unzip -l "$RELEASE" | grep -q 'ESELRAM-DEPLOY.json'
+          unzip -l "$RELEASE" | grep -q 'payload/_worker.js'
+          rm -rf .protected-worker-check
+          mkdir -p .protected-worker-check
+          unzip -p "$RELEASE" payload/_worker.js > .protected-worker-check/_worker.js
+          if grep -a -q 'Content-Disposition: form-data' .protected-worker-check/_worker.js; then
+            echo 'Protected release contains a multipart upload instead of executable _worker.js'
+            exit 1
+          fi
+          node --check .protected-worker-check/_worker.js
 
       - name: Upload protected release artifacts
         uses: actions/upload-artifact@v4
