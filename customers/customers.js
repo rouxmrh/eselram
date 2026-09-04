@@ -2247,7 +2247,13 @@ function renderCustomerPayments(
                         Number(
                           payment.appointment_outstanding_minor ||
                           0
-                        ) > 0
+                        ) > 0 &&
+                        ["pending", "failed"].includes(
+                          String(
+                            payment.status ||
+                            ""
+                          ).toLowerCase()
+                        )
                           ? `
                             <a
                               class="es-customer-action es-customer-take-payment"
