@@ -46,7 +46,9 @@ jobs:
           set -euo pipefail
           required=(
             "scripts/build-protected-release.mjs"
-            "functions/[[path]].js"
+            "functions/api/status.js"
+            "functions/api/bookings/index.js"
+            "functions/api/updates/status.js"
             "settings/index.html"
             "settings/settings.js"
             "workers/eselram-reminders.js"
