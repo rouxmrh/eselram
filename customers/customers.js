@@ -2110,6 +2110,120 @@ function renderCustomerPayments(
             "failed"
         );
 
+  const outstandingAppointments =
+    Array.from(
+      allPayments.reduce(
+        (items, payment) => {
+          const appointmentId =
+            payment.appointment_id;
+
+          const outstandingMinor =
+            Number(
+              payment.appointment_outstanding_minor ||
+              0
+            );
+
+          if (
+            !appointmentId ||
+            payment.customer_package_id ||
+            outstandingMinor <= 0
+          ) {
+            return items;
+          }
+
+          if (
+            !items.has(
+              appointmentId
+            )
+          ) {
+            items.set(
+              appointmentId,
+              {
+                appointment_id:
+                  appointmentId,
+
+                service_name:
+                  payment.service_name ||
+                  "Appointment",
+
+                appointment_start_at:
+                  payment.appointment_start_at ||
+                  "",
+
+                outstanding_minor:
+                  outstandingMinor
+              }
+            );
+          }
+
+          return items;
+        },
+        new Map()
+      ).values()
+    );
+
+  const outstandingAppointmentsHtml =
+    outstandingAppointments
+      .map(
+        (appointment) => `
+          <div class="es-customer-payment-row es-customer-outstanding-row">
+            <div class="es-customer-payment-main">
+              <strong>
+                ${escapeHtml(
+                  appointment.service_name
+                )}
+              </strong>
+
+              <div class="es-customer-payment-meta">
+                <span>Balance due</span>
+                ${
+                  appointment.appointment_start_at
+                    ? `
+                      <span>
+                        ${escapeHtml(
+                          formatShortDate(
+                            appointment.appointment_start_at
+                          )
+                        )}
+                      </span>
+                    `
+                    : ""
+                }
+              </div>
+            </div>
+
+            <div class="es-customer-payment-amount">
+              <strong>
+                ${formatMoney(
+                  appointment.outstanding_minor
+                )}
+              </strong>
+
+              <div class="es-customer-payment-actions">
+                <a
+                  class="es-customer-action es-customer-take-payment"
+                  href="/payments/?take=1&appointment_id=${encodeURIComponent(
+                    appointment.appointment_id
+                  )}"
+                >
+                  Take payment
+                </a>
+
+                <a
+                  class="es-customer-action"
+                  href="/bookings/?booking=${encodeURIComponent(
+                    appointment.appointment_id
+                  )}"
+                >
+                  Booking
+                </a>
+              </div>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+
   const summaryHtml = `
     <div class="es-customer-record-row">
       <div class="es-customer-record-main">
@@ -2156,16 +2270,22 @@ function renderCustomerPayments(
   if (!visiblePayments.length) {
     customerPayments.innerHTML =
       summaryHtml +
-      `
-        <div class="es-empty-state">
-          <strong>No successful or refundable payments recorded yet.</strong>
-        </div>
-      `;
+      outstandingAppointmentsHtml +
+      (
+        outstandingAppointments.length
+          ? ""
+          : `
+              <div class="es-empty-state">
+                <strong>No successful or refundable payments recorded yet.</strong>
+              </div>
+            `
+      );
     return;
   }
 
   customerPayments.innerHTML =
     summaryHtml +
+    outstandingAppointmentsHtml +
     visiblePayments
       .map(
         (payment) => `
