@@ -6,7 +6,14 @@ import { spawnSync } from "node:child_process";
 import { blake3 } from "@noble/hashes/blake3";
 import archiver from "archiver";
 
-const VERSION = process.argv[2] || process.env.RELEASE_VERSION || "1.0.0-rc3";
+const VERSION = process.argv[2] || process.env.RELEASE_VERSION;
+const RELEASE_VERSION_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$/;
+
+if (!VERSION || !RELEASE_VERSION_PATTERN.test(VERSION)) {
+  console.error(`INVALID_RELEASE_VERSION: ${VERSION || "(missing)"}`);
+  console.error("Pass an explicit semantic version such as 1.0.0 or 1.0.0-rc6.");
+  process.exit(1);
+}
 const ROOT = process.cwd();
 const BUILD = path.join(ROOT, ".release-build");
 const PACKAGE = path.join(BUILD, "package");
