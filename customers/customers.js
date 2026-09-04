@@ -2244,16 +2244,14 @@ function renderCustomerPayments(
                     <div class="es-customer-payment-actions">
                       ${
                         !payment.customer_package_id &&
+                        String(
+                          payment.status ||
+                          ""
+                        ).toLowerCase() === "pending" &&
                         Number(
                           payment.appointment_outstanding_minor ||
                           0
-                        ) > 0 &&
-                        ["pending", "failed"].includes(
-                          String(
-                            payment.status ||
-                            ""
-                          ).toLowerCase()
-                        )
+                        ) > 0
                           ? `
                             <a
                               class="es-customer-action es-customer-take-payment"
