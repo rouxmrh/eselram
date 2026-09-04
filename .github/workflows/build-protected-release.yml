@@ -82,17 +82,12 @@ jobs:
           test -s "$RELEASE"
           test -s "$CHECKSUM"
 
-          EXPECTED="$(tr -d '\r\n[:space:]' < "$CHECKSUM" | tr '[:upper:]' '[:lower:]')"
-          ACTUAL="$(sha256sum "$RELEASE" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
+          # The builder writes a standard sha256sum file:
+          # <digest>  <filename>
+          # Let sha256sum validate it directly instead of parsing the whole line.
+          sha256sum -c "$CHECKSUM"
 
-          if [[ ! "$EXPECTED" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "Checksum file does not contain a valid SHA-256 digest."
-            exit 1
-          fi
-          if [[ "$EXPECTED" != "$ACTUAL" ]]; then
-            echo "Protected release checksum mismatch."
-            exit 1
-          fi
+          ACTUAL="$(sha256sum "$RELEASE" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
 
           rm -rf .release-verify
           mkdir -p .release-verify
