@@ -113,6 +113,150 @@ function conflict(message) {
 }
 
 
+function formatMoneyMinor(value) {
+  const amount =
+    Math.max(
+      Number(value || 0),
+      0
+    ) / 100;
+
+  return new Intl.NumberFormat(
+    "en-GB",
+    {
+      style: "currency",
+      currency: "GBP"
+    }
+  ).format(amount);
+}
+
+
+async function getCompletionOutstandingMinor(
+  env,
+  businessId,
+  appointment
+) {
+
+  if (
+    appointment.customer_package_id
+  ) {
+
+    const packageBalance =
+      await env.DB
+        .prepare(`
+          SELECT
+            cp.price_minor,
+
+            COALESCE(
+              (
+                SELECT SUM(
+                  CASE
+                    WHEN p.payment_type = 'refund'
+                         AND p.status = 'paid'
+                      THEN -ABS(p.amount_minor)
+
+                    WHEN p.payment_type != 'refund'
+                         AND p.status IN (
+                           'paid',
+                           'partially_refunded',
+                           'refunded'
+                         )
+                      THEN ABS(p.amount_minor)
+
+                    ELSE 0
+                  END
+                )
+
+                FROM customer_package_payments cpp
+
+                JOIN payments p
+                  ON p.id =
+                     cpp.payment_id
+
+                WHERE
+                  cpp.customer_package_id =
+                    cp.id
+                  AND p.business_id =
+                    cp.business_id
+                  AND COALESCE(
+                    p.payment_method,
+                    ''
+                  ) != 'discount'
+              ),
+              0
+            ) AS paid_minor,
+
+            COALESCE(
+              (
+                SELECT SUM(
+                  ps.consultation_credit_minor
+                )
+
+                FROM package_sales ps
+
+                WHERE
+                  ps.business_id =
+                    cp.business_id
+                  AND ps.customer_package_id =
+                    cp.id
+                  AND ps.status = 'paid'
+              ),
+              0
+            ) AS consultation_credit_minor
+
+          FROM customer_packages cp
+
+          WHERE
+            cp.id = ?
+            AND cp.business_id = ?
+
+          LIMIT 1
+        `)
+        .bind(
+          appointment.customer_package_id,
+          businessId
+        )
+        .first();
+
+    if (!packageBalance) {
+      return 0;
+    }
+
+    return Math.max(
+      Number(
+        packageBalance.price_minor ||
+        0
+      ) -
+      Number(
+        packageBalance.paid_minor ||
+        0
+      ) -
+      Number(
+        packageBalance.consultation_credit_minor ||
+        0
+      ),
+      0
+    );
+  }
+
+
+  return Math.max(
+    Number(
+      appointment.price_minor ||
+      0
+    ) -
+    Number(
+      appointment.paid_minor ||
+      0
+    ) -
+    Number(
+      appointment.consultation_credit_minor ||
+      0
+    ),
+    0
+  );
+}
+
+
 function timeToMinutes(value) {
 
   const [hours, minutes] =
@@ -1752,6 +1896,26 @@ export async function onRequestPut({
         return Response.json({
           ok: true
         });
+      }
+
+
+      const outstandingMinor =
+        await getCompletionOutstandingMinor(
+          env,
+          user.business_id,
+          existing
+        );
+
+
+      if (
+        outstandingMinor > 0
+      ) {
+
+        return conflict(
+          `Take the outstanding payment of ${formatMoneyMinor(
+            outstandingMinor
+          )} before marking this booking as complete.`
+        );
       }
 
 
