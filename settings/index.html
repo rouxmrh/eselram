@@ -664,6 +664,37 @@
       #copyStripeWebhookUrl { width:82px; min-width:82px; }
     }
 
+    .es-settings-legal {
+      margin-top:18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      color:var(--es-muted);
+      font-size:12px;
+    }
+    .es-settings-legal-links {
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+    .es-settings-legal a {
+      color:var(--es-primary);
+      font-weight:800;
+      text-decoration:none;
+    }
+    .es-settings-legal a:hover {
+      text-decoration:underline;
+    }
+    @media(max-width:700px) {
+      .es-settings-legal {
+        align-items:flex-start;
+        flex-direction:column;
+      }
+    }
+
     /* Email provider: keep Send test email directly beside the Send test to input. */
     #tab-email .es-email-test-grid {
       display:grid;
@@ -2313,6 +2344,15 @@
             </div>
 
             <div id="updatesStatus" class="es-status" hidden></div>
+
+            <p class="es-muted-copy" style="margin-top:18px;">
+              Eselram updates and use are subject to the
+              <a href="https://www.eselram.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>.
+              See the
+              <a href="https://www.eselram.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+              or contact
+              <a href="mailto:eselram.support@gmail.com">Eselram Support</a>.
+            </p>
           </div>
 
           <div
@@ -2337,6 +2377,15 @@
 
         </section>
 
+      </div>
+
+      <div class="es-settings-legal" aria-label="Eselram legal and support">
+        <span>Eselram software information and support.</span>
+        <div class="es-settings-legal-links">
+          <a href="https://www.eselram.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+          <a href="https://www.eselram.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+          <a href="mailto:eselram.support@gmail.com">Support</a>
+        </div>
       </div>
 
     </main>

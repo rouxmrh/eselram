@@ -522,7 +522,11 @@ function showTab(tab) {
 
     emailPanel.hidden = false;
 
-    loadEmailIntegration();
+    loadEmailProviderChoice()
+      .then(() => loadEmailIntegration())
+      .catch((error) => {
+        console.error("Unable to load email provider settings:", error);
+      });
 
     return;
   }
@@ -2326,12 +2330,27 @@ async function loadEmailIntegration() {
     };
 
 
+    const gmailIsActive =
+      String(activeEmailProviderLabel?.textContent || "")
+        .trim()
+        .toLowerCase() === "gmail";
+
+    const gmailIsConnected =
+      String(gmailConnectedAccount?.textContent || "")
+        .trim()
+        .toLowerCase()
+        .startsWith("connected as ");
+
     emailIntegrationStatus.textContent =
-      statusLabels[
-        integration.status
-      ] ||
-      integration.status ||
-      "Not configured";
+      gmailIsActive
+        ? (gmailIsConnected ? "Gmail ready" : "Gmail selected — connection required")
+        : (
+            statusLabels[
+              integration.status
+            ] ||
+            integration.status ||
+            "Not configured"
+          );
 
     if (resendProviderState) {
       if (integration.status === "verified") {
