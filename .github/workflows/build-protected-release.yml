@@ -82,7 +82,7 @@ jobs:
           test -s "$RELEASE"
           test -s "$CHECKSUM"
 
-          EXPECTED="$(tr -d '\r\n[:space:]' < "$CHECKSUM" | tr '[:upper:]' '[:lower:]')"
+          EXPECTED="$(awk '{print $1}' "$CHECKSUM" | tr '[:upper:]' '[:lower:]')"
           ACTUAL="$(sha256sum "$RELEASE" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
 
           if [[ ! "$EXPECTED" =~ ^[0-9a-f]{64}$ ]]; then
