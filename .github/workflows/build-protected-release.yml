@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install release builder dependencies
+        run: npm ci
+
       - name: Validate requested version
         shell: bash
         run: |
