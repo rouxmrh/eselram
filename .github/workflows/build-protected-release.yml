@@ -82,7 +82,7 @@ jobs:
           test -s "$RELEASE"
           test -s "$CHECKSUM"
 
-          EXPECTED="$(awk '{print $1}' "$CHECKSUM" | tr '[:upper:]' '[:lower:]')"
+          EXPECTED="$(tr -d '\r\n[:space:]' < "$CHECKSUM" | tr '[:upper:]' '[:lower:]')"
           ACTUAL="$(sha256sum "$RELEASE" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
 
           if [[ ! "$EXPECTED" =~ ^[0-9a-f]{64}$ ]]; then
@@ -98,16 +98,16 @@ jobs:
           mkdir -p .release-verify
           unzip -q "$RELEASE" -d .release-verify
 
-          test -s .release-verify/eselram-version.json
+          test -s .release-verify/payload/eselram-version.json
           test -s .release-verify/payload/_worker.js
           test -s .release-verify/payload/settings/index.html
           test -s .release-verify/payload/settings/settings.js
-          test -s .release-verify/payload/workers/eselram-reminders.js
+          test -s .release-verify/workers/eselram-reminders.js
 
           node -e '
             const fs = require("fs");
             const requested = process.argv[1];
-            const manifest = JSON.parse(fs.readFileSync(".release-verify/eselram-version.json", "utf8"));
+            const manifest = JSON.parse(fs.readFileSync(".release-verify/payload/eselram-version.json", "utf8"));
             if (manifest.version !== requested) {
               console.error(`Release manifest version mismatch. Requested ${requested}, found ${manifest.version}`);
               process.exit(1);
@@ -122,7 +122,7 @@ jobs:
 
           node --check .release-verify/payload/_worker.js
           node --check .release-verify/payload/settings/settings.js
-          node --check .release-verify/payload/workers/eselram-reminders.js
+          node --check .release-verify/workers/eselram-reminders.js
 
           echo "Protected release verification passed."
           echo "SHA256=$ACTUAL"
