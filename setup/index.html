@@ -55,6 +55,48 @@
       margin-bottom:18px;
     }
 
+    .es-booking-link-panel {
+      margin-bottom:18px;
+    }
+
+    .es-booking-link-copy {
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto auto;
+      gap:8px;
+      align-items:center;
+      margin-top:14px;
+    }
+
+    .es-booking-link-copy input {
+      width:100%;
+      min-width:0;
+      min-height:42px;
+      box-sizing:border-box;
+      border:1px solid var(--es-border);
+      border-radius:11px;
+      background:#fff;
+      color:var(--es-text);
+      padding:10px 12px;
+      font:inherit;
+    }
+
+    .es-booking-link-copy .es-secondary-button {
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      text-decoration:none;
+      white-space:nowrap;
+    }
+
+    .es-booking-link-help {
+      margin:10px 0 0;
+      color:var(--es-muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+
     .es-setup-summary .es-dashboard-kpi {
       min-height:118px;
       border-radius:18px;
@@ -116,6 +158,14 @@
     @media(max-width:700px) {
       .es-setup-topbar {
         flex-direction:column;
+      }
+
+      .es-booking-link-copy {
+        grid-template-columns:1fr;
+      }
+
+      .es-booking-link-copy .es-secondary-button {
+        width:100%;
       }
     }
   </style>
@@ -184,6 +234,63 @@
     <div class="es-setup-intro">
       Use this page as the installation checklist. Items needing attention appear below with a direct Configure action; completed items remain available to review.
     </div>
+
+    <section class="es-dashboard-panel es-booking-link-panel">
+
+      <div class="es-panel-header">
+        <div>
+          <p class="es-eyebrow">
+            Client bookings
+          </p>
+
+          <h2>
+            Share your booking link
+          </h2>
+        </div>
+      </div>
+
+      <p>
+        This is your public booking page. Add it to Instagram, Facebook, Google Business Profile, your website, emails or messages so clients can book directly.
+      </p>
+
+      <div class="es-booking-link-copy">
+        <input
+          id="publicBookingLink"
+          type="text"
+          readonly
+          aria-label="Public booking link"
+          value=""
+        >
+
+        <button
+          id="copyBookingLink"
+          class="es-secondary-button"
+          type="button"
+        >
+          Copy link
+        </button>
+
+        <a
+          id="openBookingLink"
+          class="es-secondary-button"
+          href="/book/"
+          target="_blank"
+          rel="noopener"
+        >
+          Open booking page
+        </a>
+      </div>
+
+      <p
+        id="bookingLinkFeedback"
+        class="es-booking-link-help"
+        aria-live="polite"
+      >
+        Your link stays tied to this installation.
+      </p>
+
+    </section>
+
 
     <section class="es-setup-summary">
 

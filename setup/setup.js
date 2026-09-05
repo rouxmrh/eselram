@@ -336,5 +336,103 @@ function escapeHtml(value) {
     );
 }
 
+const publicBookingLink =
+  document.getElementById(
+    "publicBookingLink"
+  );
+
+const copyBookingLink =
+  document.getElementById(
+    "copyBookingLink"
+  );
+
+const openBookingLink =
+  document.getElementById(
+    "openBookingLink"
+  );
+
+const bookingLinkFeedback =
+  document.getElementById(
+    "bookingLinkFeedback"
+  );
+
+
+function initialiseBookingLink() {
+
+  const bookingUrl =
+    new URL(
+      "/book/",
+      window.location.origin
+    ).toString();
+
+  if (publicBookingLink) {
+    publicBookingLink.value =
+      bookingUrl;
+  }
+
+  if (openBookingLink) {
+    openBookingLink.href =
+      bookingUrl;
+  }
+}
+
+
+async function handleCopyBookingLink() {
+
+  const bookingUrl =
+    publicBookingLink?.value ||
+    new URL(
+      "/book/",
+      window.location.origin
+    ).toString();
+
+  try {
+
+    await navigator.clipboard.writeText(
+      bookingUrl
+    );
+
+    if (copyBookingLink) {
+      copyBookingLink.textContent =
+        "Copied";
+    }
+
+    if (bookingLinkFeedback) {
+      bookingLinkFeedback.textContent =
+        "Booking link copied — ready to paste into Instagram, Facebook or anywhere you share bookings.";
+    }
+
+    window.setTimeout(
+      () => {
+        if (copyBookingLink) {
+          copyBookingLink.textContent =
+            "Copy link";
+        }
+      },
+      1800
+    );
+
+  } catch (error) {
+
+    if (publicBookingLink) {
+      publicBookingLink.focus();
+      publicBookingLink.select();
+    }
+
+    if (bookingLinkFeedback) {
+      bookingLinkFeedback.textContent =
+        "Select the booking link and copy it manually.";
+    }
+  }
+}
+
+
+copyBookingLink?.addEventListener(
+  "click",
+  handleCopyBookingLink
+);
+
+initialiseBookingLink();
+
 
 loadSetupHealth();
