@@ -1,3 +1,12 @@
+function eselramPublicApiUrl(path) {
+  const configured = String(window.__ESELRAM_API_ORIGIN__ || "").trim().replace(/\/+$/, "");
+  if (!configured) return path;
+  try {
+    return new URL(path, `${configured}/`).toString();
+  } catch {
+    return path;
+  }
+}
 let packages = [];
 let currency = "GBP";
 
@@ -18,7 +27,7 @@ function money(minor) {
 }
 
 async function load() {
-  const response = await fetch("/api/public-packages/config", {
+  const response = await fetch(eselramPublicApiUrl("/api/public-packages/config"), {
     headers: { Accept: "application/json" },
     cache: "no-store"
   });
@@ -199,7 +208,7 @@ $("#purchaseForm").addEventListener("submit", async event => {
   status.textContent = "Opening secure payment…";
 
   try {
-    const response = await fetch("/api/public-packages/create", {
+    const response = await fetch(eselramPublicApiUrl("/api/public-packages/create"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
@@ -269,7 +278,7 @@ if (returnParams.get("cancelled") === "1") {
 
   const saleId = String(returnParams.get("sale_id") || "").trim();
   if (saleId) {
-    fetch("/api/public-packages/cancel", {
+    fetch(eselramPublicApiUrl("/api/public-packages/cancel"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ sale_id: saleId }),

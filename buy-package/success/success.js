@@ -1,3 +1,12 @@
+function eselramPublicApiUrl(path) {
+  const configured = String(window.__ESELRAM_API_ORIGIN__ || "").trim().replace(/\/+$/, "");
+  if (!configured) return path;
+  try {
+    return new URL(path, `${configured}/`).toString();
+  } catch {
+    return path;
+  }
+}
 const params =
   new URLSearchParams(
     location.search
@@ -76,7 +85,7 @@ async function check(
       returnConfirmationAttempted = true;
 
       const confirmResponse = await fetch(
-        "/api/public-packages/confirm",
+        eselramPublicApiUrl("/api/public-packages/confirm"),
         {
           method: "POST",
           headers: {
@@ -101,9 +110,9 @@ async function check(
 
     const response =
       await fetch(
-        `/api/public-packages/status?sale_id=${encodeURIComponent(
+        eselramPublicApiUrl(`/api/public-packages/status?sale_id=${encodeURIComponent(
           saleId
-        )}`,
+        )}`),
         {
           headers: {
             Accept:
@@ -260,11 +269,11 @@ dateInput
       try {
         const response =
           await fetch(
-            `/api/public-packages/availability?sale_id=${encodeURIComponent(
+            eselramPublicApiUrl(`/api/public-packages/availability?sale_id=${encodeURIComponent(
               saleId
             )}&date=${encodeURIComponent(
               date
-            )}`,
+            )}`),
             {
               headers: {
                 Accept:
@@ -348,7 +357,7 @@ document
       try {
         const response =
           await fetch(
-            "/api/public-packages/book-session",
+            eselramPublicApiUrl("/api/public-packages/book-session"),
             {
               method:
                 "POST",

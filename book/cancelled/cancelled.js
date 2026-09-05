@@ -1,3 +1,12 @@
+function eselramPublicApiUrl(path) {
+  const configured = String(window.__ESELRAM_API_ORIGIN__ || "").trim().replace(/\/+$/, "");
+  if (!configured) return path;
+  try {
+    return new URL(path, `${configured}/`).toString();
+  } catch {
+    return path;
+  }
+}
 const PUBLIC_CHECKOUT_KEY = "eselram_public_checkout_pending";
 sessionStorage.removeItem(PUBLIC_CHECKOUT_KEY);
 
@@ -9,7 +18,7 @@ async function init() {
   if (!appointmentId || !paymentId) return;
 
   try {
-    const response = await fetch("/api/public-booking/cancel", {
+    const response = await fetch(eselramPublicApiUrl("/api/public-booking/cancel"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ appointment_id: appointmentId, payment_id: paymentId })

@@ -105,6 +105,11 @@ async function loadSetupHealth() {
     }
 
 
+    renderBookingLink(
+      data
+    );
+
+
     renderSummary(
       data
     );
@@ -357,9 +362,17 @@ const bookingLinkFeedback =
   );
 
 
-function initialiseBookingLink() {
+function renderBookingLink(data = {}) {
+
+  const brandedUrl =
+    String(
+      data?.environment
+        ?.public_booking_url ||
+      ""
+    ).trim();
 
   const bookingUrl =
+    brandedUrl ||
     new URL(
       "/book/",
       window.location.origin
@@ -374,6 +387,18 @@ function initialiseBookingLink() {
     openBookingLink.href =
       bookingUrl;
   }
+
+  if (bookingLinkFeedback) {
+    bookingLinkFeedback.textContent =
+      brandedUrl
+        ? "Your branded Eselram booking link is ready to share."
+        : "Your link stays tied to this installation.";
+  }
+}
+
+
+function initialiseBookingLink() {
+  renderBookingLink();
 }
 
 

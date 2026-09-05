@@ -6,7 +6,8 @@ import {
   getPublicBusiness,
   cleanupPendingOnlineBookings,
   badRequest,
-  serverError
+  serverError,
+  publicRequestOrigin
 } from "../../../lib/public-booking.js";
 
 import {
@@ -84,7 +85,7 @@ export async function onRequestGet({ request, env }) {
       );
     }
 
-    const baseUrl = new URL(request.url).origin;
+    const baseUrl = publicRequestOrigin(request);
 
     // The Stripe webhook is the primary asynchronous confirmation path, but a
     // customer returning from Checkout must not depend on a webhook being

@@ -3,7 +3,8 @@ import {
   findOrCreatePublicCustomer,
   findVerifiedExistingPublicCustomer,
   deleteUnusedCustomer,
-  validEmail
+  validEmail,
+  publicRequestOrigin
 } from "../../../lib/public-booking.js";
 
 import {
@@ -423,7 +424,7 @@ export async function onRequestPost({ request, env }) {
       appliedConsultationCreditMinor
     ).run();
 
-    const origin = new URL(request.url).origin;
+    const origin = publicRequestOrigin(request);
     const params = new URLSearchParams();
     params.set("mode", "payment");
     params.set(

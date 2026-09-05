@@ -12,7 +12,8 @@ import {
   validEmail,
   badRequest,
   conflict,
-  serverError
+  serverError,
+  publicRequestOrigin
 } from "../../../lib/public-booking.js";
 
 import {
@@ -497,7 +498,7 @@ export async function onRequestPost({ request, env }) {
           business.id,
         appointmentId,
         baseUrl:
-          new URL(request.url).origin
+          publicRequestOrigin(request)
       });
 
       return Response.json({
@@ -530,7 +531,7 @@ export async function onRequestPost({ request, env }) {
           business.id,
         appointmentId,
         baseUrl:
-          new URL(request.url).origin
+          publicRequestOrigin(request)
       });
 
       return Response.json({
@@ -576,7 +577,7 @@ export async function onRequestPost({ request, env }) {
       )
       .run();
 
-    const origin = new URL(request.url).origin;
+    const origin = publicRequestOrigin(request);
     const params = new URLSearchParams();
     params.set("mode", "payment");
     params.set(

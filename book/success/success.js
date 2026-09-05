@@ -1,3 +1,12 @@
+function eselramPublicApiUrl(path) {
+  const configured = String(window.__ESELRAM_API_ORIGIN__ || "").trim().replace(/\/+$/, "");
+  if (!configured) return path;
+  try {
+    return new URL(path, `${configured}/`).toString();
+  } catch {
+    return path;
+  }
+}
 const params = new URLSearchParams(location.search);
 const appointmentId = params.get("appointment_id") || "";
 const sessionId = params.get("session_id") || "";
@@ -61,7 +70,7 @@ async function checkStatus() {
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const response = await fetch(
-      `/api/public-booking/status?appointment_id=${encodeURIComponent(appointmentId)}&session_id=${encodeURIComponent(sessionId)}`,
+      eselramPublicApiUrl(`/api/public-booking/status?appointment_id=${encodeURIComponent(appointmentId)}&session_id=${encodeURIComponent(sessionId)}`),
       { headers: { Accept: "application/json" } }
     );
     const data = await response.json();

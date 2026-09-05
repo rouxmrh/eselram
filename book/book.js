@@ -1,3 +1,12 @@
+function eselramPublicApiUrl(path) {
+  const configured = String(window.__ESELRAM_API_ORIGIN__ || "").trim().replace(/\/+$/, "");
+  if (!configured) return path;
+  try {
+    return new URL(path, `${configured}/`).toString();
+  } catch {
+    return path;
+  }
+}
 const state = {
   config: null,
   service: null,
@@ -832,13 +841,13 @@ async function loadSlots() {
 
   try {
     const response = await fetch(
-      `/api/public-booking/availability?service_id=${encodeURIComponent(
+      eselramPublicApiUrl(`/api/public-booking/availability?service_id=${encodeURIComponent(
         state.service.id
       )}&date=${encodeURIComponent(
         date
       )}&booking_kind=${encodeURIComponent(
         state.bookingIntent || "service"
-      )}`,
+      )}`),
       { headers: { Accept: "application/json" } }
     );
     const data = await response.json();
@@ -1003,7 +1012,7 @@ async function confirmBooking() {
   button.textContent = "Confirming…";
 
   try {
-    const response = await fetch("/api/public-booking/create", {
+    const response = await fetch(eselramPublicApiUrl("/api/public-booking/create"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
@@ -1085,7 +1094,7 @@ async function releaseReturnedCheckout() {
 
   try {
     const response = await fetch(
-      "/api/public-booking/cancel",
+      eselramPublicApiUrl("/api/public-booking/cancel"),
       {
         method: "POST",
         headers: {
@@ -1164,7 +1173,7 @@ async function releaseReturnedCheckout() {
 
 async function init() {
   try {
-    const response = await fetch("/api/public-booking/config", {
+    const response = await fetch(eselramPublicApiUrl("/api/public-booking/config"), {
       headers: { Accept: "application/json" },
       cache: "no-store"
     });
@@ -1273,7 +1282,7 @@ $("#detailsForm").addEventListener("submit", async (event) => {
   if (state.bookingIntent === "service") {
     try {
       const response = await fetch(
-        "/api/public-booking/preview",
+        eselramPublicApiUrl("/api/public-booking/preview"),
         {
           method: "POST",
           headers: {

@@ -936,6 +936,11 @@ export async function onRequestGet({
           host,
           custom_domain:
             customDomain,
+          public_booking_url:
+            String(
+              env.ESELRAM_PUBLIC_BOOKING_URL ||
+              ""
+            ).trim() || null,
           encryption_ready:
             encryptionComplete,
           form_uploads_bound:
