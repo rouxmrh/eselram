@@ -36,7 +36,7 @@ function unauthorized() {
 }
 
 const DEFAULT_BROKER =
-  "https://eselram-provisioner.mroschhaden.workers.dev";
+  "https://auth.eselram.com";
 
 export async function onRequestGet({ request, env }) {
   const user = await userContext(request, env);
