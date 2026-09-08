@@ -40,7 +40,8 @@ const EXPECTED_MIGRATIONS = [
   "033_service_consultation_pathways",
   "034_package_variants",
   "035_package_payment_rules",
-  "036_gmail_email_provider"
+  "036_gmail_email_provider",
+  "037_password_reset"
 ];
 
 
@@ -606,12 +607,31 @@ export async function onRequestGet({
       url.host;
 
 
-    const customDomain =
-      !host.endsWith(
-        ".pages.dev"
-      ) &&
-      host !==
-        "localhost";
+    const publicBookingUrl =
+      String(
+        env.ESELRAM_PUBLIC_BOOKING_URL ||
+        ""
+      ).trim();
+
+
+    let brandedAdminUrl = "";
+
+    if (publicBookingUrl) {
+      try {
+        const booking = new URL(publicBookingUrl);
+        const parts = booking.hostname.split(".");
+
+        if (
+          booking.protocol === "https:" &&
+          booking.hostname.endsWith(".eselram.com") &&
+          parts.length >= 3
+        ) {
+          const base = parts[0].replace(/-admin$/, "");
+          brandedAdminUrl =
+            `https://${base}-admin.eselram.com`;
+        }
+      } catch {}
+    }
 
 
     const items = [
@@ -856,17 +876,17 @@ export async function onRequestGet({
         key:
           "domain",
         label:
-          "Public URL",
+          "Branded Eselram URLs",
         complete:
-          true,
+          Boolean(publicBookingUrl),
         status:
-          customDomain
-            ? "Custom domain"
-            : "Pages domain",
+          publicBookingUrl
+            ? "Ready"
+            : "Managed by Eselram",
         detail:
-          customDomain
-            ? `Running at ${host}.`
-            : `Running at ${host}. A custom domain is recommended before launch.`,
+          publicBookingUrl
+            ? `Booking: ${publicBookingUrl}${brandedAdminUrl ? ` · Admin: ${brandedAdminUrl}` : ""}`
+            : "Your customer-facing booking and admin addresses are managed by Eselram.",
         href:
           null,
         required:
@@ -933,14 +953,10 @@ export async function onRequestGet({
         },
 
         environment: {
-          host,
-          custom_domain:
-            customDomain,
           public_booking_url:
-            String(
-              env.ESELRAM_PUBLIC_BOOKING_URL ||
-              ""
-            ).trim() || null,
+            publicBookingUrl || null,
+          admin_url:
+            brandedAdminUrl || null,
           encryption_ready:
             encryptionComplete,
           form_uploads_bound:

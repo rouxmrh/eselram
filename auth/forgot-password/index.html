@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forgot password | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css?v=20260821-mobile-nav-v2">
+  <style>
+    .es-auth-link-row{margin:18px 0 0;font-size:14px}
+    .es-auth-link-row a{color:#365178;font-weight:700;text-decoration:none}
+    .es-auth-link-row a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <main class="es-page">
+    <section class="es-card">
+      <div class="es-setup-signature es-setup-signature--top" aria-label="Eselram">
+        <img src="/assets/eselram_brandmark_setup.png" alt="Eselram">
+      </div>
+
+      <p class="es-eyebrow">Account access</p>
+      <h1>Reset your password.</h1>
+      <p class="es-lead">Enter the email address used for your Eselram account.</p>
+
+      <form id="forgotPasswordForm">
+        <label>
+          Email address
+          <input id="email" type="email" required autocomplete="email">
+        </label>
+
+        <div id="formStatus" class="es-status" role="status" aria-live="polite" hidden></div>
+
+        <button id="sendButton" class="es-button" type="submit">Send reset link</button>
+      </form>
+
+      <p class="es-auth-link-row">
+        <a href="/auth/login.html">Back to sign in</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="/auth/forgot-password/forgot-password.js"></script>
+</body>
+</html>

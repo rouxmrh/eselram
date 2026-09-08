@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Choose new password | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css?v=20260821-mobile-nav-v2">
+  <style>
+    .es-auth-link-row{margin:18px 0 0;font-size:14px}
+    .es-auth-link-row a{color:#365178;font-weight:700;text-decoration:none}
+    .es-auth-link-row a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <main class="es-page">
+    <section class="es-card">
+      <div class="es-setup-signature es-setup-signature--top" aria-label="Eselram">
+        <img src="/assets/eselram_brandmark_setup.png" alt="Eselram">
+      </div>
+
+      <p class="es-eyebrow">Account access</p>
+      <h1>Choose a new password.</h1>
+      <p class="es-lead">Use at least 12 characters. Your existing Eselram sessions will be signed out after the reset.</p>
+
+      <form id="resetPasswordForm">
+        <label>
+          New password
+          <div class="es-password-field">
+            <input id="password" type="password" minlength="12" required autocomplete="new-password">
+            <button class="es-password-toggle" type="button" data-target="password">Show</button>
+          </div>
+        </label>
+
+        <label>
+          Confirm new password
+          <div class="es-password-field">
+            <input id="confirmPassword" type="password" minlength="12" required autocomplete="new-password">
+            <button class="es-password-toggle" type="button" data-target="confirmPassword">Show</button>
+          </div>
+        </label>
+
+        <div id="formStatus" class="es-status" role="status" aria-live="polite" hidden></div>
+
+        <button id="resetButton" class="es-button" type="submit">Reset password</button>
+      </form>
+
+      <p class="es-auth-link-row">
+        <a href="/auth/login.html">Back to sign in</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="/auth/reset-password/reset-password.js"></script>
+</body>
+</html>

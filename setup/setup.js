@@ -211,9 +211,19 @@ function renderSummary(data) {
     "Eselram";
 
 
+  const brandedHost = (() => {
+    try {
+      return data.environment?.public_booking_url
+        ? new URL(data.environment.public_booking_url).host
+        : "Branded Eselram URLs";
+    } catch {
+      return "Branded Eselram URLs";
+    }
+  })();
+
+
   setupHost.textContent =
-    data.environment?.host ||
-    window.location.host;
+    brandedHost;
 
 
   if (data.ready) {
