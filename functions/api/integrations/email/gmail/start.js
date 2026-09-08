@@ -35,6 +35,27 @@ function unauthorized() {
   );
 }
 
+function adminOrigin(request) {
+  const requestUrl = new URL(request.url);
+  const forwarded = String(
+    request.headers.get("X-Eselram-Admin-Origin") || ""
+  ).trim();
+
+  if (forwarded) {
+    try {
+      const candidate = new URL(forwarded);
+      if (
+        candidate.protocol === "https:" &&
+        candidate.hostname.endsWith(".eselram.com")
+      ) {
+        return candidate.origin;
+      }
+    } catch {}
+  }
+
+  return requestUrl.origin;
+}
+
 const DEFAULT_BROKER =
   "https://auth.eselram.com";
 
@@ -42,9 +63,9 @@ export async function onRequestGet({ request, env }) {
   const user = await userContext(request, env);
   if (!user) return unauthorized();
 
-  const url = new URL(request.url);
+  const publicOrigin = adminOrigin(request);
   const callback =
-    `${url.origin}/api/integrations/email/gmail/callback`;
+    `${publicOrigin}/api/integrations/email/gmail/callback`;
 
   const broker =
     String(

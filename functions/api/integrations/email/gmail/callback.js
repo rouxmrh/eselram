@@ -43,6 +43,27 @@ import {
   setActiveEmailProvider
 } from "../../../../../lib/email-delivery.js";
 
+function adminOrigin(request) {
+  const requestUrl = new URL(request.url);
+  const forwarded = String(
+    request.headers.get("X-Eselram-Admin-Origin") || ""
+  ).trim();
+
+  if (forwarded) {
+    try {
+      const candidate = new URL(forwarded);
+      if (
+        candidate.protocol === "https:" &&
+        candidate.hostname.endsWith(".eselram.com")
+      ) {
+        return candidate.origin;
+      }
+    } catch {}
+  }
+
+  return requestUrl.origin;
+}
+
 const DEFAULT_BROKER =
   "https://auth.eselram.com";
 
@@ -51,12 +72,13 @@ export async function onRequestGet({ request, env }) {
   if (!user) return unauthorized();
 
   const url = new URL(request.url);
+  const publicOrigin = adminOrigin(request);
   const claim =
     String(url.searchParams.get("claim") || "").trim();
 
   if (!claim) {
     return Response.redirect(
-      `${url.origin}/settings/?tab=email&gmail=error`,
+      `${publicOrigin}/settings/?tab=email&gmail=error`,
       302
     );
   }
@@ -78,7 +100,7 @@ export async function onRequestGet({ request, env }) {
         },
         body: JSON.stringify({
           claim,
-          audience: url.origin
+          audience: publicOrigin
         })
       }
     );
@@ -151,14 +173,14 @@ export async function onRequestGet({ request, env }) {
     );
 
     return Response.redirect(
-      `${url.origin}/settings/?tab=email&gmail=connected`,
+      `${publicOrigin}/settings/?tab=email&gmail=connected`,
       302
     );
   } catch (error) {
     console.error("Gmail OAuth callback failed:", error);
 
     return Response.redirect(
-      `${url.origin}/settings/?tab=email&gmail=error`,
+      `${publicOrigin}/settings/?tab=email&gmail=error`,
       302
     );
   }
