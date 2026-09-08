@@ -168,6 +168,7 @@ export function renderSidebar(activeKey) {
         class="es-sidebar-signout"
         type="button"
         data-eselram-logout
+        style="width:100%;min-height:42px;padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;-webkit-text-fill-color:#fff;font:inherit;font-weight:800;text-align:left;cursor:pointer;appearance:none;-webkit-appearance:none;box-shadow:none;"
       >
         <span class="es-sidebar-nav-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true">
