@@ -1,3 +1,37 @@
+async function redirectFreshInstallation() {
+  try {
+    const response = await fetch("/api/status", {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+
+    if (!response.ok) return;
+
+    const data = await response.json();
+
+    if (data?.ok && data?.installation_required) {
+      const stepRoutes = {
+        business: "/installer/business.html",
+        hours: "/installer/hours.html",
+        branding: "/installer/branding.html",
+        payments: "/installer/payments.html",
+        owner: "/installer/owner.html"
+      };
+
+      const currentStep =
+        data?.installation?.current_step || "welcome";
+
+      window.location.replace(
+        stepRoutes[currentStep] || "/installer/"
+      );
+    }
+  } catch (error) {
+    console.error("Unable to check installation state.", error);
+  }
+}
+
+redirectFreshInstallation();
+
 const form =
   document.getElementById("loginForm");
 
