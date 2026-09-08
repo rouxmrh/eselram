@@ -8,7 +8,12 @@ function eselramPublicApiUrl(path) {
   }
 }
 const PUBLIC_CHECKOUT_KEY = "eselram_public_checkout_pending";
+
+// Stripe cancellation completes the provisional-booking cleanup on this page.
+// Clear both browser stores so returning to /book/ cannot try to cancel the
+// same already-deleted provisional booking a second time.
 sessionStorage.removeItem(PUBLIC_CHECKOUT_KEY);
+localStorage.removeItem(PUBLIC_CHECKOUT_KEY);
 
 const params = new URLSearchParams(location.search);
 const appointmentId = params.get("appointment_id") || "";

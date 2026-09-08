@@ -1113,6 +1113,27 @@ async function releaseReturnedCheckout() {
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
+      // A Stripe cancel/return page may already have released this provisional
+      // booking. If stale browser storage sends us back here afterwards, treat
+      // a missing booking as already cleaned up instead of breaking /book/.
+      if (
+        response.status === 404 &&
+        String(data.error || "").toLowerCase() ===
+          "booking could not be found."
+      ) {
+        clearPendingCheckout();
+        resetConfirmButton();
+
+        if (state.service) {
+          state.time = "";
+          setStep(2);
+        } else {
+          setStep(1);
+        }
+
+        return;
+      }
+
       throw new Error(
         data.error ||
         "Unable to release the provisional booking."
