@@ -164,9 +164,10 @@ export function renderSidebar(activeKey) {
         </div>
       </div>
 
-      <a
+      <button
         class="es-sidebar-signout"
-        href="/auth/logout.html"
+        type="button"
+        data-eselram-logout
       >
         <span class="es-sidebar-nav-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -176,12 +177,13 @@ export function renderSidebar(activeKey) {
           </svg>
         </span>
         <span>Log out</span>
-      </a>
+      </button>
     </div>
   `;
 
   loadSidebarIdentity();
   renderMobileNavigation(activeKey);
+  wireLogoutButtons();
 }
 
 
@@ -248,7 +250,7 @@ function renderMobileNavigation(activeKey) {
       </nav>
 
       <div class="es-mobile-menu-footer">
-        <a href="/auth/logout.html" class="es-mobile-menu-logout">
+        <button type="button" class="es-mobile-menu-logout" data-eselram-logout>
           <span class="es-mobile-menu-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10"/>
@@ -257,7 +259,7 @@ function renderMobileNavigation(activeKey) {
             </svg>
           </span>
           <span>Log out</span>
-        </a>
+        </button>
       </div>
     </div>
 
@@ -326,6 +328,40 @@ function renderMobileNavigation(activeKey) {
       setMenuOpen(false);
       menuButton?.focus();
     }
+  });
+}
+
+
+async function performLogout(button) {
+  if (button?.disabled) return;
+
+  if (button) {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+  }
+
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: {
+        Accept: "application/json"
+      },
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+  } catch {
+    // If the session is already gone, returning to login is still correct.
+  } finally {
+    window.location.replace("/auth/login.html");
+  }
+}
+
+function wireLogoutButtons() {
+  document.querySelectorAll("[data-eselram-logout]").forEach(button => {
+    button.addEventListener("click", event => {
+      event.preventDefault();
+      performLogout(button);
+    });
   });
 }
 
