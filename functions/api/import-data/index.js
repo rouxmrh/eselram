@@ -151,10 +151,35 @@ export async function onRequestPost({request,env}){
     if(paid===null||(remainingAfterCredit!==null&&paid>remainingAfterCredit))err(errors,"Packages & Courses",rn,"amount_already_paid","Amount already paid cannot be greater than the package balance after consultation credit.");
     let creditSource=null;
     if(customerId&&choice&&consultationCredit>0){
-      const treatmentService=servicesById.get(choice.serviceId),consultationServiceId=treatmentService?.consultation_service_id||choice.serviceId;
-      const candidates=[...importedConsultations,...availableExistingConsultations].filter(c=>c.customerId===customerId&&c.serviceId===consultationServiceId&&!usedConsultationSources.has(c.id)).sort((a,b)=>String(b.startAt||"").localeCompare(String(a.startAt||"")));
+      const treatmentService=servicesById.get(choice.serviceId);
+      const explicitConsultationServiceId=clean(treatmentService?.consultation_service_id,120);
+      const allUnused=[...importedConsultations,...availableExistingConsultations]
+        .filter(c=>c.customerId===customerId&&!usedConsultationSources.has(c.id));
+
+      // Prefer the consultation explicitly linked to the standard treatment.
+      // Older/migrated businesses may not have that relationship configured, so
+      // the importer safely falls back to a single unused paid consultation for
+      // the same customer rather than changing any live booking/payment rules.
+      let candidates=explicitConsultationServiceId
+        ? allUnused.filter(c=>c.serviceId===explicitConsultationServiceId)
+        : [];
+
+      if(!candidates.length){
+        const consultationServicesForCustomer=allUnused.filter(c=>servicesById.get(c.serviceId)?.service_type==="consultation");
+        if(consultationServicesForCustomer.length===1)candidates=consultationServicesForCustomer;
+        else if(consultationServicesForCustomer.length>1){
+          const treatmentName=key(treatmentService?.name||choice.label);
+          const nameMatched=consultationServicesForCustomer.filter(c=>{
+            const consultationName=key(servicesById.get(c.serviceId)?.name||"");
+            return treatmentName&&consultationName&&(consultationName.includes(treatmentName)||treatmentName.includes(consultationName.replace(/\bconsultation\b/g,"").trim()));
+          });
+          if(nameMatched.length===1)candidates=nameMatched;
+        }
+      }
+
+      candidates.sort((a,b)=>String(b.startAt||"").localeCompare(String(a.startAt||"")));
       creditSource=candidates[0]||null;
-      if(!creditSource)err(errors,"Packages & Courses",rn,"consultation_credit","No unused paid completed consultation was found for this customer's package service. Import the consultation booking too, or leave Consultation credit blank.");
+      if(!creditSource)err(errors,"Packages & Courses",rn,"consultation_credit","No unique unused paid completed consultation could be matched to this package. Import the consultation booking too, or link the treatment to its consultation in Services.");
       else if(consultationCredit>creditSource.paidMinor)err(errors,"Packages & Courses",rn,"consultation_credit",`Consultation credit cannot exceed the consultation payment of £${(creditSource.paidMinor/100).toFixed(2)}.`);
     }
     if(customerId&&choice&&PACKAGE_STATUSES.has(status)&&finalPrice!==null&&consultationCredit!==null&&remainingAfterCredit!==null&&paid!==null&&paid<=remainingAfterCredit&&(!consultationCredit||creditSource)){
