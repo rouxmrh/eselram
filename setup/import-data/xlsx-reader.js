@@ -41,7 +41,7 @@ function normalizeTarget(target) { const value=String(target||"").replace(/^\//,
 function elements(node, localName) { return Array.from(node?.getElementsByTagNameNS?.("*",localName)||[]); }
 function firstElement(node, localName) { return elements(node, localName)[0] || null; }
 function textFromNode(node) { if(!node) return ""; const ts=elements(node,"t"); return ts.length?ts.map(x=>x.textContent||"").join(""):node.textContent||""; }
-function cleanHeader(value) { return String(value||"").trim().toLowerCase().replace(/\s+/g,"_"); }
+function cleanHeader(value) { return String(value||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,""); }
 
 export async function readImportWorkbook(file) {
   if (!file || !/\.xlsx$/i.test(file.name||"")) throw new Error("Choose the Eselram .xlsx import template.");
