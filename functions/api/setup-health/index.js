@@ -41,7 +41,8 @@ const EXPECTED_MIGRATIONS = [
   "034_package_variants",
   "035_package_payment_rules",
   "036_gmail_email_provider",
-  "037_password_reset"
+  "037_password_reset",
+  "038_data_imports"
 ];
 
 
