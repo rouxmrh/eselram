@@ -23,6 +23,30 @@ function timeOnly(v){const t=clean(v,50);if(!t)return null;if(/^\d+(?:\.\d+)?$/.
 function money(v,fallback=null){const t=clean(v,40).replace(/[£,$\s]/g,"");if(!t)return fallback;const n=Number(t);return Number.isFinite(n)&&n>=0?Math.round(n*100):null;}
 function addMinutes(date,time,mins){const d=new Date(`${date}T${time}:00Z`);return Number.isNaN(d.getTime())?null:new Date(d.getTime()+mins*60000).toISOString().slice(0,19);}
 function noteWithDiscount(notes, discountMinor, voucher){const parts=[clean(notes,3000)];if(discountMinor>0)parts.push(`Imported discount £${(discountMinor/100).toFixed(2)}${voucher?` · voucher ${voucher}`:""}`);else if(voucher)parts.push(`Imported voucher ${voucher}`);return parts.filter(Boolean).join(" · ")||null;}
+function discountPaymentNotes(baseNotes,discountMinor,voucher,amountBeforeDiscountMinor,currentVouchers){
+  const parts=[clean(baseNotes,3000)];
+  const amount=Math.max(0,Number(discountMinor||0));
+  const code=clean(voucher,80).toUpperCase();
+  if(amount>0){
+    const configured=(currentVouchers||[]).find(v=>String(v?.code||"").trim().toUpperCase()===code);
+    let type="amount",label="Imported discount";
+    const base=Math.max(0,Number(amountBeforeDiscountMinor||0));
+    const inferredPercent=base>0?amount*100/base:0;
+    const roundedPercent=Math.round(inferredPercent*100)/100;
+    if(code){
+      type="voucher";
+      if(configured?.discount_type==="percent")label=`${code} · ${Number(configured.value||0)}% voucher`;
+      else if(roundedPercent>0&&roundedPercent<=100&&Math.abs(inferredPercent-roundedPercent)<0.001)label=`${code} · ${roundedPercent}% voucher`;
+      else label=`${code} · voucher`;
+    }else if(roundedPercent>0&&roundedPercent<=100&&Math.abs(inferredPercent-roundedPercent)<0.001){type="percent";label=`${roundedPercent}% discount`;}
+    parts.push(`discount_minor=${amount}`);
+    parts.push(`deduction_type=${type}`);
+    if(code)parts.push(`voucher=${code}`);
+    parts.push(`label=${label}`);
+    parts.push("discount_balance_applied=1");
+  }
+  return parts.filter(Boolean).join(" · ")||null;
+}
 function err(errors,sheet,row,field,message){errors.push({sheet,row,field,message});}
 function autoRef(type,parts){let h=1469598103934665603n;const text=parts.map(x=>String(x??"").trim().toLowerCase()).join("|");for(let i=0;i<text.length;i++){h^=BigInt(text.charCodeAt(i));h=BigInt.asUintN(64,h*1099511628211n);}return `${type}_${h.toString(16).padStart(16,"0")}`;}
 function normalizedStatus(v, fallback){return clean(v,40).toLowerCase().replaceAll(" ","_")||fallback;}
@@ -30,7 +54,7 @@ function normalizedStatus(v, fallback){return clean(v,40).toLowerCase().replaceA
 export async function onRequestGet({request,env}){
   const user=await getUserContext(request,env);if(!user)return unauthorized();
   const [services, templates, variants] = await Promise.all([
-    env.DB.prepare(`SELECT id,name,duration_minutes,price_minor,service_type,is_active FROM services WHERE business_id=? AND is_active=1 ORDER BY sort_order,name COLLATE NOCASE`).bind(user.business_id).all(),
+    env.DB.prepare(`SELECT id,name,duration_minutes,price_minor,service_type,consultation_service_id,is_active FROM services WHERE business_id=? AND is_active=1 ORDER BY sort_order,name COLLATE NOCASE`).bind(user.business_id).all(),
     env.DB.prepare(`SELECT pt.id,pt.service_id,pt.name,pt.sessions_total,pt.price_minor,pt.deposit_minor,pt.is_active,s.name AS service_name FROM package_templates pt JOIN services s ON s.id=pt.service_id AND s.business_id=pt.business_id WHERE pt.business_id=? AND pt.is_active=1 ORDER BY pt.name COLLATE NOCASE`).bind(user.business_id).all(),
     env.DB.prepare(`SELECT pv.id,pv.package_template_id,pv.service_id,pv.name,pv.price_minor,pv.deposit_minor,pv.is_active,pt.name AS template_name,pt.sessions_total,s.name AS service_name FROM package_variants pv JOIN package_templates pt ON pt.id=pv.package_template_id AND pt.business_id=pv.business_id JOIN services s ON s.id=pv.service_id AND s.business_id=pv.business_id WHERE pv.business_id=? AND pv.is_active=1 AND pt.is_active=1 ORDER BY pt.name COLLATE NOCASE,pv.sort_order,pv.name COLLATE NOCASE`).bind(user.business_id).all()
   ]);
@@ -50,16 +74,29 @@ export async function onRequestPost({request,env}){
   };
   const total=Object.values(rows).reduce((n,a)=>n+a.length,0);if(!total)return Response.json({ok:false,error:"No import rows were supplied."},{status:400});if(total>MAX_ROWS)return Response.json({ok:false,error:`Import a maximum of ${MAX_ROWS} total rows at a time.`},{status:400});
 
-  const [serviceRes,customerRes,refRes,voucherSetting,templateRes,variantRes,existingPackageRes]=await Promise.all([
-    env.DB.prepare(`SELECT id,name,duration_minutes,price_minor,service_type FROM services WHERE business_id=? AND is_active=1`).bind(user.business_id).all(),
+  const [serviceRes,customerRes,refRes,voucherSetting,templateRes,variantRes,existingPackageRes,existingConsultationRes]=await Promise.all([
+    env.DB.prepare(`SELECT id,name,duration_minutes,price_minor,service_type,consultation_service_id FROM services WHERE business_id=? AND is_active=1`).bind(user.business_id).all(),
     env.DB.prepare(`SELECT id,first_name,last_name,email,phone FROM customers WHERE business_id=?`).bind(user.business_id).all(),
     env.DB.prepare(`SELECT entity_type,external_reference,internal_id FROM data_import_references WHERE business_id=?`).bind(user.business_id).all(),
     env.DB.prepare(`SELECT setting_value FROM business_settings WHERE business_id=? AND setting_key='payment_vouchers' LIMIT 1`).bind(user.business_id).first(),
     env.DB.prepare(`SELECT id,service_id,name,sessions_total,price_minor FROM package_templates WHERE business_id=? AND is_active=1`).bind(user.business_id).all(),
     env.DB.prepare(`SELECT id,package_template_id,service_id,name,price_minor FROM package_variants WHERE business_id=? AND is_active=1`).bind(user.business_id).all(),
-    env.DB.prepare(`SELECT cp.id,cp.customer_id,cp.service_id,cp.name_snapshot,cp.package_template_id,cp.package_variant_id FROM customer_packages cp WHERE cp.business_id=? AND cp.status IN ('active','completed')`).bind(user.business_id).all()
+    env.DB.prepare(`SELECT cp.id,cp.customer_id,cp.service_id,cp.name_snapshot,cp.package_template_id,cp.package_variant_id FROM customer_packages cp WHERE cp.business_id=? AND cp.status IN ('active','completed')`).bind(user.business_id).all(),
+    env.DB.prepare(`
+      SELECT a.id,a.customer_id,a.service_id,a.start_at,
+        MAX(0,COALESCE(SUM(CASE WHEN p.payment_type='refund' AND p.status='paid' THEN -ABS(p.amount_minor) WHEN p.payment_type!='refund' AND p.status IN ('paid','partially_refunded','refunded') THEN ABS(p.amount_minor) ELSE 0 END),0)) AS paid_minor
+      FROM appointments a
+      JOIN services s ON s.id=a.service_id AND s.business_id=a.business_id
+      LEFT JOIN payments p ON p.appointment_id=a.id AND p.business_id=a.business_id
+      WHERE a.business_id=? AND a.status='completed' AND (a.booking_kind='consultation' OR s.service_type='consultation')
+        AND NOT EXISTS (SELECT 1 FROM appointments target WHERE target.business_id=a.business_id AND target.consultation_credit_source_appointment_id=a.id AND target.status!='cancelled')
+        AND NOT EXISTS (SELECT 1 FROM package_sales ps WHERE ps.business_id=a.business_id AND ps.consultation_credit_source_appointment_id=a.id AND ps.status NOT IN ('failed','cancelled'))
+      GROUP BY a.id
+      HAVING paid_minor>0
+      ORDER BY datetime(a.start_at) DESC
+    `).bind(user.business_id).all()
   ]);
-  const services=new Map((serviceRes.results||[]).map(s=>[key(s.name),s]));
+  const serviceRows=serviceRes.results||[];const services=new Map(serviceRows.map(s=>[key(s.name),s]));const servicesById=new Map(serviceRows.map(s=>[s.id,s]));
   const templates=templateRes.results||[],variants=variantRes.results||[];
   const packageChoices=new Map();
   for(const t of templates){packageChoices.set(key(t.name),{label:t.name,template:t,variant:null,serviceId:t.service_id,sessions:Number(t.sessions_total),price:Number(t.price_minor||0)});for(const v of variants.filter(v=>v.package_template_id===t.id)){const label=`${t.name} · ${v.name}`;packageChoices.set(key(label),{label,template:t,variant:v,serviceId:v.service_id,sessions:Number(t.sessions_total),price:Number(v.price_minor||0)});}}
@@ -84,26 +121,52 @@ export async function onRequestPost({request,env}){
     }
   }
   function resolveCustomer(raw,sheet,rn){const value=clean(raw,254);if(!value){err(errors,sheet,rn,"customer_email_or_phone","Choose the customer using their email address or phone number.");return null;}let c=null;if(value.includes("@")){const e=cleanEmail(value);if(e===null){err(errors,sheet,rn,"customer_email_or_phone","The customer email address is not valid.");return null;}c=customersByEmail.get(key(e));}else c=customersByPhone.get(phoneKey(value));if(!c)err(errors,sheet,rn,"customer_email_or_phone",`Customer '${value}' was not found. Add them on the Customers sheet first, or use the email/phone already stored in Eselram.`);return c?.id||null;}
+  function lookupCustomer(raw){const value=clean(raw,254);if(!value)return null;if(value.includes("@")){const e=cleanEmail(value);return e?customersByEmail.get(key(e))||null:null;}return customersByPhone.get(phoneKey(value))||null;}
+
+  const plannedBookingIds=new Map(),importedConsultations=[];
+  for(const input of rows.Bookings){
+    const customer=lookupCustomer(input.customer_email_or_phone),service=services.get(key(input.eselram_service)),status=normalizedStatus(input.status,"confirmed"),date=dateOnly(input.appointment_date),time=timeOnly(input.start_time),paid=money(input.amount_already_paid,0);
+    if(customer&&service?.service_type==="consultation"&&status==="completed"&&date&&time&&paid!==null&&paid>0){
+      const external=autoRef("booking",[customer.id,service.id,date,time]);
+      if(!existingRefs.has(`booking:${key(external)}`)){const id=`apt_${crypto.randomUUID()}`;plannedBookingIds.set(input,id);importedConsultations.push({id,customerId:customer.id,serviceId:service.id,paidMinor:paid,startAt:`${date}T${time}:00`});}
+    }
+  }
+  const availableExistingConsultations=(existingConsultationRes.results||[]).map(r=>({id:r.id,customerId:r.customer_id,serviceId:r.service_id,paidMinor:Number(r.paid_minor||0),startAt:r.start_at||""}));
+  const usedConsultationSources=new Set(),pendingPackageCredits=[];
 
   const importedPackageByCustomerChoice=new Map();
   const existingPackages=existingPackageRes.results||[];
 
   // Package/course balances. Package details come from the selected Eselram package rather than duplicated spreadsheet fields.
   for(const input of rows.Packages){
-    const rn=Number(input.__row||0),customerId=resolveCustomer(input.customer_email_or_phone,"Packages & Courses",rn),choiceText=clean(input.eselram_package_or_course,250),choice=packageChoices.get(key(choiceText)),status=normalizedStatus(input.status,"active"),starts=clean(input.start_date)?dateOnly(input.start_date):null,expires=clean(input.expiry_date)?dateOnly(input.expiry_date):null,discount=money(input.discount,0),voucher=clean(input.voucher_used,80).toUpperCase(),paid=money(input.amount_already_paid,0),method=clean(input.payment_method,80)||"imported";
+    const rn=Number(input.__row||0),customerId=resolveCustomer(input.customer_email_or_phone,"Packages & Courses",rn),choiceText=clean(input.eselram_package_or_course,250),choice=packageChoices.get(key(choiceText)),status=normalizedStatus(input.status,"active"),starts=clean(input.start_date)?dateOnly(input.start_date):null,expires=clean(input.expiry_date)?dateOnly(input.expiry_date):null,discount=money(input.discount,0),voucher=clean(input.voucher_used,80).toUpperCase(),consultationCredit=money(input.consultation_credit,0),paid=money(input.amount_already_paid,0),method=clean(input.payment_method,80)||"imported";
     if(!choice)err(errors,"Packages & Courses",rn,"eselram_package_or_course",`'${choiceText||"blank"}' does not match a current Eselram package/course. Choose a value from the dropdown.`);
     if(!PACKAGE_STATUSES.has(status))err(errors,"Packages & Courses",rn,"status","Status must be Active, Completed, Cancelled or Expired.");
     if(clean(input.start_date)&&!starts)err(errors,"Packages & Courses",rn,"start_date","Start date is invalid.");if(clean(input.expiry_date)&&!expires)err(errors,"Packages & Courses",rn,"expiry_date","Expiry date is invalid.");
     const basePrice=money(input.package_price,choice?.price??0);if(basePrice===null||discount===null||discount>basePrice)err(errors,"Packages & Courses",rn,"package_price","Package price or discount is invalid.");
-    const finalPrice=basePrice===null||discount===null?null:Math.max(basePrice-discount,0);if(paid===null||(finalPrice!==null&&paid>finalPrice))err(errors,"Packages & Courses",rn,"amount_already_paid","Amount already paid cannot be greater than the imported package price.");
-    if(customerId&&choice&&PACKAGE_STATUSES.has(status)&&finalPrice!==null&&paid!==null&&paid<=finalPrice){
+    const finalPrice=basePrice===null||discount===null?null:Math.max(basePrice-discount,0);
+    if(consultationCredit===null)err(errors,"Packages & Courses",rn,"consultation_credit","Consultation credit is invalid.");
+    if(finalPrice!==null&&consultationCredit!==null&&consultationCredit>finalPrice)err(errors,"Packages & Courses",rn,"consultation_credit","Consultation credit cannot be greater than the package value after discount.");
+    const remainingAfterCredit=finalPrice===null||consultationCredit===null?null:Math.max(finalPrice-consultationCredit,0);
+    if(paid===null||(remainingAfterCredit!==null&&paid>remainingAfterCredit))err(errors,"Packages & Courses",rn,"amount_already_paid","Amount already paid cannot be greater than the package balance after consultation credit.");
+    let creditSource=null;
+    if(customerId&&choice&&consultationCredit>0){
+      const treatmentService=servicesById.get(choice.serviceId),consultationServiceId=treatmentService?.consultation_service_id||choice.serviceId;
+      const candidates=[...importedConsultations,...availableExistingConsultations].filter(c=>c.customerId===customerId&&c.serviceId===consultationServiceId&&!usedConsultationSources.has(c.id)).sort((a,b)=>String(b.startAt||"").localeCompare(String(a.startAt||"")));
+      creditSource=candidates[0]||null;
+      if(!creditSource)err(errors,"Packages & Courses",rn,"consultation_credit","No unused paid completed consultation was found for this customer's package service. Import the consultation booking too, or leave Consultation credit blank.");
+      else if(consultationCredit>creditSource.paidMinor)err(errors,"Packages & Courses",rn,"consultation_credit",`Consultation credit cannot exceed the consultation payment of £${(creditSource.paidMinor/100).toFixed(2)}.`);
+    }
+    if(customerId&&choice&&PACKAGE_STATUSES.has(status)&&finalPrice!==null&&consultationCredit!==null&&remainingAfterCredit!==null&&paid!==null&&paid<=remainingAfterCredit&&(!consultationCredit||creditSource)){
       const mapKey=`${customerId}|${key(choice.label)}`;if(importedPackageByCustomerChoice.has(mapKey)){err(errors,"Packages & Courses",rn,"eselram_package_or_course","This customer already has the same package/course in this workbook. Import each package purchase once.");continue;}
       const external=autoRef("package",[customerId,choice.variant?.id||choice.template.id,starts||"",expires||"",finalPrice]);
       if(existingRefs.has(`package:${key(external)}`)){err(errors,"Packages & Courses",rn,"eselram_package_or_course","This package/course appears to have already been imported.");continue;}
       const id=`cpk_${crypto.randomUUID()}`;importedPackageByCustomerChoice.set(mapKey,{id,customerId,serviceId:choice.serviceId,label:choice.label});
       statements.push(env.DB.prepare(`INSERT INTO customer_packages(id,business_id,customer_id,package_template_id,service_id,name_snapshot,sessions_total,price_minor,status,starts_on,expires_on,notes,package_variant_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,user.business_id,customerId,choice.template.id,choice.serviceId,choice.label,choice.sessions,finalPrice,status,starts,expires,noteWithDiscount(input.notes,discount,voucher),choice.variant?.id||null));
       statements.push(env.DB.prepare(`INSERT INTO data_import_references(business_id,import_batch_id,entity_type,external_reference,internal_id) VALUES(?,?,?,?,?)`).bind(user.business_id,batchId,"package",external,id));
-      if(paid>0){const pid=`pay_${crypto.randomUUID()}`,ptype=paid>=finalPrice?"full":"deposit";paymentsCreated++;statements.push(env.DB.prepare(`INSERT INTO payments(id,business_id,appointment_id,customer_id,provider,payment_type,amount_minor,currency,status,provider_reference,paid_at,payment_method,notes) VALUES(?,?,NULL,?,'manual',?,?,?,'paid',?,CURRENT_TIMESTAMP,?,?)`).bind(pid,user.business_id,customerId,ptype,paid,String(user.currency||"GBP").toUpperCase(),`import:${external}`,method,"Imported historical package payment"));statements.push(env.DB.prepare(`INSERT INTO customer_package_payments(customer_package_id,payment_id) VALUES(?,?)`).bind(id,pid));}
+      let packagePaymentId=null;
+      if(paid>0){const pid=`pay_${crypto.randomUUID()}`,ptype=paid+consultationCredit>=finalPrice?"full":"deposit",amountBeforeDiscount=Math.max(0,basePrice-consultationCredit);packagePaymentId=pid;paymentsCreated++;statements.push(env.DB.prepare(`INSERT INTO payments(id,business_id,appointment_id,customer_id,provider,payment_type,amount_minor,currency,status,provider_reference,paid_at,payment_method,notes) VALUES(?,?,NULL,?,'manual',?,?,?,'paid',?,CURRENT_TIMESTAMP,?,?)`).bind(pid,user.business_id,customerId,ptype,paid,String(user.currency||"GBP").toUpperCase(),`import:${external}`,method,discountPaymentNotes("Imported historical package payment",discount,voucher,amountBeforeDiscount,currentVouchers)));statements.push(env.DB.prepare(`INSERT INTO customer_package_payments(customer_package_id,payment_id) VALUES(?,?)`).bind(id,pid));}
+      if(consultationCredit>0&&creditSource){usedConsultationSources.add(creditSource.id);pendingPackageCredits.push({customerPackageId:id,customerId,packageTemplateId:choice.template.id,packageVariantId:choice.variant?.id||null,paymentId:packagePaymentId,paymentChoice:paid+consultationCredit>=finalPrice?"full":"deposit",amountMinor:paid,sourceAppointmentId:creditSource.id,creditMinor:consultationCredit});}
     }
   }
 
@@ -118,12 +181,16 @@ export async function onRequestPost({request,env}){
     const basePrice=money(input.price,service?Number(service.price_minor||0):0);if(basePrice===null||discount===null||discount>basePrice)err(errors,"Bookings",rn,"price","Price or discount is invalid.");const finalPrice=pkg?0:(basePrice===null||discount===null?null:Math.max(basePrice-discount,0));if(paid===null||(finalPrice!==null&&paid>finalPrice))err(errors,"Bookings",rn,"amount_already_paid","Amount already paid cannot be greater than the appointment price.");if(pkg&&paid>0)err(errors,"Bookings",rn,"amount_already_paid","Leave Amount already paid blank for package-linked appointments. Package payments belong on Packages & Courses.");
     if(customerId&&service&&date&&time&&BOOKING_STATUSES.has(status)&&finalPrice!==null&&paid!==null&&paid<=finalPrice&&(!packageLabel||pkg)){
       const external=autoRef("booking",[customerId,service.id,date,time]);if(existingRefs.has(`booking:${key(external)}`)){err(errors,"Bookings",rn,"appointment_date","This booking appears to have already been imported.");continue;}
-      const id=`apt_${crypto.randomUUID()}`,duration=Number(service.duration_minutes||30),start=`${date}T${time}:00`,end=addMinutes(date,time,duration),kind=service.service_type==="consultation"?"consultation":"service";
+      const id=plannedBookingIds.get(input)||`apt_${crypto.randomUUID()}`,duration=Number(service.duration_minutes||30),start=`${date}T${time}:00`,end=addMinutes(date,time,duration),kind=service.service_type==="consultation"?"consultation":"service";
       statements.push(env.DB.prepare(`INSERT INTO appointments(id,business_id,customer_id,service_id,status,start_at,end_at,price_minor,deposit_due_minor,booking_source,booking_kind,customer_notes,internal_notes,cancelled_at,cancellation_reason,import_batch_id,external_reference,reminders_enabled) VALUES(?,?,?,?,?,?,?,?,0,'import',?,?,?,CASE WHEN ?='cancelled' THEN CURRENT_TIMESTAMP ELSE NULL END,?,?,?,?)`).bind(id,user.business_id,customerId,service.id,status,start,end,finalPrice,kind,clean(input.notes,3000)||null,noteWithDiscount(null,discount,voucher),status,clean(input.cancellation_reason,500)||null,batchId,external,yesNo(input.send_future_reminder,false)?1:0));
       statements.push(env.DB.prepare(`INSERT INTO data_import_references(business_id,import_batch_id,entity_type,external_reference,internal_id) VALUES(?,?,?,?,?)`).bind(user.business_id,batchId,"booking",external,id));
       if(pkg?.id)statements.push(env.DB.prepare(`INSERT INTO customer_package_appointments(customer_package_id,appointment_id) VALUES(?,?)`).bind(pkg.id,id));
       if(paid>0){const pid=`pay_${crypto.randomUUID()}`,ptype=paid>=finalPrice?"full":"deposit";paymentsCreated++;statements.push(env.DB.prepare(`INSERT INTO payments(id,business_id,appointment_id,customer_id,provider,payment_type,amount_minor,currency,status,provider_reference,paid_at,payment_method,notes) VALUES(?,?,?,?,'manual',?,?,?,'paid',?,CURRENT_TIMESTAMP,?,?)`).bind(pid,user.business_id,id,customerId,ptype,paid,String(user.currency||"GBP").toUpperCase(),`import:${external}`,method,"Imported historical booking payment"));}
     }
+  }
+
+  for(const credit of pendingPackageCredits){
+    statements.push(env.DB.prepare(`INSERT INTO package_sales(id,business_id,customer_id,package_template_id,package_variant_id,source,payment_choice,amount_minor,currency,status,payment_id,customer_package_id,created_by_user_id,paid_at,consultation_credit_source_appointment_id,consultation_credit_minor) VALUES(?,?,?,?,?,'staff',?,?,?,'paid',?,?,?,CURRENT_TIMESTAMP,?,?)`).bind(`psl_${crypto.randomUUID()}`,user.business_id,credit.customerId,credit.packageTemplateId,credit.packageVariantId,credit.paymentChoice,credit.amountMinor,String(user.currency||"GBP").toUpperCase(),credit.paymentId,credit.customerPackageId,user.user_id,credit.sourceAppointmentId,credit.creditMinor));
   }
 
   // Optional standard treatment history.
