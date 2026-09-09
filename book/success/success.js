@@ -46,6 +46,22 @@ function money(minor, currency = "GBP") {
   }).format(Number(minor || 0) / 100);
 }
 
+
+function safeWebsiteUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function formatDateTime(value) {
   try {
     return new Intl.DateTimeFormat("en-GB", {
@@ -149,6 +165,19 @@ async function init() {
         false;
     }
 
+    const returnWebsiteLink =
+      document.querySelector("#returnWebsiteLink");
+    const businessWebsite =
+      safeWebsiteUrl(data.business?.website);
+
+    if (returnWebsiteLink && businessWebsite) {
+      returnWebsiteLink.href = businessWebsite;
+      returnWebsiteLink.textContent = data.business?.name
+        ? `Return to ${data.business.name}`
+        : "Return to website";
+      returnWebsiteLink.dataset.externalWebsite = "1";
+    }
+
     const requirements = [];
     if (
       Number(
@@ -181,21 +210,25 @@ async function init() {
 }
 
 
-const backToBookingLink =
+const returnWebsiteLink =
   document.querySelector(
-    'a[href="/book/"]'
+    "#returnWebsiteLink"
   );
 
-backToBookingLink?.addEventListener(
+returnWebsiteLink?.addEventListener(
   "click",
   event => {
-    event.preventDefault();
-
     clearCompletedCheckoutState();
 
-    window.location.replace(
-      "/book/"
-    );
+    if (
+      returnWebsiteLink.dataset.externalWebsite ===
+      "1"
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    window.location.replace("/book/");
   }
 );
 

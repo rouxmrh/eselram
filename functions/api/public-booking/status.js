@@ -276,6 +276,11 @@ export async function onRequestGet({ request, env }) {
       manage_url:
         manageUrl,
 
+      business: {
+        name: business.name || null,
+        website: business.website || null
+      },
+
       confirmed
     });
   } catch (error) {
