@@ -152,6 +152,48 @@
       line-height:1.4;
     }
 
+    .es-service-editor-shell #serviceReviewRequestWrap {
+      grid-column:1 / -1;
+      min-height:78px;
+      padding:16px 18px;
+      align-items:flex-start;
+      border-color:#dce3eb;
+      border-radius:16px;
+      background:linear-gradient(180deg,#fbfcfe 0%,#f5f8fb 100%);
+      box-shadow:0 6px 18px rgba(35,55,79,.045);
+    }
+
+    .es-service-editor-shell #serviceReviewRequestWrap input {
+      width:17px;
+      height:17px;
+      margin-top:2px;
+    }
+
+    .es-service-editor-shell .es-review-request-copy {
+      display:block;
+      min-width:0;
+    }
+
+    .es-service-editor-shell .es-review-request-copy strong {
+      display:block;
+      color:#203753;
+      font-size:13px;
+      line-height:1.35;
+    }
+
+    .es-service-editor-shell #serviceReviewRequestWrap .es-muted-copy {
+      max-width:760px;
+      margin-top:5px;
+      font-size:11px;
+      line-height:1.5;
+    }
+
+    .es-service-editor-shell #serviceReviewRequestWrap:has(input:checked) {
+      border-color:rgba(54,81,120,.42);
+      background:linear-gradient(180deg,#f7faff 0%,#eef3f9 100%);
+      box-shadow:0 7px 20px rgba(54,81,120,.07);
+    }
+
     .es-service-editor-shell .es-form-actions {
       display:flex;
       align-items:center;
@@ -542,17 +584,6 @@
             </label>
 
 
-            <label class="es-check-option" id="serviceReviewRequestWrap">
-              <input id="serviceReviewRequest" type="checkbox">
-
-              Send Google review request after completion
-
-              <small class="es-muted-copy">
-                For single treatments only. The request is sent after this treatment is marked complete, but only when a Google review link exists in Settings → Notifications. Consultations never send one.
-              </small>
-            </label>
-
-
             <label class="es-check-option">
               <input
                 id="serviceActive"
@@ -561,6 +592,18 @@
               >
 
               Service is active
+            </label>
+
+
+            <label class="es-check-option es-review-request-option" id="serviceReviewRequestWrap">
+              <input id="serviceReviewRequest" type="checkbox">
+
+              <span class="es-review-request-copy">
+                <strong>Send Google review request after completion</strong>
+                <small class="es-muted-copy">
+                  For single treatments only. Sent after this treatment is marked complete when a Google review link exists in Settings → Notifications. Consultations never send one.
+                </small>
+              </span>
             </label>
 
           </div>

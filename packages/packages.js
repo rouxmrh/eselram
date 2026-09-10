@@ -951,7 +951,7 @@ function renderPackageReviewSessions(selected = []) {
   wrap.innerHTML = total > 0
     ? Array.from({length:total}, (_,index) => {
         const session = index + 1;
-        return `<label class="es-check-option"><input type="checkbox" name="packageReviewSession" value="${session}" ${selectedSet.has(session) ? "checked" : ""}> After session ${session}</label>`;
+        return `<label class="es-package-review-option"><input type="checkbox" name="packageReviewSession" value="${session}" ${selectedSet.has(session) ? "checked" : ""}><span>After session ${session}</span></label>`;
       }).join("")
     : `<p class="es-muted-copy">Enter the number of sessions to choose review request timing.</p>`;
 }

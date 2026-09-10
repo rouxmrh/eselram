@@ -592,6 +592,71 @@
       line-height:1.45;
     }
 
+    #templateDialog #packageReviewRequestSection {
+      padding:20px;
+      border-color:#dce3eb;
+      background:linear-gradient(180deg,#fbfcfe 0%,#f5f8fb 100%);
+      box-shadow:0 7px 20px rgba(35,55,79,.045);
+    }
+
+    #templateDialog #packageReviewRequestSection .es-package-variants-head {
+      margin-bottom:16px;
+    }
+
+    #templateDialog #packageReviewRequestSection .es-package-variants-head strong {
+      color:#203753;
+      font-size:14px;
+      line-height:1.3;
+    }
+
+    #templateDialog #packageReviewSessionChoices {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin-top:0 !important;
+    }
+
+    #templateDialog .es-package-review-option {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-height:48px;
+      margin:0;
+      padding:12px 14px;
+      border:1px solid #dfe5eb;
+      border-radius:12px;
+      background:#fff;
+      box-sizing:border-box;
+      cursor:pointer;
+      transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
+    }
+
+    #templateDialog .es-package-review-option input {
+      width:17px;
+      height:17px;
+      flex:0 0 auto;
+      margin:0;
+    }
+
+    #templateDialog .es-package-review-option span {
+      color:#263b55;
+      font-size:12px;
+      font-weight:750;
+      line-height:1.25;
+    }
+
+    #templateDialog .es-package-review-option:has(input:checked) {
+      border-color:rgba(54,81,120,.45);
+      background:#eef3f9;
+      box-shadow:0 4px 12px rgba(54,81,120,.055);
+    }
+
+    @media(max-width:620px) {
+      #templateDialog #packageReviewSessionChoices {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+    }
+
     #templateDialog .es-package-variant-row {
       grid-template-columns:
         minmax(90px,.75fr)
