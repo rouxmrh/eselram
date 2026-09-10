@@ -1611,7 +1611,7 @@
                   >
 
                   <small class="es-field-help">
-                    Optional for now. It will be used by client-side Stripe payment interfaces.
+                    Identifies the connected Stripe account. This is normally configured during setup and should not be changed.
                   </small>
                 </label>
 
@@ -1675,7 +1675,7 @@
                 </div>
 
                 <small class="es-field-help">
-                  Add this URL as a webhook endpoint in the business's own Stripe account, then paste Stripe's signing secret below.
+                  Used by Eselram to receive payment updates from Stripe. Do not change or remove this endpoint unless instructed.
                 </small>
               </label>
 
@@ -1694,7 +1694,7 @@
                   id="stripeWebhookSecretHelp"
                   class="es-field-help"
                 >
-                  Optional at this stage. Add it when the Stripe webhook endpoint is enabled for live online payments.
+                  Used to securely verify payment updates received from Stripe. Leave unchanged unless you are specifically updating the webhook connection.
                 </small>
               </label>
 
