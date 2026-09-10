@@ -1,1 +1,65 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>File Recovery · Eselram</title><link rel="stylesheet" href="/styles.css"></head><body><main class="es-page"><section class="es-panel" style="max-width:980px;margin:40px auto;padding:28px"><p class="es-eyebrow">Settings</p><h1>File recovery</h1><p class="es-muted-copy">Protected copies are created before Eselram deletes customer photos or clinical form uploads. Restoring a file puts the object back at its original R2 key; if its database record was also deleted, recover the database to the matching point as well.</p><p><a href="/settings/?section=updates">← Back to Updates</a></p><div id="fileRecoveryStatus" class="es-status" hidden></div><div id="fileRecoveryList"></div></section></main><script src="/settings/file-recovery.js" type="module"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Recovery | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css?v=20260821-mobile-nav-v2">
+  <style>
+    .es-recovery-wrap{max-width:980px}
+    .es-recovery-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
+    .es-recovery-panel{border:1px solid var(--es-border);border-radius:18px;background:var(--es-surface);padding:22px;box-shadow:0 7px 22px rgba(28,34,30,.035)}
+    .es-recovery-summary{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px}
+    .es-recovery-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid var(--es-border);border-radius:999px;background:#f7f8f5;font-size:13px;font-weight:700}
+    .es-recovery-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:#365178}
+    .es-recovery-list{display:grid;gap:12px;margin-top:18px}
+    .es-recovery-card{border:1px solid var(--es-border);border-radius:16px;background:#fbfcfa;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .es-recovery-main{min-width:0}
+    .es-recovery-name{font-size:17px;font-weight:800;overflow-wrap:anywhere}
+    .es-recovery-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;color:var(--es-muted);font-size:13px}
+    .es-recovery-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#eef2ec;color:#33463f;font-weight:800;text-transform:capitalize}
+    .es-recovery-actions{flex:0 0 auto}
+    .es-recovery-note{margin-top:16px;padding:13px 15px;border-radius:12px;background:#f4f6f8;border:1px solid var(--es-border);font-size:13px;color:var(--es-muted)}
+    @media(max-width:760px){.es-recovery-hero,.es-recovery-card{flex-direction:column;align-items:stretch}.es-recovery-actions .es-button,.es-recovery-hero .es-secondary-button{width:100%;justify-content:center}}
+  </style>
+</head>
+<body class="es-dashboard-body">
+  <div class="es-dashboard-layout">
+    <aside id="appSidebar" class="es-sidebar"></aside>
+    <main class="es-dashboard-main">
+      <div class="es-recovery-wrap">
+        <header class="es-recovery-hero">
+          <div>
+            <p class="es-eyebrow">Settings · Recovery</p>
+            <h1>File recovery</h1>
+            <p class="es-lead">Recover protected customer photos and clinical uploads from your 30-day R2 recovery area.</p>
+          </div>
+          <a class="es-secondary-button" href="/settings/?section=updates" style="text-decoration:none;display:inline-flex;align-items:center">Back to updates</a>
+        </header>
+
+        <section class="es-recovery-panel">
+          <div class="es-panel-header">
+            <div>
+              <p class="es-eyebrow">Protected files</p>
+              <h2>R2 recovery copies</h2>
+              <p class="es-muted-copy">Eselram creates a protected copy before a supported live file is deleted. Available copies can be restored to their original R2 location.</p>
+            </div>
+          </div>
+          <div class="es-recovery-summary">
+            <span class="es-recovery-pill">30-day protection</span>
+            <span id="fileRecoveryCount" class="es-recovery-pill">Loading recovery copies…</span>
+          </div>
+          <div id="fileRecoveryStatus" class="es-status" hidden></div>
+          <div id="fileRecoveryList" class="es-recovery-list"></div>
+          <div class="es-recovery-note">For a customer photo, Eselram restores both the protected R2 object and its customer-photo record when the recovery copy contains the required metadata. If a whole clinical record was deleted, use Database Recovery to restore that record to the matching point first.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script type="module">
+    import { renderSidebar } from "/components/sidebar.js?v=20260821-mobile-nav-v2";
+    renderSidebar("settings");
+  </script>
+  <script src="/settings/file-recovery.js" type="module"></script>
+</body>
+</html>

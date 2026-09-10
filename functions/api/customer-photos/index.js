@@ -863,7 +863,25 @@ export async function onRequestDelete({
         originalName: photo.original_name || null,
         mimeType: photo.mime_type || null,
         sizeBytes: photo.size_bytes || null,
-        reason: "customer_photo_delete"
+        reason: "customer_photo_delete",
+        sourceMetadata: {
+          id: photo.id,
+          customer_id: photo.customer_id,
+          appointment_id: photo.appointment_id || null,
+          service_id: photo.service_id || null,
+          treatment_record_id: photo.treatment_record_id || null,
+          photo_type: photo.photo_type || "other",
+          storage_provider: photo.storage_provider || "r2",
+          storage_key: photo.storage_key,
+          original_name: photo.original_name || null,
+          mime_type: photo.mime_type || "application/octet-stream",
+          size_bytes: Number(photo.size_bytes || 0),
+          taken_at: photo.taken_at || null,
+          notes: photo.notes || null,
+          uploaded_by_user_id: photo.uploaded_by_user_id || null,
+          created_at: photo.created_at || null,
+          updated_at: photo.updated_at || null
+        }
       });
       await env.FORM_UPLOADS.delete(photo.storage_key);
     }

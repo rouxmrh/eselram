@@ -248,7 +248,7 @@ export async function onRequestDelete({request,env}){
     }
 
     const uploadRows=await env.DB.prepare(`
-      SELECT id,storage_provider,storage_key
+      SELECT id,submission_id,business_id,field_key,storage_provider,storage_key,original_name,mime_type,size_bytes,created_at
       FROM clinical_form_uploads
       WHERE submission_id=? AND business_id=?
     `).bind(submissionId,user.business_id).all();
@@ -257,7 +257,15 @@ export async function onRequestDelete({request,env}){
       if(upload.storage_provider==="r2"&&upload.storage_key&&env.FORM_UPLOADS){
         await preserveR2ObjectBeforeDelete({
           env, businessId:user.business_id, originalKey:upload.storage_key,
-          sourceType:"clinical_form_upload", sourceId:upload.id, reason:"clinical_record_delete"
+          sourceType:"clinical_form_upload", sourceId:upload.id,
+          originalName:upload.original_name || null, mimeType:upload.mime_type || null,
+          sizeBytes:upload.size_bytes || null, reason:"clinical_record_delete",
+          sourceMetadata:{
+            id:upload.id, submission_id:upload.submission_id, field_key:upload.field_key,
+            storage_provider:upload.storage_provider || "r2", storage_key:upload.storage_key,
+            original_name:upload.original_name, mime_type:upload.mime_type || null,
+            size_bytes:Number(upload.size_bytes || 0), created_at:upload.created_at || null
+          }
         });
         await env.FORM_UPLOADS.delete(upload.storage_key);
       }
