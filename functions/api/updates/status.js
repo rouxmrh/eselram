@@ -6,6 +6,16 @@ export async function onRequestGet({ request, env }) {
     if (auth.response) return auth.response;
     const assertion = await installedUpdateAssertion(env);
     const result = await brokerJson(env, "/api/installed-update/status", assertion);
+    let recovery = null;
+    try {
+      recovery = await env.DB.prepare(`
+        SELECT id, recovery_type, bookmark, from_version, target_version, status, created_at
+        FROM eselram_recovery_points
+        WHERE status = 'available'
+        ORDER BY datetime(created_at) DESC
+        LIMIT 1
+      `).first();
+    } catch {}
     return Response.json({
       ok: true,
       installed_version: result.installation?.installed_version || assertion.current_version,
@@ -14,7 +24,11 @@ export async function onRequestGet({ request, env }) {
       release_type: result.release?.release_type || null,
       release_notes: result.release?.release_notes || null,
       published_at: result.release?.published_at || null,
-      updates_until: result.license?.updates_until || null
+      updates_until: result.license?.updates_until || null,
+      recovery_protection: {
+        time_travel: true,
+        latest: recovery || null
+      }
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return Response.json({ ok: false, error: error?.message || "Unable to check for Eselram updates." }, {

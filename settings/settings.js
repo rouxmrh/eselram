@@ -403,6 +403,25 @@ async function loadUpdateInformation() {
       messageNode.textContent = `Eselram ${installed} is installed on this business.`;
     }
 
+    const recoveryMessage = document.getElementById("recoveryProtectionMessage");
+    const recoveryPoint = document.getElementById("latestRecoveryPoint");
+    if (recoveryMessage) {
+      recoveryMessage.textContent = "Cloudflare D1 Time Travel is active. Eselram captures a recovery point immediately before protected database migrations.";
+    }
+    if (recoveryPoint) {
+      const latest = data?.recovery_protection?.latest;
+      if (latest?.created_at) {
+        const when = new Date(`${String(latest.created_at).replace(" ", "T")}Z`);
+        const from = String(latest.from_version || "previous version");
+        const target = String(latest.target_version || "update");
+        recoveryPoint.textContent = `Latest pre-update recovery point: ${Number.isNaN(when.getTime()) ? latest.created_at : when.toLocaleString()} · ${from} → ${target}`;
+        recoveryPoint.hidden = false;
+      } else {
+        recoveryPoint.textContent = "No Eselram pre-update recovery point has been recorded yet. One will be captured automatically before the next protected update.";
+        recoveryPoint.hidden = false;
+      }
+    }
+
     if (data.update_available === true && available) {
       if (titleNode) titleNode.textContent = `Eselram ${available} is available`;
       if (availableMessageNode) {
