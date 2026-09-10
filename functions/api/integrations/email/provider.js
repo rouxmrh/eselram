@@ -51,7 +51,7 @@ export async function onRequestGet({ request, env }) {
   return Response.json({
     ok: true,
     active_provider:
-      row?.setting_value || "resend"
+      row?.setting_value || "gmail"
   });
 }
 

@@ -779,10 +779,8 @@ export async function onRequestGet({
           gmailComplete
             ? "Gmail is connected and can send automated client emails without a business domain."
             : resendComplete
-              ? "The business's Resend connection and verified sending domain are ready."
-              : emailIntegration?.provider === "resend"
-                ? "Connect Gmail for domain-free sending, or verify a business domain to send through Resend."
-                : "Connect Gmail or configure Resend later. A website is not required.",
+              ? "The business email connection is ready."
+              : "Connect Gmail to send confirmations, reminders and other client emails. A website or sending domain is not required.",
         href:
           "/settings/#email",
         required:

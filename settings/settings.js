@@ -1636,7 +1636,7 @@ async function loadEmailProviderChoice() {
 
     const active =
       providerData?.active_provider ||
-      "resend";
+      "gmail";
 
     const gmail =
       gmailData?.gmail || {};
@@ -1713,11 +1713,8 @@ async function loadEmailProviderChoice() {
         active === "resend";
     }
 
-    if (resendSettingsSection) {
-      // Keep Resend configuration visible even when Gmail is active so a
-      // business can prepare a branded domain before switching later.
-      resendSettingsSection.hidden = false;
-    }
+    if (resendProviderCard) resendProviderCard.hidden = true;
+    if (resendSettingsSection) resendSettingsSection.hidden = true;
 
     if (
       emailIntegrationStatus &&
