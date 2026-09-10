@@ -1,3 +1,4 @@
+import { preserveR2ObjectBeforeDelete } from "../../../lib/r2-protection.js";
 import {
   readSessionToken,
   hashSessionToken
@@ -852,34 +853,28 @@ export async function onRequestDelete({
       );
     }
 
+    if (env.FORM_UPLOADS && photo.storage_key) {
+      await preserveR2ObjectBeforeDelete({
+        env,
+        businessId: user.business_id,
+        originalKey: photo.storage_key,
+        sourceType: "customer_photo",
+        sourceId: photoId,
+        originalName: photo.original_name || null,
+        mimeType: photo.mime_type || null,
+        sizeBytes: photo.size_bytes || null,
+        reason: "customer_photo_delete"
+      });
+      await env.FORM_UPLOADS.delete(photo.storage_key);
+    }
+
     await env.DB
       .prepare(`
         DELETE FROM customer_photos
-        WHERE
-          id = ?
-          AND business_id = ?
+        WHERE id = ? AND business_id = ?
       `)
-      .bind(
-        photoId,
-        user.business_id
-      )
+      .bind(photoId, user.business_id)
       .run();
-
-    if (
-      env.FORM_UPLOADS &&
-      photo.storage_key
-    ) {
-      try {
-        await env.FORM_UPLOADS.delete(
-          photo.storage_key
-        );
-      } catch (error) {
-        console.error(
-          "Unable to delete customer photo object:",
-          error
-        );
-      }
-    }
 
     return Response.json({
       ok: true

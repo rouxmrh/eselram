@@ -453,6 +453,20 @@ async function loadUpdateInformation() {
       }
     }
 
+    const fileProtectionMessage = document.getElementById("fileProtectionMessage");
+    const latestProtectedFile = document.getElementById("latestProtectedFile");
+    if (fileProtectionMessage) {
+      const fp = data?.file_protection || {};
+      fileProtectionMessage.textContent = fp.active
+        ? `R2 recovery protection is active. Deleted protected files are copied to a 30-day recovery area before the live object is removed. ${Number(fp.available_count || 0)} recovery ${Number(fp.available_count || 0) === 1 ? "copy is" : "copies are"} currently available.`
+        : "R2 recovery protection will become active when the file-recovery migration is installed.";
+      if (latestProtectedFile && fp.latest?.created_at) {
+        const when = new Date(`${String(fp.latest.created_at).replace(" ", "T")}Z`);
+        latestProtectedFile.textContent = `Latest protected file: ${fp.latest.original_name || fp.latest.source_type || "file"} · ${Number.isNaN(when.getTime()) ? fp.latest.created_at : when.toLocaleString()}`;
+        latestProtectedFile.hidden = false;
+      }
+    }
+
     if (data.update_available === true && available) {
       if (titleNode) titleNode.textContent = `Eselram ${available} is available`;
       if (availableMessageNode) {

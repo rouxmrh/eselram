@@ -43,7 +43,8 @@ const EXPECTED_MIGRATIONS = [
   "036_gmail_email_provider",
   "037_password_reset",
   "038_data_imports",
-  "039_update_recovery_points"
+  "039_update_recovery_points",
+  "040_r2_file_recovery"
 ];
 
 

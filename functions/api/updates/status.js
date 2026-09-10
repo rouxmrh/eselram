@@ -19,6 +19,12 @@ export async function onRequestGet({ request, env }) {
       recoveryPoints = Array.isArray(rows?.results) ? rows.results : [];
       recovery = recoveryPoints[0] || null;
     } catch {}
+    let fileProtection = { active: false, retention_days: 30, available_count: 0, latest: null };
+    try {
+      const countRow = await env.DB.prepare(`SELECT COUNT(*) AS count FROM eselram_file_recovery_objects WHERE status='available'`).first();
+      const latestFile = await env.DB.prepare(`SELECT id,source_type,source_id,original_name,reason,protected_until,created_at FROM eselram_file_recovery_objects WHERE status='available' ORDER BY datetime(created_at) DESC LIMIT 1`).first();
+      fileProtection = { active: true, retention_days: 30, available_count: Number(countRow?.count || 0), latest: latestFile || null };
+    } catch {}
     return Response.json({
       ok: true,
       installed_version: result.installation?.installed_version || assertion.current_version,
@@ -42,7 +48,8 @@ export async function onRequestGet({ request, env }) {
           recovery?.target_version &&
           String(recovery.target_version) === String(result.installation?.installed_version || assertion.current_version)
         )
-      }
+      },
+      file_protection: fileProtection
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return Response.json({ ok: false, error: error?.message || "Unable to check for Eselram updates." }, {

@@ -1,3 +1,4 @@
+import { preserveR2ObjectBeforeDelete } from "../../../lib/r2-protection.js";
 import {readSessionToken,hashSessionToken} from "../../../lib/auth.js";
 
 async function getUserContext(request,env){
@@ -254,9 +255,11 @@ export async function onRequestDelete({request,env}){
 
     for(const upload of uploadRows.results||[]){
       if(upload.storage_provider==="r2"&&upload.storage_key&&env.FORM_UPLOADS){
-        try{await env.FORM_UPLOADS.delete(upload.storage_key)}catch(error){
-          console.error("Unable to delete clinical upload:",error);
-        }
+        await preserveR2ObjectBeforeDelete({
+          env, businessId:user.business_id, originalKey:upload.storage_key,
+          sourceType:"clinical_form_upload", sourceId:upload.id, reason:"clinical_record_delete"
+        });
+        await env.FORM_UPLOADS.delete(upload.storage_key);
       }
     }
 
