@@ -5,7 +5,8 @@ import {
 
 import {
   runDueReminders,
-  getCommunicationSettings
+  getCommunicationSettings,
+  sendAppointmentCommunication
 } from "../../../lib/communications.js";
 
 import {
@@ -207,6 +208,150 @@ export async function onRequestPost({
 
     const body =
       await request.json();
+
+    if (
+      body.action ===
+      "resend_aftercare"
+    ) {
+      const communicationId =
+        String(
+          body.communication_id ||
+          ""
+        ).trim();
+
+      if (!communicationId) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Communication id is required."
+          },
+          { status: 400 }
+        );
+      }
+
+      const communication =
+        await env.DB
+          .prepare(`
+            SELECT
+              id,
+              appointment_id,
+              communication_type,
+              status,
+              unique_key
+            FROM customer_communications
+            WHERE
+              id = ?
+              AND business_id = ?
+            LIMIT 1
+          `)
+          .bind(
+            communicationId,
+            user.business_id
+          )
+          .first();
+
+      if (!communication) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Communication not found."
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        communication.communication_type !==
+        "treatment_aftercare"
+      ) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Only treatment aftercare emails can be resent here."
+          },
+          { status: 400 }
+        );
+      }
+
+      if (
+        communication.status !==
+        "failed"
+      ) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Only failed aftercare emails can be resent."
+          },
+          { status: 409 }
+        );
+      }
+
+      if (!communication.appointment_id) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "This aftercare email is not linked to a booking."
+          },
+          { status: 400 }
+        );
+      }
+
+      const result =
+        await sendAppointmentCommunication({
+          env,
+          businessId:
+            user.business_id,
+          appointmentId:
+            communication.appointment_id,
+          type:
+            "treatment_aftercare",
+          uniqueKey:
+            communication.unique_key ||
+            `treatment_aftercare:${communication.appointment_id}`,
+          baseUrl:
+            new URL(
+              request.url
+            ).origin
+        });
+
+      if (!result.ok) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              result.error ||
+              "Unable to resend aftercare email."
+          },
+          { status: 502 }
+        );
+      }
+
+      if (result.skipped) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              result.reason === "no_email"
+                ? "The customer does not have an email address."
+                : "Aftercare could not be resent for this booking."
+          },
+          { status: 400 }
+        );
+      }
+
+      return Response.json({
+        ok: true,
+        resent: true,
+        provider_id:
+          result.provider_id ||
+          null
+      });
+    }
 
     if (
       body.action !==

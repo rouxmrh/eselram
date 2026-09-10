@@ -546,6 +546,22 @@ function openDrawer(row) {
       `
       : "";
 
+  const resendAftercareButton =
+    row.communication_type ===
+      "treatment_aftercare" &&
+    row.status === "failed" &&
+    row.appointment_id
+      ? `
+        <button
+          class="es-button"
+          type="button"
+          data-resend-aftercare="${escapeHtml(row.id)}"
+        >
+          Resend aftercare
+        </button>
+      `
+      : "";
+
   drawerContent.innerHTML = `
     <div class="es-comms-detail-grid">
       <div class="es-comms-detail">
@@ -606,6 +622,7 @@ function openDrawer(row) {
     ${errorBlock}
 
     <div class="es-comms-drawer-actions">
+      ${resendAftercareButton}
       ${customerLink}
       ${
         row.appointment_id
@@ -622,6 +639,93 @@ function openDrawer(row) {
       }
     </div>
   `;
+
+  const resendButton =
+    drawerContent.querySelector(
+      "[data-resend-aftercare]"
+    );
+
+  resendButton?.addEventListener(
+    "click",
+    async () => {
+      resendButton.disabled = true;
+      const originalText =
+        resendButton.textContent;
+      resendButton.textContent =
+        "Sending…";
+
+      try {
+        const response =
+          await fetch(
+            "/api/communications",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                Accept:
+                  "application/json"
+              },
+              body:
+                JSON.stringify({
+                  action:
+                    "resend_aftercare",
+                  communication_id:
+                    row.id
+                })
+            }
+          );
+
+        if (response.status === 401) {
+          window.location.href =
+            "/auth/login.html";
+          return;
+        }
+
+        const data =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+          throw new Error(
+            data.error ||
+            "Unable to resend aftercare email."
+          );
+        }
+
+        await loadCommunications();
+
+        const refreshed =
+          rows.find(
+            item =>
+              item.id === row.id
+          );
+
+        if (refreshed) {
+          openDrawer(refreshed);
+        }
+
+        statusBox.hidden = false;
+        statusBox.className =
+          "es-status success";
+        statusBox.textContent =
+          "Aftercare email resent successfully.";
+      } catch (error) {
+        resendButton.disabled = false;
+        resendButton.textContent =
+          originalText;
+
+        statusBox.hidden = false;
+        statusBox.className =
+          "es-status error";
+        statusBox.textContent =
+          error.message ||
+          "Unable to resend aftercare email.";
+      }
+    }
+  );
 
   drawer.classList.add("is-open");
   drawerBackdrop.classList.add("is-open");
