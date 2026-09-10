@@ -895,6 +895,9 @@ function openForm(
       .checked =
         service.is_active === 1;
 
+    document.getElementById("serviceReviewRequest").checked =
+      service.review_request_enabled === true;
+
 
     renderProviders(
       service.providers || []
@@ -928,6 +931,8 @@ function openForm(
         "serviceActive"
       )
       .checked = true;
+
+    document.getElementById("serviceReviewRequest").checked = false;
 
     requiresConsultation.checked =
       false;
@@ -994,6 +999,14 @@ function updateConsultationFields() {
     .hidden =
       isConsultationService ||
       !requiresConsultation.checked;
+
+  const reviewWrap = document.getElementById("serviceReviewRequestWrap");
+  const reviewInput = document.getElementById("serviceReviewRequest");
+  if (reviewWrap && reviewInput) {
+    reviewWrap.hidden = isConsultationService;
+    reviewInput.disabled = isConsultationService;
+    if (isConsultationService) reviewInput.checked = false;
+  }
 }
 
 
@@ -1171,7 +1184,11 @@ form.addEventListener(
           .getElementById(
             "serviceActive"
           )
-          .checked
+          .checked,
+
+      review_request_enabled:
+        serviceType.value !== "consultation" &&
+        document.getElementById("serviceReviewRequest").checked
     };
 
 

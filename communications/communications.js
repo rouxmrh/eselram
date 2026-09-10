@@ -178,7 +178,9 @@ function label(type) {
     package_payment_confirmation:
       "Package payment confirmation",
     treatment_aftercare:
-      "Treatment aftercare"
+      "Treatment aftercare",
+    google_review_request:
+      "Google review request"
   };
 
   return labels[type] ||

@@ -943,6 +943,19 @@ function updatePackagePublicAvailability() {
 }
 
 
+function renderPackageReviewSessions(selected = []) {
+  const wrap = $("#packageReviewSessionChoices");
+  if (!wrap) return;
+  const total = Math.max(0, Number($("#templateSessions").value || 0));
+  const selectedSet = new Set((selected || []).map(Number));
+  wrap.innerHTML = total > 0
+    ? Array.from({length:total}, (_,index) => {
+        const session = index + 1;
+        return `<label class="es-check-option"><input type="checkbox" name="packageReviewSession" value="${session}" ${selectedSet.has(session) ? "checked" : ""}> After session ${session}</label>`;
+      }).join("")
+    : `<p class="es-muted-copy">Enter the number of sessions to choose review request timing.</p>`;
+}
+
 function openTemplateDialog(template = null) {
   $("#templateForm").reset();
   $("#templateStatus").hidden = true;
@@ -968,6 +981,7 @@ function openTemplateDialog(template = null) {
   renderVariantEmpty();
   updateVariantPricingMode();
   updateTemplatePaymentVisibility();
+  renderPackageReviewSessions(template?.review_sessions || []);
 
   updatePackagePublicAvailability();
 
@@ -1046,6 +1060,10 @@ $("#templateService").addEventListener(
   "change",
   updatePackagePublicAvailability
 );
+$("#templateSessions").addEventListener("input", () => {
+  const selected = Array.from(document.querySelectorAll('input[name="packageReviewSession"]:checked')).map(input => Number(input.value));
+  renderPackageReviewSessions(selected);
+});
 $("#addPackageVariant").addEventListener("click", () => {
   addVariantRow();
   updateVariantPricingMode();
@@ -1105,6 +1123,7 @@ $("#templateForm").addEventListener("submit", async event => {
       name: $("#templateName").value.trim(),
       service_id: $("#templateService").value,
       sessions_total: Number($("#templateSessions").value),
+      review_sessions: Array.from(document.querySelectorAll('input[name="packageReviewSession"]:checked')).map(input => Number(input.value)),
       price_minor: derivedPriceMinor,
       payment_rule:
         variants.length

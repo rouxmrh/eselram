@@ -3741,6 +3741,9 @@ async function loadNotificationSettings() {
             .form_reminder_hours_after ||
           48
         );
+
+    const googleReviewUrl = document.getElementById("googleReviewUrl");
+    if (googleReviewUrl) googleReviewUrl.value = settings.google_review_url || "";
   } catch (error) {
     notificationSettingsStatus.hidden =
       false;
@@ -3848,7 +3851,10 @@ notificationSettingsForm
                       .getElementById(
                         "notifyPaymentReceipts"
                       )
-                      .checked
+                      .checked,
+
+                  google_review_url:
+                    document.getElementById("googleReviewUrl")?.value.trim() || ""
                 })
             }
           );
@@ -3883,6 +3889,27 @@ notificationSettingsForm
       }
     }
   );
+
+
+document.getElementById("sendTestReviewButton")?.addEventListener("click", async () => {
+  const button = document.getElementById("sendTestReviewButton");
+  const recipient = document.getElementById("reviewTestRecipient")?.value.trim() || "";
+  notificationSettingsStatus.hidden = false;
+  notificationSettingsStatus.className = "es-status";
+  notificationSettingsStatus.textContent = "Sending test review request…";
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/settings/notifications", {method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({action:"send_test_review",recipient})});
+    if (response.status === 401) { window.location.href = "/auth/login.html"; return; }
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to send test review request.");
+    notificationSettingsStatus.className = "es-status success";
+    notificationSettingsStatus.textContent = "Test review request sent.";
+  } catch (error) {
+    notificationSettingsStatus.className = "es-status error";
+    notificationSettingsStatus.textContent = error.message || "Unable to send test review request.";
+  } finally { button.disabled = false; }
+});
 
 
 /* =======================================================

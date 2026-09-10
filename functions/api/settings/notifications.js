@@ -7,6 +7,10 @@ import {
   getCommunicationSettings
 } from "../../../lib/communications.js";
 
+import {
+  sendReviewTestEmail
+} from "../../../lib/reviews.js";
+
 async function getUserContext(request, env) {
   const token =
     readSessionToken(request);
@@ -140,6 +144,28 @@ export async function onRequestGet({
   }
 }
 
+export async function onRequestPost({ request, env }) {
+  try {
+    const user = await getUserContext(request, env);
+    if (!user) return unauthorized();
+    const body = await request.json();
+    if (String(body.action || "") !== "send_test_review") {
+      return Response.json({ok:false,error:"Invalid notification action."},{status:400});
+    }
+    const result = await sendReviewTestEmail({
+      env,
+      businessId:user.business_id,
+      recipient:body.recipient,
+      baseUrl:new URL(request.url).origin
+    });
+    if (!result.ok) return Response.json({ok:false,error:result.error||"Unable to send test review request."},{status:502});
+    return Response.json({ok:true});
+  } catch (error) {
+    console.error("Test review request failed:", error);
+    return Response.json({ok:false,error:"Unable to send test review request."},{status:500});
+  }
+}
+
 export async function onRequestPut({
   request,
   env
@@ -220,7 +246,27 @@ export async function onRequestPut({
       );
     }
 
+    const googleReviewUrl =
+      String(body.google_review_url || "").trim();
+
+    if (googleReviewUrl) {
+      try {
+        const parsedReviewUrl = new URL(googleReviewUrl);
+        if (!["http:", "https:"].includes(parsedReviewUrl.protocol)) throw new Error("invalid");
+      } catch {
+        return Response.json({ok:false,error:"Enter a valid Google review link."},{status:400});
+      }
+    }
+
     await Promise.all([
+      upsert(
+        env,
+        user.business_id,
+        "reviews.google_url",
+        googleReviewUrl,
+        "string"
+      ),
+
       upsert(
         env,
         user.business_id,

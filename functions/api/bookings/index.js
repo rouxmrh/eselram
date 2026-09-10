@@ -1,3 +1,4 @@
+import { sendReviewRequestForCompletedAppointment } from "../../../lib/reviews.js";
 import {
   sendAppointmentCommunication
 } from "../../../lib/communications.js";
@@ -1972,6 +1973,20 @@ export async function onRequestPut({
         );
       }
 
+
+      try {
+        const reviewRequest = await sendReviewRequestForCompletedAppointment({
+          env,
+          businessId:user.business_id,
+          appointmentId,
+          baseUrl:env.ESELRAM_BASE_URL || new URL(request.url).origin
+        });
+        if (!reviewRequest.ok && !reviewRequest.skipped) {
+          console.error("Google review request failed:", reviewRequest.error || "Unknown email error");
+        }
+      } catch (error) {
+        console.error("Google review request failed:", error);
+      }
 
       return Response.json({
         ok: true

@@ -2470,6 +2470,32 @@
                 Eselram sends a maximum of one automatic reminder for each outstanding form.
               </p>
 
+              <div class="es-settings-divider"></div>
+
+              <div class="es-panel-header" style="margin-top:22px;">
+                <div>
+                  <p class="es-eyebrow">Google reviews</p>
+                  <h3 style="margin:4px 0 6px;">Review request link</h3>
+                  <p class="es-muted-copy">Optional. Add the direct Google review link for this business. If no link is saved, Eselram quietly skips all automatic review requests.</p>
+                </div>
+              </div>
+
+              <label>
+                Google review link
+                <input id="googleReviewUrl" type="url" placeholder="https://g.page/r/…/review" autocomplete="off">
+                <small class="es-field-help">The timing is chosen on each service or package. Consultations never send review requests.</small>
+              </label>
+
+              <div class="es-form-grid" style="margin-top:18px;align-items:end;">
+                <label>
+                  Send test to
+                  <input id="reviewTestRecipient" type="email" placeholder="you@example.com" autocomplete="email">
+                </label>
+                <div>
+                  <button id="sendTestReviewButton" class="es-secondary-button" type="button" style="width:100%;min-height:44px;">Send test review request</button>
+                </div>
+              </div>
+
               <div class="es-form-actions">
                 <button
                   id="saveNotificationSettingsButton"

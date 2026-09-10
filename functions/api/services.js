@@ -234,6 +234,17 @@ export async function onRequestGet({
         .bind(user.business_id)
         .all();
 
+    const reviewSettingRows = await env.DB.prepare(`
+      SELECT setting_key, setting_value
+      FROM business_settings
+      WHERE business_id = ? AND setting_key LIKE 'reviews.service.%'
+    `).bind(user.business_id).all();
+    const reviewServiceMap = {};
+    for (const row of reviewSettingRows.results || []) {
+      const serviceId = String(row.setting_key || "").replace("reviews.service.", "");
+      reviewServiceMap[serviceId] = String(row.setting_value || "0") === "1";
+    }
+
     const formRuleMap = {};
     for (const row of formRuleRows.results || []) {
       if (!formRuleMap[row.service_id]) formRuleMap[row.service_id] = [];
@@ -254,7 +265,10 @@ export async function onRequestGet({
             form_rules:
               formRuleMap[
                 service.id
-              ] || []
+              ] || [],
+
+            review_request_enabled:
+              reviewServiceMap[service.id] === true
           })
         );
 
@@ -1011,6 +1025,21 @@ async function saveService({
     }
   }
 
+
+  const reviewEnabled =
+    serviceType !== "consultation" && body.review_request_enabled === true;
+
+  await env.DB.prepare(`
+    INSERT INTO business_settings (id,business_id,setting_key,setting_value,value_type)
+    VALUES (?,?,?,?, 'boolean')
+    ON CONFLICT(business_id,setting_key) DO UPDATE SET
+      setting_value=excluded.setting_value,value_type=excluded.value_type,updated_at=CURRENT_TIMESTAMP
+  `).bind(
+    `set_${crypto.randomUUID()}`,
+    user.business_id,
+    `reviews.service.${serviceId}`,
+    reviewEnabled ? "1" : "0"
+  ).run();
 
   return Response.json({
     ok: true,

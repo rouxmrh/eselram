@@ -221,7 +221,7 @@ export async function onRequestGet({ request, env }) {
       });
     }
 
-    const [templates, packages, customers, services, variants] = await Promise.all([
+    const [templates, packages, customers, services, variants, reviewSettings] = await Promise.all([
       env.DB
         .prepare(`
           SELECT
@@ -450,13 +450,32 @@ export async function onRequestGet({ request, env }) {
             pv.name COLLATE NOCASE
         `)
         .bind(user.business_id)
+        .all(),
+
+      env.DB
+        .prepare(`SELECT setting_key,setting_value FROM business_settings WHERE business_id=? AND setting_key LIKE 'reviews.package.%'`)
+        .bind(user.business_id)
         .all()
     ]);
+
+    const reviewPackageMap = {};
+    for (const row of reviewSettings.results || []) {
+      const templateId = String(row.setting_key || "").replace("reviews.package.", "");
+      try {
+        const parsed = JSON.parse(row.setting_value || "[]");
+        reviewPackageMap[templateId] = Array.isArray(parsed) ? parsed.map(Number).filter(Number.isInteger) : [];
+      } catch {
+        reviewPackageMap[templateId] = [];
+      }
+    }
 
     return Response.json({
       ok: true,
       currency: user.currency || "GBP",
-      templates: templates.results || [],
+      templates: (templates.results || []).map(template => ({
+        ...template,
+        review_sessions: reviewPackageMap[template.id] || []
+      })),
       customer_packages: (packages.results || []).map(enrichPackage),
       customers: customers.results || [],
       services: services.results || [],
@@ -486,6 +505,11 @@ export async function onRequestPost({ request, env }) {
       const description = String(body.description || "").trim();
       const serviceId = String(body.service_id || "").trim();
       const sessionsTotal = Number(body.sessions_total);
+      const reviewSessions = [...new Set(
+        (Array.isArray(body.review_sessions) ? body.review_sessions : [])
+          .map(Number)
+          .filter(value => Number.isInteger(value) && value >= 1 && value <= sessionsTotal)
+      )].sort((a,b) => a-b);
       let priceMinor = Number(body.price_minor);
       let depositMinor = Number(body.deposit_minor || 0);
       const validityDays =
@@ -794,6 +818,13 @@ export async function onRequestPost({ request, env }) {
           variant.sort_order
         ).run();
       }
+
+      await env.DB.prepare(`
+        INSERT INTO business_settings (id,business_id,setting_key,setting_value,value_type)
+        VALUES (?,?,?,?, 'json')
+        ON CONFLICT(business_id,setting_key) DO UPDATE SET
+          setting_value=excluded.setting_value,value_type=excluded.value_type,updated_at=CURRENT_TIMESTAMP
+      `).bind(`set_${crypto.randomUUID()}`,user.business_id,`reviews.package.${templateId}`,JSON.stringify(reviewSessions)).run();
 
       return Response.json({
         ok: true,
