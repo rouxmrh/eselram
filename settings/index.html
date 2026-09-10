@@ -1116,6 +1116,81 @@
         display:none;
       }
     }
+
+
+    /* Reference-matched Settings navigation: visual-only.
+       No data-tab values, form IDs, API calls, booking or payment logic are changed. */
+    .es-settings-tabs button,
+    .es-settings-tabs .es-settings-nav-link {
+      gap:13px;
+      justify-content:flex-start;
+      font-size:14px;
+      color:#243a57;
+    }
+
+    .es-settings-nav-icon {
+      width:22px;
+      height:22px;
+      flex:0 0 22px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#365178;
+    }
+
+    .es-settings-nav-icon svg {
+      width:22px;
+      height:22px;
+      display:block;
+      fill:none;
+      stroke:currentColor;
+      stroke-width:1.9;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+
+    .es-settings-tabs button.active {
+      background:#dfe9fa;
+      border-color:#dfe9fa;
+      color:#244a7a;
+      font-weight:800;
+      box-shadow:none;
+    }
+
+    .es-settings-tabs button.active::before {
+      display:none;
+    }
+
+    .es-settings-tabs button.active .es-settings-nav-icon {
+      color:#2f5d98;
+    }
+
+    .es-settings-panel .es-panel-header .es-settings-panel-copy {
+      margin:6px 0 0;
+      color:var(--es-muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    @media(max-width:700px) {
+      .es-settings-tabs button,
+      .es-settings-tabs .es-settings-nav-link {
+        justify-content:flex-start !important;
+        text-align:left !important;
+        gap:10px !important;
+      }
+
+      .es-settings-nav-icon,
+      .es-settings-nav-icon svg {
+        width:20px;
+        height:20px;
+      }
+
+      .es-settings-nav-icon {
+        flex-basis:20px;
+      }
+    }
+
 </style>
 
 </head>
@@ -1170,35 +1245,40 @@
             data-tab="business"
             class="active"
           >
-            Business
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 8.5h17v11h-17z"/><path d="M8.5 8.5V5.8c0-.7.6-1.3 1.3-1.3h4.4c.7 0 1.3.6 1.3 1.3v2.7"/><path d="M3.5 12.5h17"/><path d="M10 12.5v2h4v-2"/></svg></span>
+            <span>Business</span>
           </button>
 
           <button
             type="button"
             data-tab="branding"
           >
-            Branding
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="1.5"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5.5 17 4.2-4 3.1 3 2.2-2.2 3.5 3.2"/></svg></span>
+            <span>Branding</span>
           </button>
 
           <button
             type="button"
             data-tab="hours"
           >
-            Hours & availability
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.5 2"/></svg></span>
+            <span>Hours & availability</span>
           </button>
 
           <button
             type="button"
             data-tab="payments"
           >
-            Payments
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M3.5 9h17"/><path d="M7 15h3"/></svg></span>
+            <span>Payments</span>
           </button>
 
           <button
             type="button"
             data-tab="email"
           >
-            Email provider
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4.5 7 7.5 6 7.5-6"/></svg></span>
+            <span>Email provider</span>
           </button>
 
           <span class="es-settings-nav-group es-settings-nav-group-system">System</span>
@@ -1207,21 +1287,24 @@
             type="button"
             data-tab="notifications"
           >
-            Notifications
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.5 16.5h11l-1.2-1.8v-4.1A4.3 4.3 0 0 0 12 6.3a4.3 4.3 0 0 0-4.3 4.3v4.1z"/><path d="M10 19a2.3 2.3 0 0 0 4 0"/><path d="M12 4V2.8"/></svg></span>
+            <span>Notifications</span>
           </button>
 
           <button
             type="button"
             data-tab="updates"
           >
-            Updates
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19.5 8V4.5H16"/><path d="M19 5a8 8 0 1 0 1 8"/><path d="M4.5 16V19.5H8"/></svg></span>
+            <span>Updates</span>
           </button>
 
           <a
             class="es-settings-nav-link"
             href="/setup/"
           >
-            Setup health
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.2s-7.5-4-7.5-9.5A4.2 4.2 0 0 1 12 8a4.2 4.2 0 0 1 7.5 2.7c0 5.5-7.5 9.5-7.5 9.5Z"/><path d="M7.7 12.5h2l1.2-2.5 2.1 5 1.2-2.5h2.1"/></svg></span>
+            <span>Setup health</span>
           </a>
 
 
@@ -1243,8 +1326,12 @@
                 </p>
 
                 <h2>
-                  Business information
+                  Business details
                 </h2>
+
+                <p class="es-settings-panel-copy">
+                  Update your business information. This will be used across your booking system and client communications.
+                </p>
               </div>
 
             </div>
