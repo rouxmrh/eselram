@@ -31,8 +31,11 @@ export async function onRequestGet({ request, env }) {
       recovery_protection: {
         time_travel: true,
         latest: recovery || null,
+        latest_pre_update: recoveryPoints.find((point) => point?.recovery_type === "pre_update") || null,
+        latest_restore_undo: recoveryPoints.find((point) => point?.recovery_type === "restore_undo") || null,
         points: recoveryPoints,
         rollback_available: Boolean(
+          recovery?.recovery_type === "pre_update" &&
           recovery?.id &&
           recovery?.bookmark &&
           recovery?.from_version &&

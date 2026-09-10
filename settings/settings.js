@@ -405,30 +405,51 @@ async function loadUpdateInformation() {
 
     const recoveryMessage = document.getElementById("recoveryProtectionMessage");
     const recoveryPoint = document.getElementById("latestRecoveryPoint");
+    const lastRecoverySummary = document.getElementById("lastRecoverySummary");
+    const lastRecoveryVersions = document.getElementById("lastRecoveryVersions");
     if (recoveryMessage) {
       recoveryMessage.textContent = "Cloudflare D1 Time Travel is active. Eselram captures a recovery point immediately before protected database migrations.";
     }
     if (recoveryPoint) {
-      const latest = data?.recovery_protection?.latest;
+      const protection = data?.recovery_protection || {};
+      const latest = protection.latest;
+      const preUpdate = protection.latest_pre_update;
+      const undo = protection.latest_restore_undo;
       const rollbackControls = document.getElementById("rollbackControls");
       const rollbackButton = document.getElementById("showRollbackConfirmationButton");
-      if (latest?.created_at) {
-        const when = new Date(`${String(latest.created_at).replace(" ", "T")}Z`);
-        const from = String(latest.from_version || "previous version");
-        const target = String(latest.target_version || "update");
-        recoveryPoint.textContent = `Latest pre-update recovery point: ${Number.isNaN(when.getTime()) ? latest.created_at : when.toLocaleString()} · ${from} → ${target}`;
-        recoveryPoint.hidden = false;
-        if (rollbackControls) rollbackControls.hidden = data?.recovery_protection?.rollback_available !== true;
-        if (rollbackButton) {
-          rollbackButton.dataset.recoveryId = String(latest.id || "");
-          rollbackButton.dataset.fromVersion = from;
-          rollbackButton.dataset.targetVersion = target;
-          rollbackButton.textContent = `Roll back to Eselram ${from}`;
+
+      if (undo?.created_at && String(data.installed_version || "") === String(undo.target_version || "")) {
+        const when = new Date(`${String(undo.created_at).replace(" ", "T")}Z`);
+        const from = String(undo.from_version || "previous version");
+        const target = String(undo.target_version || "restored version");
+        if (lastRecoverySummary) lastRecoverySummary.hidden = false;
+        if (lastRecoveryVersions) {
+          lastRecoveryVersions.textContent = `Rolled back ${from} → ${target} · ${Number.isNaN(when.getTime()) ? undo.created_at : when.toLocaleString()}`;
         }
+      } else if (lastRecoverySummary) {
+        lastRecoverySummary.hidden = true;
+      }
+
+      if (preUpdate?.created_at) {
+        const when = new Date(`${String(preUpdate.created_at).replace(" ", "T")}Z`);
+        const from = String(preUpdate.from_version || "previous version");
+        const target = String(preUpdate.target_version || "update");
+        recoveryPoint.textContent = `Latest pre-update recovery point: ${Number.isNaN(when.getTime()) ? preUpdate.created_at : when.toLocaleString()} · ${from} → ${target}`;
+      } else if (latest?.recovery_type === "restore_undo") {
+        recoveryPoint.textContent = "The previous database state is preserved as an undo recovery point.";
       } else {
-        recoveryPoint.textContent = "No Eselram pre-update recovery point has been recorded yet. One will be captured automatically before the next protected update.";
-        recoveryPoint.hidden = false;
-        if (rollbackControls) rollbackControls.hidden = true;
+        recoveryPoint.textContent = "No available pre-update recovery point is currently recorded. One will be captured automatically before the next protected update.";
+      }
+      recoveryPoint.hidden = false;
+
+      if (rollbackControls) rollbackControls.hidden = protection.rollback_available !== true;
+      if (rollbackButton && latest?.recovery_type === "pre_update") {
+        const from = String(latest.from_version || "previous version");
+        const target = String(latest.target_version || "current version");
+        rollbackButton.dataset.recoveryId = String(latest.id || "");
+        rollbackButton.dataset.fromVersion = from;
+        rollbackButton.dataset.targetVersion = target;
+        rollbackButton.textContent = `Roll back to Eselram ${from}`;
       }
     }
 
