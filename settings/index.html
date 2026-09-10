@@ -2349,6 +2349,21 @@
                 <h3 id="recoveryProtectionTitle">Cloudflare Time Travel protection</h3>
                 <p id="recoveryProtectionMessage" class="es-muted-copy">Checking recovery protection…</p>
                 <p id="latestRecoveryPoint" class="es-muted-copy" hidden></p>
+                <div id="rollbackControls" hidden style="margin-top:14px;">
+                  <button id="showRollbackConfirmationButton" class="es-button es-button-secondary" type="button">Roll back last update</button>
+                  <div id="rollbackConfirmation" class="es-empty-state" hidden style="margin-top:12px; align-items:flex-start; text-align:left;">
+                    <strong id="rollbackConfirmationTitle">Confirm rollback</strong>
+                    <span id="rollbackConfirmationMessage">This restores the database recovery point and redeploys the matching previous protected Eselram release. Data created after the recovery point can be removed.</span>
+                    <label for="rollbackConfirmationInput" style="display:block; width:100%; margin-top:10px;">
+                      Type <strong>ROLLBACK</strong> to continue
+                      <input id="rollbackConfirmationInput" class="es-input" type="text" autocomplete="off" spellcheck="false" style="margin-top:6px; max-width:260px;" />
+                    </label>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                      <button id="confirmRollbackButton" class="es-button" type="button" disabled>Start secure rollback</button>
+                      <button id="cancelRollbackButton" class="es-button es-button-secondary" type="button">Cancel</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

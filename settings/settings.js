@@ -410,15 +410,25 @@ async function loadUpdateInformation() {
     }
     if (recoveryPoint) {
       const latest = data?.recovery_protection?.latest;
+      const rollbackControls = document.getElementById("rollbackControls");
+      const rollbackButton = document.getElementById("showRollbackConfirmationButton");
       if (latest?.created_at) {
         const when = new Date(`${String(latest.created_at).replace(" ", "T")}Z`);
         const from = String(latest.from_version || "previous version");
         const target = String(latest.target_version || "update");
         recoveryPoint.textContent = `Latest pre-update recovery point: ${Number.isNaN(when.getTime()) ? latest.created_at : when.toLocaleString()} · ${from} → ${target}`;
         recoveryPoint.hidden = false;
+        if (rollbackControls) rollbackControls.hidden = data?.recovery_protection?.rollback_available !== true;
+        if (rollbackButton) {
+          rollbackButton.dataset.recoveryId = String(latest.id || "");
+          rollbackButton.dataset.fromVersion = from;
+          rollbackButton.dataset.targetVersion = target;
+          rollbackButton.textContent = `Roll back to Eselram ${from}`;
+        }
       } else {
         recoveryPoint.textContent = "No Eselram pre-update recovery point has been recorded yet. One will be captured automatically before the next protected update.";
         recoveryPoint.hidden = false;
+        if (rollbackControls) rollbackControls.hidden = true;
       }
     }
 
@@ -482,6 +492,65 @@ async function openSecureUpdater() {
 
 document.getElementById("checkForUpdatesButton")?.addEventListener("click", loadUpdateInformation);
 document.getElementById("openSecureUpdaterButton")?.addEventListener("click", openSecureUpdater);
+
+const rollbackShowButton = document.getElementById("showRollbackConfirmationButton");
+const rollbackConfirmation = document.getElementById("rollbackConfirmation");
+const rollbackConfirmationInput = document.getElementById("rollbackConfirmationInput");
+const rollbackConfirmButton = document.getElementById("confirmRollbackButton");
+const rollbackCancelButton = document.getElementById("cancelRollbackButton");
+
+rollbackShowButton?.addEventListener("click", () => {
+  const from = String(rollbackShowButton.dataset.fromVersion || "previous version");
+  const target = String(rollbackShowButton.dataset.targetVersion || "current version");
+  const message = document.getElementById("rollbackConfirmationMessage");
+  if (message) {
+    message.textContent = `This will restore the database to the recovery point captured before ${target}, then redeploy protected Eselram ${from}. Data created after that recovery point can be removed.`;
+  }
+  if (rollbackConfirmationInput) rollbackConfirmationInput.value = "";
+  if (rollbackConfirmButton) rollbackConfirmButton.disabled = true;
+  if (rollbackConfirmation) rollbackConfirmation.hidden = false;
+  rollbackConfirmationInput?.focus();
+});
+
+rollbackCancelButton?.addEventListener("click", () => {
+  if (rollbackConfirmation) rollbackConfirmation.hidden = true;
+  if (rollbackConfirmationInput) rollbackConfirmationInput.value = "";
+  if (rollbackConfirmButton) rollbackConfirmButton.disabled = true;
+});
+
+rollbackConfirmationInput?.addEventListener("input", () => {
+  if (rollbackConfirmButton) rollbackConfirmButton.disabled = rollbackConfirmationInput.value.trim().toUpperCase() !== "ROLLBACK";
+});
+
+rollbackConfirmButton?.addEventListener("click", async () => {
+  const statusNode = document.getElementById("updatesStatus");
+  const recoveryId = String(rollbackShowButton?.dataset.recoveryId || "").trim();
+  if (!recoveryId || !rollbackConfirmationInput || rollbackConfirmationInput.value.trim().toUpperCase() !== "ROLLBACK") return;
+
+  rollbackConfirmButton.disabled = true;
+  const originalText = rollbackConfirmButton.textContent;
+  rollbackConfirmButton.textContent = "Preparing secure rollback…";
+  if (statusNode) statusNode.hidden = true;
+  try {
+    const response = await fetch("/api/updates/rollback-handoff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recovery_id: recoveryId, confirmation: "ROLLBACK" })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.ok === false) throw new Error(data?.error || "Unable to open secure database recovery.");
+    if (!data?.updater_url) throw new Error("The secure recovery service did not return a handoff link.");
+    window.location.href = data.updater_url;
+  } catch (error) {
+    if (statusNode) {
+      statusNode.className = "es-status error";
+      statusNode.textContent = error.message || "Unable to start rollback.";
+      statusNode.hidden = false;
+    }
+    rollbackConfirmButton.disabled = false;
+    rollbackConfirmButton.textContent = originalText;
+  }
+});
 
 
 function showTab(tab) {

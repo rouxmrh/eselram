@@ -7,14 +7,17 @@ export async function onRequestGet({ request, env }) {
     const assertion = await installedUpdateAssertion(env);
     const result = await brokerJson(env, "/api/installed-update/status", assertion);
     let recovery = null;
+    let recoveryPoints = [];
     try {
-      recovery = await env.DB.prepare(`
+      const rows = await env.DB.prepare(`
         SELECT id, recovery_type, bookmark, from_version, target_version, status, created_at
         FROM eselram_recovery_points
         WHERE status = 'available'
         ORDER BY datetime(created_at) DESC
-        LIMIT 1
-      `).first();
+        LIMIT 5
+      `).all();
+      recoveryPoints = Array.isArray(rows?.results) ? rows.results : [];
+      recovery = recoveryPoints[0] || null;
     } catch {}
     return Response.json({
       ok: true,
@@ -27,7 +30,15 @@ export async function onRequestGet({ request, env }) {
       updates_until: result.license?.updates_until || null,
       recovery_protection: {
         time_travel: true,
-        latest: recovery || null
+        latest: recovery || null,
+        points: recoveryPoints,
+        rollback_available: Boolean(
+          recovery?.id &&
+          recovery?.bookmark &&
+          recovery?.from_version &&
+          recovery?.target_version &&
+          String(recovery.target_version) === String(result.installation?.installed_version || assertion.current_version)
+        )
       }
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
