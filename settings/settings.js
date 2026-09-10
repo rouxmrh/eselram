@@ -690,8 +690,6 @@ function showTab(tab) {
   const names = {
     payments: "Payments",
     email: "Email",
-    users: "Users",
-    roles: "Roles",
     notifications:
       "Notifications",
     advanced: "Advanced"
@@ -735,9 +733,15 @@ function loadTabFromHash() {
     window.location.hash
       .replace("#", "");
 
+  const supportedTab =
+    ["business", "branding", "hours", "payments", "email", "notifications", "updates"]
+      .includes(requested)
+      ? requested
+      : "business";
+
 
   showTab(
-    requested || "business"
+    supportedTab
   );
 }
 
