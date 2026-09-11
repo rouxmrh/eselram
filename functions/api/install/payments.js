@@ -19,6 +19,32 @@ export async function onRequestPost({
 
   try {
 
+    const installation =
+      await env.DB
+        .prepare(`
+          SELECT is_complete
+          FROM installer_state
+          WHERE id = 1
+        `)
+        .first();
+
+
+    if (
+      installation?.is_complete === 1
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Eselram has already been configured."
+        },
+        {
+          status: 409
+        }
+      );
+    }
+
+
     const body =
       await request.json();
 
