@@ -89,6 +89,9 @@
     }
 
     .es-customer-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       min-height: 36px;
       padding: 0 12px;
       border: 1px solid var(--es-border);
@@ -473,7 +476,7 @@
     .es-customer-treatment-facts b { color: var(--es-ink); font-size: 11px; }
     .es-customer-treatment-photo-strip { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; }
     .es-customer-treatment-photo-strip img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--es-border); }
-    .es-customer-treatment-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+    .es-customer-treatment-card-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 13px; }
     .es-customer-treatment-card-actions button { font: inherit; }
 
     @media (max-width: 620px) {
@@ -654,7 +657,7 @@
 
     .es-customer-photo-actions {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       gap: 7px;
       padding: 0 10px 10px;
     }

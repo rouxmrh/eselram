@@ -2002,12 +2002,12 @@ function renderCustomerPackages(
             </div>
 
             <div class="es-customer-package-meta">
-              <span>Value ${formatMoney(item.price_minor)}</span>
-              <span>Paid ${formatMoney(item.paid_minor)}</span>
+              <span>Treatment value: ${formatMoney(item.price_minor)}</span>
               ${Number(item.consultation_credit_minor || 0) > 0
-                ? `<span>Consultation credit ${formatMoney(item.consultation_credit_minor)}</span>`
+                ? `<span>Consultation credit: ${formatMoney(item.consultation_credit_minor)}</span>`
                 : ""}
-              <span>Outstanding ${formatMoney(item.outstanding_minor)}</span>
+              <span>Additional payment: ${formatMoney(item.paid_minor)}</span>
+              <span>Outstanding: ${formatMoney(item.outstanding_minor)}</span>
             </div>
 
             ${
