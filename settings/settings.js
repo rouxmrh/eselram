@@ -1364,15 +1364,17 @@ testStripeIntegrationButton
         }
 
 
+        await loadStripeIntegration();
+
+
+        stripeIntegrationMessage.hidden =
+          false;
+
         stripeIntegrationMessage.className =
           "es-status success";
 
         stripeIntegrationMessage.textContent =
-          data.message ||
-          "Stripe connection verified.";
-
-
-        await loadStripeIntegration();
+          "Stripe connection successful.";
 
 
       } catch (error) {
@@ -2762,15 +2764,25 @@ sendEmailTestButton
         }
 
 
+        await loadEmailIntegration();
+
+
+        document
+          .getElementById(
+            "emailTestRecipient"
+          )
+          .value =
+            "";
+
+
+        emailIntegrationMessage.hidden =
+          false;
+
         emailIntegrationMessage.className =
           "es-status success";
 
         emailIntegrationMessage.textContent =
-          data.message ||
-          "Test email sent.";
-
-
-        await loadEmailIntegration();
+          "Test email sent successfully.";
 
 
       } catch (error) {
