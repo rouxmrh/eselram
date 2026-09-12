@@ -72,7 +72,7 @@ function storageUnavailable() {
     {
       ok: false,
       error:
-        "Photo storage is not configured. Add the buyer-owned FORM_UPLOADS R2 binding to this installation."
+        "Photo storage is not configured yet. Set up Photo & file storage from Eselram Setup Health, then try again."
     },
     {
       status: 503

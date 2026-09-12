@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photo & File Storage | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css?v=20260821-mobile-nav-v2">
+  <style>
+    .es-storage-wrap{max-width:980px}.es-storage-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.es-storage-panel{border:1px solid var(--es-border);border-radius:18px;background:var(--es-surface);padding:22px;box-shadow:0 7px 22px rgba(28,34,30,.035)}.es-storage-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.es-storage-note{border:1px solid var(--es-border);border-radius:14px;padding:15px;background:#fafbf8}.es-storage-note strong{display:block;margin-bottom:5px}.es-storage-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}@media(max-width:760px){.es-storage-hero{flex-direction:column}.es-storage-grid{grid-template-columns:1fr}.es-storage-actions .es-button,.es-storage-hero .es-secondary-button{width:100%;justify-content:center}}
+  </style>
+</head>
+<body class="es-dashboard-body">
+  <div class="es-dashboard-layout">
+    <aside id="appSidebar" class="es-sidebar"></aside>
+    <main class="es-dashboard-main">
+      <div class="es-storage-wrap">
+        <header class="es-storage-hero">
+          <div>
+            <p class="es-eyebrow">Settings · Optional setup</p>
+            <h1>Photo & file storage</h1>
+            <p class="es-lead">Enable secure buyer-owned Cloudflare storage when your business needs customer photos, treatment photos or file uploads.</p>
+          </div>
+          <a class="es-secondary-button" href="/setup/" style="text-decoration:none;display:inline-flex;align-items:center">Back to Setup Health</a>
+        </header>
+        <section class="es-storage-panel">
+          <div class="es-panel-header"><div><p class="es-eyebrow">Cloudflare R2</p><h2 id="storageTitle">Checking storage…</h2><p id="storageMessage" class="es-muted-copy">Checking whether secure file storage is already connected.</p></div></div>
+          <div class="es-storage-grid">
+            <div class="es-storage-note"><strong>What this enables</strong><span class="es-muted-copy">Customer photos, treatment photos, protected file recovery and future form attachments.</span></div>
+            <div class="es-storage-note"><strong>What stays unchanged</strong><span class="es-muted-copy">Bookings, customers, payments, email, D1 Time Travel recovery and your existing business data are not moved or recreated.</span></div>
+          </div>
+          <div class="es-storage-note"><strong>One-time Cloudflare step</strong><span class="es-muted-copy">If R2 has never been activated on this Cloudflare account, Cloudflare may ask you to accept its R2 subscription and add billing details. After that, Eselram creates, protects and connects the storage automatically.</span></div>
+          <div class="es-storage-actions">
+            <button id="setupStorageButton" class="es-button" type="button">Set up photo & file storage</button>
+            <a class="es-button es-button-secondary" href="/settings/file-recovery.html" id="fileRecoveryLink" hidden>Manage file recovery</a>
+          </div>
+          <div id="storageStatus" class="es-status" hidden style="margin-top:14px"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script type="module">
+    import { renderSidebar } from "/components/sidebar.js?v=20260821-mobile-nav-v2";
+    renderSidebar("settings");
+  </script>
+  <script src="/settings/storage.js" type="module"></script>
+</body>
+</html>

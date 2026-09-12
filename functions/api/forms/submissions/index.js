@@ -412,6 +412,17 @@ export async function onRequestPost({ request, env }) {
       );
     }
 
+    const hasFileUploads = [...uploads.entries()].some(([fieldKey, files]) => {
+      const field = fieldMap.get(fieldKey);
+      return field?.field_type === "file_upload" && Array.isArray(files) && files.length > 0;
+    });
+    if (hasFileUploads && !env.FORM_UPLOADS) {
+      return Response.json(
+        { ok: false, error: "File storage is not configured yet. Ask the business owner to enable Photo & file storage in Eselram Setup Health." },
+        { status: 503 }
+      );
+    }
+
     await env.DB.batch(statements);
 
     for (const [fieldKey, files] of uploads.entries()) {

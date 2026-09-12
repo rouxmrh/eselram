@@ -560,7 +560,7 @@ export async function onRequestGet({
 
 
     const storageRequired =
-      true;
+      false;
 
 
     const storageComplete =
@@ -839,19 +839,19 @@ export async function onRequestGet({
         status:
           storageComplete
             ? "Connected"
-            : "Missing binding",
+            : "Optional setup",
         detail:
           storageComplete
-            ? `FORM_UPLOADS R2 storage is connected${
+            ? `Secure photo & file storage is connected${
                 uploadFields
                   ? ` · ${uploadFields} active clinical upload field(s)`
                   : ""
               }.`
-            : "Connect a buyer-owned Cloudflare R2 bucket using the FORM_UPLOADS binding for customer photos and form uploads.",
+            : "Optional. Enable buyer-owned Cloudflare storage when you want customer photos, treatment photos or file uploads.",
         href:
-          null,
+          "/settings/storage.html",
         required:
-          true
+          storageRequired
       }),
 
 

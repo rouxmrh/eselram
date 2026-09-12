@@ -23,7 +23,7 @@ export async function onRequestGet({ request, env }) {
     try {
       const countRow = await env.DB.prepare(`SELECT COUNT(*) AS count FROM eselram_file_recovery_objects WHERE status='available'`).first();
       const latestFile = await env.DB.prepare(`SELECT id,source_type,source_id,original_name,reason,protected_until,created_at FROM eselram_file_recovery_objects WHERE status='available' ORDER BY datetime(created_at) DESC LIMIT 1`).first();
-      fileProtection = { active: true, retention_days: 30, available_count: Number(countRow?.count || 0), latest: latestFile || null };
+      fileProtection = { active: Boolean(env.FORM_UPLOADS), retention_days: 30, available_count: Number(countRow?.count || 0), latest: latestFile || null };
     } catch {}
     return Response.json({
       ok: true,
