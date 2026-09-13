@@ -1,4 +1,4 @@
-import { requireOwner, installedBillingAssertion, brokerJson } from "../../../lib/update-auth.js";
+import { requireOwner, installedBillingAssertion, brokerJson, subscriptionBrokerBase } from "../../../lib/update-auth.js";
 
 export async function onRequestPost({ request, env }) {
   try {
@@ -7,7 +7,7 @@ export async function onRequestPost({ request, env }) {
     const url = new URL(request.url);
     const returnUrl = `${url.origin}/settings/subscription.html?payment_method=updated`;
     const assertion = await installedBillingAssertion(env, "payment-method", returnUrl);
-    const result = await brokerJson(env, "/api/installed-billing/payment-method", assertion);
+    const result = await brokerJson(env, "/api/installed-billing/payment-method", assertion, subscriptionBrokerBase(request, env));
     if (!result.url) throw Object.assign(new Error("Stripe did not return a secure payment-method update link."), { status: 502 });
     return Response.json({ ok: true, url: result.url }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

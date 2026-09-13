@@ -1,4 +1,4 @@
-import { requireOwner, installedBillingAssertion, brokerJson } from "../../../lib/update-auth.js";
+import { requireOwner, installedBillingAssertion, brokerJson, subscriptionBrokerBase } from "../../../lib/update-auth.js";
 
 function isPermanentQaHost(request) {
   try {
@@ -32,7 +32,7 @@ export async function onRequestGet({ request, env }) {
     const auth = await requireOwner(request, env);
     if (auth.response) return auth.response;
     const assertion = await installedBillingAssertion(env, "status");
-    const result = await brokerJson(env, "/api/installed-billing/status", assertion);
+    const result = await brokerJson(env, "/api/installed-billing/status", assertion, subscriptionBrokerBase(request, env));
     return Response.json({ ok: true, subscription: result.subscription || null, invoices: result.invoices || [] }, {
       headers: { "Cache-Control": "no-store" }
     });
