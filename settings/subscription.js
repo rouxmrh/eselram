@@ -35,8 +35,13 @@ function money(amount, currency="gbp") {
   const value = Number(amount || 0) / 100;
   return new Intl.NumberFormat("en-GB", { style:"currency", currency:String(currency || "gbp").toUpperCase() }).format(value);
 }
-function planLabel(sub){ return sub?.billing_interval === "annual" ? "Eselram Annual" : "Eselram Monthly"; }
+function isComplimentary(sub){ return sub?.is_complimentary === true || sub?.billing_interval === "complimentary" || sub?.plan === "complimentary_tester"; }
+function planLabel(sub){
+  if(isComplimentary(sub)) return "Eselram Tester Licence";
+  return sub?.billing_interval === "annual" ? "Eselram Annual" : "Eselram Monthly";
+}
 function priceLabel(sub){
+  if(isComplimentary(sub)) return "£0";
   if(Number.isFinite(Number(sub?.unit_amount)) && Number(sub.unit_amount) > 0) return `${money(sub.unit_amount, sub.currency)}/${sub.billing_interval === "annual" ? "year" : "month"}`;
   return sub?.billing_interval === "annual" ? "£99/year" : "£9.99/month";
 }
@@ -61,25 +66,31 @@ function render(data){
     paymentButton.hidden = true; cancelPanel.hidden = true; keepButton.hidden = true;
     renderInvoices([]); return;
   }
+  const complimentary = isComplimentary(sub);
   const canceled = sub.status === "canceled" || sub.license_status === "suspended";
   const scheduled = sub.cancel_at_period_end === true;
   const grace = sub.status === "grace";
   planTitle.textContent = planLabel(sub);
-  planMessage.textContent = canceled ? "This Eselram subscription has ended." : scheduled ? "Your subscription remains active until the end of the paid billing period." : grace ? "Your subscription is in its payment grace period." : "Your Eselram subscription is active.";
+  planMessage.textContent = complimentary
+    ? "Your complimentary tester licence is active. No subscription payment or renewal is required."
+    : canceled ? "This Eselram subscription has ended."
+    : scheduled ? "Your subscription remains active until the end of the paid billing period."
+    : grace ? "Your subscription is in its payment grace period."
+    : "Your Eselram subscription is active.";
   planName.textContent = planLabel(sub);
   planStatus.textContent = sub.status || "unknown";
   planStatus.className = `es-billing-status-pill ${sub.status || ""}`;
-  renewalLabel.textContent = scheduled || canceled ? "Ends" : "Renews";
-  renewalDate.textContent = fmtDate(sub.current_period_end);
+  renewalLabel.textContent = complimentary ? "Renewal" : (scheduled || canceled ? "Ends" : "Renews");
+  renewalDate.textContent = complimentary ? "No renewal required" : fmtDate(sub.current_period_end);
   planPrice.textContent = priceLabel(sub);
   cancelNotice.hidden = !scheduled;
   cancelNoticeText.textContent = scheduled ? `Your subscription is scheduled to end on ${fmtDate(sub.current_period_end)}. You can continue using Eselram until then.` : "";
   graceNotice.hidden = !grace;
   graceNoticeText.textContent = grace ? `Please update your payment method before ${fmtDate(sub.grace_until)} to avoid subscription suspension.` : "";
-  keepButton.hidden = !scheduled || canceled;
-  cancelPanel.hidden = scheduled || canceled;
-  paymentButton.hidden = canceled;
-  renderInvoices(data.invoices);
+  keepButton.hidden = complimentary || !scheduled || canceled;
+  cancelPanel.hidden = complimentary || scheduled || canceled;
+  paymentButton.hidden = complimentary || canceled;
+  renderInvoices(complimentary ? [] : data.invoices);
 }
 async function load(){
   try{
