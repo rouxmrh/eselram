@@ -39,10 +39,10 @@
             <button id="updatePaymentButton" class="es-button es-button-secondary" type="button">Update payment method</button>
             <button id="keepSubscriptionButton" class="es-button" type="button" hidden>Keep subscription</button>
           </div>
-          <p class="es-billing-note">Card details are handled on Stripe's secure page and are never stored by Eselram.</p>
+          <p id="paymentNote" class="es-billing-note">Card details are handled on Stripe's secure page and are never stored by Eselram.</p>
         </section>
 
-        <section class="es-billing-panel">
+        <section id="invoicePanel" class="es-billing-panel">
           <div class="es-panel-header"><div><p class="es-eyebrow">Payment history</p><h2>Invoices</h2><p class="es-muted-copy">Recent Eselram subscription invoices for this business.</p></div></div>
           <div class="es-billing-table-wrap">
             <table class="es-billing-table">

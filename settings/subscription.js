@@ -15,6 +15,8 @@ const cancelPanel = document.getElementById("cancelPanel");
 const cancelButton = document.getElementById("cancelSubscriptionButton");
 const keepButton = document.getElementById("keepSubscriptionButton");
 const paymentButton = document.getElementById("updatePaymentButton");
+const paymentNote = document.getElementById("paymentNote");
+const invoicePanel = document.getElementById("invoicePanel");
 
 function showStatus(message, isError = false) {
   statusBox.hidden = false;
@@ -63,7 +65,7 @@ function render(data){
     planTitle.textContent = "Subscription unavailable";
     planMessage.textContent = "This installation is not linked to an Eselram subscription.";
     planName.textContent = "—"; planStatus.textContent = "—"; renewalDate.textContent = "—"; planPrice.textContent = "—";
-    paymentButton.hidden = true; cancelPanel.hidden = true; keepButton.hidden = true;
+    paymentButton.hidden = true; paymentNote.hidden = true; cancelPanel.hidden = true; keepButton.hidden = true; invoicePanel.hidden = true;
     renderInvoices([]); return;
   }
   const complimentary = isComplimentary(sub);
@@ -90,6 +92,8 @@ function render(data){
   keepButton.hidden = complimentary || !scheduled || canceled;
   cancelPanel.hidden = complimentary || scheduled || canceled;
   paymentButton.hidden = complimentary || canceled;
+  paymentNote.hidden = complimentary || canceled;
+  invoicePanel.hidden = complimentary;
   renderInvoices(complimentary ? [] : data.invoices);
 }
 async function load(){
@@ -103,6 +107,9 @@ async function load(){
   }catch(error){
     planTitle.textContent = "Subscription details unavailable";
     planMessage.textContent = error.message || "Unable to load subscription details.";
+    planName.textContent = "—"; planStatus.textContent = "—"; renewalDate.textContent = "—"; planPrice.textContent = "—";
+    paymentButton.hidden = true; paymentNote.hidden = true; keepButton.hidden = true; cancelPanel.hidden = true; invoicePanel.hidden = true;
+    renderInvoices([]);
     showStatus(error.message || "Unable to load subscription details.", true);
   }
 }

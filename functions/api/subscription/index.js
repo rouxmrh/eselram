@@ -1,21 +1,21 @@
-import { requireOwner, installedBillingAssertion, brokerJson, subscriptionBrokerBase } from "../../../lib/update-auth.js";
+import {
+  requireOwner,
+  installedBillingAssertion,
+  installedUpdateAssertion,
+  brokerJson,
+  subscriptionBrokerBase,
+  updateBrokerBase
+} from "../../../lib/update-auth.js";
 
-function isPermanentQaHost(request) {
-  try {
-    return new URL(request.url).hostname.toLowerCase() === "eselram-qa-admin.eselram.com";
-  } catch {
-    return false;
-  }
-}
-
-function complimentaryQaPayload() {
+function complimentaryPayload(license = {}) {
+  const licenseStatus = String(license?.status || "active").trim().toLowerCase() || "active";
   return {
     ok: true,
     subscription: {
       plan: "complimentary_tester",
       billing_interval: "complimentary",
-      status: "active",
-      license_status: "active",
+      status: licenseStatus,
+      license_status: licenseStatus,
       current_period_end: null,
       cancel_at_period_end: false,
       grace_until: null,
@@ -27,27 +27,49 @@ function complimentaryQaPayload() {
   };
 }
 
+function isComplimentaryTester(license = {}) {
+  const plan = String(license?.plan || "").trim().toLowerCase();
+  const source = String(license?.purchase_source || "").trim().toLowerCase();
+  return plan === "tester" || source === "complimentary_tester";
+}
+
 export async function onRequestGet({ request, env }) {
   try {
     const auth = await requireOwner(request, env);
     if (auth.response) return auth.response;
+
+    // First use the long-established secure update-status route. This route is
+    // available to existing installations and tells us whether the installation
+    // is on a complimentary tester licence without touching Stripe billing.
+    const updateAssertion = await installedUpdateAssertion(env);
+    const entitlement = await brokerJson(
+      env,
+      "/api/installed-update/status",
+      updateAssertion,
+      updateBrokerBase(env)
+    );
+
+    if (isComplimentaryTester(entitlement?.license)) {
+      return Response.json(complimentaryPayload(entitlement.license), {
+        headers: { "Cache-Control": "no-store" }
+      });
+    }
+
+    // Paid installations continue through the dedicated billing route.
     const assertion = await installedBillingAssertion(env, "status");
-    const result = await brokerJson(env, "/api/installed-billing/status", assertion, subscriptionBrokerBase(request, env));
+    const result = await brokerJson(
+      env,
+      "/api/installed-billing/status",
+      assertion,
+      subscriptionBrokerBase(request, env)
+    );
     return Response.json({ ok: true, subscription: result.subscription || null, invoices: result.invoices || [] }, {
       headers: { "Cache-Control": "no-store" }
     });
   } catch (error) {
-    // The permanent Eselram QA installation intentionally uses a complimentary
-    // tester licence. It predates the installed-billing broker endpoints and has
-    // no Stripe subscription to manage. Keep that QA-only case explicit so a
-    // missing broker route can never be mistaken for a paid production licence.
-    if (isPermanentQaHost(request) && [404, 405].includes(Number(error?.status))) {
-      return Response.json(complimentaryQaPayload(), {
-        headers: { "Cache-Control": "no-store" }
-      });
-    }
     return Response.json({ ok: false, error: error?.message || "Unable to load Eselram subscription details." }, {
-      status: Number(error?.status) || 500, headers: { "Cache-Control": "no-store" }
+      status: Number(error?.status) || 500,
+      headers: { "Cache-Control": "no-store" }
     });
   }
 }
