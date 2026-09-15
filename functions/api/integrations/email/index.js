@@ -576,15 +576,22 @@ export async function onRequestPost({
       error
     );
 
+    const errorMessage =
+      error?.message ||
+      "Unable to test email integration.";
+    const permissionRequired =
+      errorMessage.startsWith("Email permission required.");
+
     return Response.json(
       {
         ok: false,
-        error:
-          error?.message ||
-          "Unable to test email integration."
+        error: errorMessage,
+        ...(permissionRequired
+          ? { code: "gmail_permission_required" }
+          : {})
       },
       {
-        status: 500
+        status: permissionRequired ? 409 : 500
       }
     );
   }

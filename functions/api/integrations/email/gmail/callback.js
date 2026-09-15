@@ -67,6 +67,17 @@ function adminOrigin(request) {
 const DEFAULT_BROKER =
   "https://auth.eselram.com";
 
+const REQUIRED_GMAIL_SCOPE =
+  "https://www.googleapis.com/auth/gmail.send";
+
+function hasRequiredGmailScope(value) {
+  return String(value || "")
+    .split(/\s+/)
+    .map((scope) => scope.trim())
+    .filter(Boolean)
+    .includes(REQUIRED_GMAIL_SCOPE);
+}
+
 export async function onRequestGet({ request, env }) {
   const user = await userContext(request, env);
   if (!user) return unauthorized();
@@ -75,6 +86,13 @@ export async function onRequestGet({ request, env }) {
   const publicOrigin = adminOrigin(request);
   const claim =
     String(url.searchParams.get("claim") || "").trim();
+
+  if (url.searchParams.get("error") === "missing_gmail_send_scope") {
+    return Response.redirect(
+      `${publicOrigin}/settings/?tab=email&gmail=permission`,
+      302
+    );
+  }
 
   if (!claim) {
     return Response.redirect(
@@ -116,6 +134,13 @@ export async function onRequestGet({ request, env }) {
     }
 
     const gmail = data.gmail || {};
+
+    if (!hasRequiredGmailScope(gmail.scope)) {
+      return Response.redirect(
+        `${publicOrigin}/settings/?tab=email&gmail=permission`,
+        302
+      );
+    }
 
     const encrypted =
       await encryptIntegrationSecret(

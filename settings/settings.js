@@ -1651,6 +1651,8 @@ async function loadEmailProviderChoice() {
 
     const gmail =
       gmailData?.gmail || {};
+    const gmailPermissionRequired =
+      Boolean(gmail.permission_required);
 
     if (gmail.migration_required) {
       if (gmailConnectedAccount) {
@@ -1699,13 +1701,19 @@ async function loadEmailProviderChoice() {
       gmailConnectedAccount.textContent =
         gmail.connected
           ? `Connected as ${gmail.email}`
-          : "Not connected";
+          : (gmailPermissionRequired
+              ? "Email permission required"
+              : "Not connected");
     }
 
     if (connectGmailButton) {
       connectGmailButton.hidden =
         Boolean(gmail.connected) ||
         Boolean(gmail.migration_required);
+      connectGmailButton.textContent =
+        gmailPermissionRequired
+          ? "Reconnect Google"
+          : "Connect Gmail";
     }
 
     if (useGmailButton) {
@@ -1729,11 +1737,22 @@ async function loadEmailProviderChoice() {
 
     if (
       emailIntegrationStatus &&
-      active === "gmail" &&
-      gmail.connected
+      active === "gmail"
     ) {
       emailIntegrationStatus.textContent =
-        "Gmail ready";
+        gmail.connected
+          ? "Gmail ready"
+          : (gmailPermissionRequired
+              ? "Email permission required"
+              : "Gmail selected — connection required");
+    }
+
+    if (gmailPermissionRequired && emailIntegrationMessage) {
+      emailIntegrationMessage.hidden = false;
+      emailIntegrationMessage.className =
+        "es-status error";
+      emailIntegrationMessage.textContent =
+        "Email permission required. Eselram needs permission to send confirmations, reminders and other client emails. Reconnect Google and allow ‘Send email on your behalf’.";
     }
 
     const params =
@@ -1750,6 +1769,22 @@ async function loadEmailProviderChoice() {
         "es-status success";
       emailIntegrationMessage.textContent =
         "Gmail connected. Eselram can now send client emails directly from this Gmail account without a business domain.";
+      history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}#email`
+      );
+    }
+
+    if (
+      params.get("gmail") === "permission" &&
+      emailIntegrationMessage
+    ) {
+      emailIntegrationMessage.hidden = false;
+      emailIntegrationMessage.className =
+        "es-status error";
+      emailIntegrationMessage.textContent =
+        "Email permission required. Reconnect Google and allow ‘Send email on your behalf’ so Eselram can send confirmations, reminders and other client emails.";
       history.replaceState(
         {},
         "",
@@ -2798,6 +2833,13 @@ sendEmailTestButton
         emailIntegrationMessage.textContent =
           error.message ||
           "Unable to send test email.";
+
+        if (
+          String(error?.message || "")
+            .startsWith("Email permission required.")
+        ) {
+          await loadEmailProviderChoice();
+        }
 
       } finally {
 
