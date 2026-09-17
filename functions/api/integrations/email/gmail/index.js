@@ -250,11 +250,14 @@ export async function onRequestDelete({ request, env }) {
     .bind(user.business_id)
     .first();
 
-  if (active?.setting_value === "gmail") {
+  // Gmail remains the selected sending method when it is disconnected.
+  // This lets the UI show a clear reconnect state instead of silently
+  // falling back to an unconfigured Resend integration.
+  if (active?.setting_value !== "gmail") {
     await setActiveEmailProvider(
       env,
       user.business_id,
-      "resend"
+      "gmail"
     );
   }
 

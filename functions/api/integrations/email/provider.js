@@ -48,10 +48,33 @@ export async function onRequestGet({ request, env }) {
     .bind(user.business_id)
     .first();
 
+  let activeProvider = row?.setting_value || "gmail";
+
+  // Repair installations affected by the old Gmail-disconnect behaviour.
+  // If Resend was selected only as a fallback but has never actually been
+  // configured, Gmail should remain the selected method and show reconnect.
+  if (activeProvider === "resend") {
+    const resend = await env.DB
+      .prepare(`
+        SELECT encrypted_credentials
+        FROM business_integrations
+        WHERE business_id = ?
+          AND integration_type = 'email'
+          AND provider = 'resend'
+        LIMIT 1
+      `)
+      .bind(user.business_id)
+      .first();
+
+    if (!resend?.encrypted_credentials) {
+      await setActiveEmailProvider(env, user.business_id, "gmail");
+      activeProvider = "gmail";
+    }
+  }
+
   return Response.json({
     ok: true,
-    active_provider:
-      row?.setting_value || "gmail"
+    active_provider: activeProvider
   });
 }
 
