@@ -244,7 +244,19 @@ export async function onRequestPost({request, env}) {
       return badRequest(error.message || "Unable to apply deduction.");
     }
 
-    const chargeMinor = Math.max(0, outstandingMinor - deductionResult.discountMinor);
+    const adjustedOutstandingMinor = Math.max(0, outstandingMinor - deductionResult.discountMinor);
+
+    const requestedCollectMinor = Math.round(Number(body.collect_amount_minor || adjustedOutstandingMinor));
+
+    if (!Number.isFinite(requestedCollectMinor) || requestedCollectMinor <= 0) {
+      return badRequest("Enter an amount to collect.");
+    }
+
+    if (requestedCollectMinor > adjustedOutstandingMinor) {
+      return badRequest("The amount to collect cannot exceed the package balance after deductions.");
+    }
+
+    const chargeMinor = requestedCollectMinor;
 
     const integration =
       await getBusinessStripeIntegration(
