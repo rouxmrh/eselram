@@ -261,13 +261,54 @@ saveVouchersButton?.addEventListener("click", async () => {
   } catch (error) { voucherStatus.className = "es-status error"; voucherStatus.textContent = error.message || "Unable to save vouchers."; }
 });
 
+function recalculateTakePaymentCollectAmount() {
+  if (!activeTakePaymentPackage || !takePaymentCollectAmount) return;
+
+  const outstandingMinor = Math.max(Number(activeTakePaymentPackage.balance_minor || 0), 0);
+  const type = takePaymentDeductionType?.value || "none";
+  let discountMinor = 0;
+
+  if (type === "amount") {
+    discountMinor = Math.max(0, Math.round(Number(takePaymentDeductionValue?.value || 0) * 100));
+  } else if (type === "percent") {
+    const percent = Math.min(100, Math.max(0, Number(takePaymentDeductionValue?.value || 0)));
+    discountMinor = Math.round(outstandingMinor * percent / 100);
+  } else if (type === "voucher") {
+    const voucher = paymentVouchers.find(v => String(v.id) === String(takePaymentVoucher?.value || ""));
+    if (voucher) {
+      if (voucher.discount_type === "percent") {
+        const percent = Math.min(100, Math.max(0, Number(voucher.value || 0)));
+        discountMinor = Math.round(outstandingMinor * percent / 100);
+      } else {
+        discountMinor = Math.max(0, Math.round(Number(voucher.value || 0) * 100));
+      }
+    }
+  }
+
+  discountMinor = Math.min(discountMinor, outstandingMinor);
+  const adjustedMinor = Math.max(0, outstandingMinor - discountMinor);
+  const adjustedValue = (adjustedMinor / 100).toFixed(2);
+  takePaymentCollectAmount.max = adjustedValue;
+  takePaymentCollectAmount.value = adjustedValue;
+
+  // Clear an old validation/result message whenever the deduction changes.
+  takePaymentResult.hidden = true;
+  takePaymentStatus.hidden = false;
+  takePaymentStatus.className = "es-status";
+  takePaymentStatus.textContent = "Choose the amount to collect now, then select Prepare payment.";
+}
+
 takePaymentDeductionType?.addEventListener("change", () => {
   const type = takePaymentDeductionType.value;
   takePaymentDeductionValueWrap.hidden = !["amount","percent"].includes(type);
   takePaymentVoucherWrap.hidden = type !== "voucher";
   if (type === "percent") { takePaymentDeductionValue.step = "1"; takePaymentDeductionValue.max = "100"; }
   else { takePaymentDeductionValue.step = "0.01"; takePaymentDeductionValue.removeAttribute("max"); }
+  recalculateTakePaymentCollectAmount();
 });
+
+takePaymentDeductionValue?.addEventListener("input", recalculateTakePaymentCollectAmount);
+takePaymentVoucher?.addEventListener("change", recalculateTakePaymentCollectAmount);
 
 function currentDeductionPayload() {
   const type = takePaymentDeductionType?.value || "none";
