@@ -314,6 +314,18 @@ export async function onRequestGet({
                     AND ps_public_checkout.status IN ('pending', 'failed')
                 )
               )
+              AND NOT (
+                p.provider = 'stripe'
+                AND p.status IN ('pending', 'failed')
+                AND (
+                  EXISTS (
+                    SELECT 1
+                    FROM customer_package_payments cpp_pending
+                    WHERE cpp_pending.payment_id = p.id
+                  )
+                  OR COALESCE(p.notes, '') LIKE 'Package balance:%'
+                )
+              )
 
             ORDER BY
               datetime(
