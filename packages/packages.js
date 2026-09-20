@@ -1472,7 +1472,17 @@ $("#assignForm").addEventListener("submit", async event => {
       amount_minor:
         data.amount_minor,
       discount_minor:
-        data.discount_minor || 0
+        data.discount_minor || 0,
+      consultation_credit_minor:
+        data.consultation_credit_minor || 0,
+      package_value_minor:
+        data.package_value_minor || 0,
+      deduction_type:
+        data.deduction_type || "none",
+      deduction_label:
+        data.deduction_label || "",
+      voucher:
+        data.voucher || null
     });
   } catch (error) {
     status.className = "es-status error";
