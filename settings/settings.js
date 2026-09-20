@@ -18,6 +18,11 @@ const businessPanel =
     "tab-business"
   );
 
+const accountPanel =
+  document.getElementById(
+    "tab-account"
+  );
+
 const brandingPanel =
   document.getElementById(
     "tab-branding"
@@ -58,6 +63,44 @@ const placeholderTitle =
     "placeholderTitle"
   );
 
+
+async function loadAccountSettings() {
+  const status = document.getElementById("accountEmailStatus");
+  try {
+    const response = await fetch("/api/auth/me", { headers:{Accept:"application/json"}, cache:"no-store" });
+    const data = await response.json();
+    if (!response.ok || !data.ok || !data.authenticated) throw new Error("Unable to load your account.");
+    document.getElementById("accountName").value = data.user?.name || "";
+    document.getElementById("accountCurrentEmail").value = data.user?.email || "";
+    const result = new URLSearchParams(window.location.search).get("account_email");
+    if (result && status) {
+      status.hidden = false;
+      if (result === "email-updated") { status.className="es-status success"; status.textContent="Login email updated. Use this email the next time you sign in or reset your password."; }
+      else if (result === "email-conflict") { status.className="es-status error"; status.textContent="That email is already used by another account."; }
+      else { status.className="es-status error"; status.textContent="That verification link is invalid or has expired. Please request a new one."; }
+    }
+  } catch (error) {
+    if (status) { status.hidden=false; status.className="es-status error"; status.textContent=error.message || "Unable to load your account."; }
+  }
+}
+
+const accountEmailForm = document.getElementById("accountEmailForm");
+if (accountEmailForm) accountEmailForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const status = document.getElementById("accountEmailStatus");
+  const button = document.getElementById("changeLoginEmailButton");
+  const email = document.getElementById("accountNewEmail").value.trim();
+  status.hidden=false; status.className="es-status"; status.textContent="Sending verification…"; button.disabled=true;
+  try {
+    const response = await fetch("/api/auth/change-email", { method:"POST", headers:{"Content-Type":"application/json",Accept:"application/json"}, body:JSON.stringify({email}) });
+    const data = await response.json().catch(()=>({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to send verification email.");
+    status.className="es-status success"; status.textContent=data.message;
+    document.getElementById("accountNewEmail").value="";
+  } catch (error) {
+    status.className="es-status error"; status.textContent=error.message || "Unable to send verification email.";
+  } finally { button.disabled=false; }
+});
 
 async function loadSettings() {
 
@@ -611,6 +654,7 @@ function showTab(tab) {
 
 
   businessPanel.hidden = true;
+  accountPanel.hidden = true;
   brandingPanel.hidden = true;
   hoursPanel.hidden = true;
   paymentsPanel.hidden = true;
@@ -624,6 +668,12 @@ function showTab(tab) {
 
     businessPanel.hidden = false;
 
+    return;
+  }
+
+  if (tab === "account") {
+    accountPanel.hidden = false;
+    loadAccountSettings();
     return;
   }
 
@@ -739,7 +789,7 @@ function loadTabFromHash() {
       .replace("#", "");
 
   const supportedTab =
-    ["business", "branding", "hours", "payments", "email", "notifications", "updates"]
+    ["business", "account", "branding", "hours", "payments", "email", "notifications", "updates"]
       .includes(requested)
       ? requested
       : "business";

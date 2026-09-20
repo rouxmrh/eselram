@@ -46,7 +46,8 @@ const EXPECTED_MIGRATIONS = [
   "039_update_recovery_points",
   "040_r2_file_recovery",
   "041_r2_recovery_source_metadata",
-  "042_google_review_requests"
+  "042_google_review_requests",
+  "043_login_email_change"
 ];
 
 
