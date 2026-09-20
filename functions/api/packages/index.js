@@ -1066,7 +1066,7 @@ export async function onRequestPost({ request, env }) {
             customer_package_id, created_by_user_id, paid_at,
             consultation_credit_source_appointment_id, consultation_credit_minor
           )
-          VALUES (?, ?, ?, ?, ?, 'staff', 'pay_later', 0, ?, 'paid', NULL, ?, ?,
+          VALUES (?, ?, ?, ?, ?, 'staff', 'full', 0, ?, 'paid', NULL, ?, ?,
                   CURRENT_TIMESTAMP, ?, ?)
         `).bind(
           `psl_${crypto.randomUUID()}`,
