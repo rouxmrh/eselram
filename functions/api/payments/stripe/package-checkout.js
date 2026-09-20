@@ -246,21 +246,18 @@ export async function onRequestPost({request, env}) {
 
     const adjustedOutstandingMinor = Math.max(0, outstandingMinor - deductionResult.discountMinor);
 
-    // Backwards compatible: older/cached frontends that do not send an
-    // instalment amount continue to collect the full adjusted balance.
-    const hasRequestedCollectAmount =
-      Object.prototype.hasOwnProperty.call(body, "amount_to_collect_minor");
-    const requestedCollectMinor = hasRequestedCollectAmount
-      ? Math.round(Number(body.amount_to_collect_minor))
-      : adjustedOutstandingMinor;
-    if (!Number.isFinite(requestedCollectMinor) || requestedCollectMinor <= 0) {
-      return badRequest("Enter the amount to collect now.");
-    }
-    if (requestedCollectMinor > adjustedOutstandingMinor) {
-      return badRequest("The amount to collect cannot exceed the balance remaining after the deduction.");
+    if (adjustedOutstandingMinor <= 0) {
+      return badRequest("The deduction covers the full outstanding package balance.");
     }
 
-    const chargeMinor = requestedCollectMinor;
+    const requestedCollectMinor = Math.round(Number(body.collect_amount_minor || 0));
+    const chargeMinor = requestedCollectMinor > 0
+      ? requestedCollectMinor
+      : adjustedOutstandingMinor;
+
+    if (chargeMinor > adjustedOutstandingMinor) {
+      return badRequest("The amount to collect cannot exceed the package balance after deductions.");
+    }
 
     const integration =
       await getBusinessStripeIntegration(
