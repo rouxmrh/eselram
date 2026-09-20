@@ -172,8 +172,6 @@ const takePaymentDeductionValueWrap = document.getElementById("takePaymentDeduct
 const takePaymentDeductionValue = document.getElementById("takePaymentDeductionValue");
 const takePaymentVoucherWrap = document.getElementById("takePaymentVoucherWrap");
 const takePaymentVoucher = document.getElementById("takePaymentVoucher");
-const takePaymentCollectAmountWrap = document.getElementById("takePaymentCollectAmountWrap");
-const takePaymentCollectAmount = document.getElementById("takePaymentCollectAmount");
 const prepareTakePayment = document.getElementById("prepareTakePayment");
 const manageVouchersButton = document.getElementById("manageVouchersButton");
 const vouchersDialog = document.getElementById("vouchersDialog");
@@ -261,54 +259,13 @@ saveVouchersButton?.addEventListener("click", async () => {
   } catch (error) { voucherStatus.className = "es-status error"; voucherStatus.textContent = error.message || "Unable to save vouchers."; }
 });
 
-function recalculateTakePaymentCollectAmount() {
-  if (!activeTakePaymentPackage || !takePaymentCollectAmount) return;
-
-  const outstandingMinor = Math.max(Number(activeTakePaymentPackage.balance_minor || 0), 0);
-  const type = takePaymentDeductionType?.value || "none";
-  let discountMinor = 0;
-
-  if (type === "amount") {
-    discountMinor = Math.max(0, Math.round(Number(takePaymentDeductionValue?.value || 0) * 100));
-  } else if (type === "percent") {
-    const percent = Math.min(100, Math.max(0, Number(takePaymentDeductionValue?.value || 0)));
-    discountMinor = Math.round(outstandingMinor * percent / 100);
-  } else if (type === "voucher") {
-    const voucher = paymentVouchers.find(v => String(v.id) === String(takePaymentVoucher?.value || ""));
-    if (voucher) {
-      if (voucher.discount_type === "percent") {
-        const percent = Math.min(100, Math.max(0, Number(voucher.value || 0)));
-        discountMinor = Math.round(outstandingMinor * percent / 100);
-      } else {
-        discountMinor = Math.max(0, Math.round(Number(voucher.value || 0) * 100));
-      }
-    }
-  }
-
-  discountMinor = Math.min(discountMinor, outstandingMinor);
-  const adjustedMinor = Math.max(0, outstandingMinor - discountMinor);
-  const adjustedValue = (adjustedMinor / 100).toFixed(2);
-  takePaymentCollectAmount.max = adjustedValue;
-  takePaymentCollectAmount.value = adjustedValue;
-
-  // Clear an old validation/result message whenever the deduction changes.
-  takePaymentResult.hidden = true;
-  takePaymentStatus.hidden = false;
-  takePaymentStatus.className = "es-status";
-  takePaymentStatus.textContent = "Choose the amount to collect now, then select Prepare payment.";
-}
-
 takePaymentDeductionType?.addEventListener("change", () => {
   const type = takePaymentDeductionType.value;
   takePaymentDeductionValueWrap.hidden = !["amount","percent"].includes(type);
   takePaymentVoucherWrap.hidden = type !== "voucher";
   if (type === "percent") { takePaymentDeductionValue.step = "1"; takePaymentDeductionValue.max = "100"; }
   else { takePaymentDeductionValue.step = "0.01"; takePaymentDeductionValue.removeAttribute("max"); }
-  recalculateTakePaymentCollectAmount();
 });
-
-takePaymentDeductionValue?.addEventListener("input", recalculateTakePaymentCollectAmount);
-takePaymentVoucher?.addEventListener("change", recalculateTakePaymentCollectAmount);
 
 function currentDeductionPayload() {
   const type = takePaymentDeductionType?.value || "none";
@@ -331,20 +288,9 @@ async function prepareActiveTakePaymentCheckout() {
 
   try {
     const endpoint = isPackage ? "/api/payments/stripe/package-checkout" : "/api/payments/stripe/checkout";
-    let body;
-    if (isPackage) {
-      const collectAmountMinor = Math.round(Number(takePaymentCollectAmount?.value || 0) * 100);
-      if (!Number.isFinite(collectAmountMinor) || collectAmountMinor <= 0) {
-        throw new Error("Enter the amount to collect now.");
-      }
-      body = {
-        customer_package_id:item.id,
-        deduction:currentDeductionPayload(),
-        collect_amount_minor:collectAmountMinor
-      };
-    } else {
-      body = {appointment_id:item.id, deduction:currentDeductionPayload()};
-    }
+    const body = isPackage
+      ? {customer_package_id:item.id, deduction:currentDeductionPayload()}
+      : {appointment_id:item.id, deduction:currentDeductionPayload()};
     const response = await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body)});
     handleAuthentication(response); const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to create payment link.");
@@ -1910,9 +1856,6 @@ async function createPackagePaymentCheckout(
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
   takePaymentVoucherWrap.hidden = true;
-  takePaymentCollectAmountWrap.hidden = false;
-  takePaymentCollectAmount.value = (Number(item.balance_minor || 0) / 100).toFixed(2);
-  takePaymentCollectAmount.max = (Number(item.balance_minor || 0) / 100).toFixed(2);
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
   try { await loadPaymentVouchers(); } catch {}
@@ -1984,9 +1927,6 @@ async function createTakePaymentCheckout(
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
   takePaymentVoucherWrap.hidden = true;
-  takePaymentCollectAmountWrap.hidden = true;
-  takePaymentCollectAmount.value = "";
-  takePaymentCollectAmount.removeAttribute("max");
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
   try { await loadPaymentVouchers(); } catch {}
