@@ -480,6 +480,7 @@ recordTakePaymentManually
 
       paymentCustomer.value =
         appointment.customer_id;
+      paymentCustomer.disabled = true;
 
       renderAppointmentOptions();
 
@@ -715,6 +716,7 @@ function openPaymentForm() {
   activeRecordPackage = null;
 
   paymentForm.reset();
+  paymentCustomer.disabled = false;
 
   paymentFormStatus.hidden =
     true;
@@ -756,6 +758,7 @@ function openPaymentFormForAppointment(
 
   paymentCustomer.value =
     appointment.customer_id;
+  paymentCustomer.disabled = true;
 
   renderAppointmentOptions();
 
@@ -1731,6 +1734,7 @@ function renderOutstanding() {
 
             paymentCustomer.value =
               appointment.customer_id;
+            paymentCustomer.disabled = true;
 
             renderAppointmentOptions();
             paymentAppointment.value =
@@ -1766,6 +1770,7 @@ function renderOutstanding() {
 
             paymentCustomer.value =
               item.customer_id;
+            paymentCustomer.disabled = true;
 
             renderAppointmentOptions();
             paymentAppointment.value = "";
