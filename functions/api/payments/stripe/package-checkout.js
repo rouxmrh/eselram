@@ -343,6 +343,19 @@ export async function onRequestPost({request, env}) {
       status: "pending"
     });
 
+    // Link the payment to the package as soon as Checkout is created.
+    // The webhook repeats this with INSERT OR IGNORE, so this is safe and
+    // ensures partial package payments are included in the package balance.
+    await env.DB.prepare(`
+      INSERT OR IGNORE INTO customer_package_payments (
+        customer_package_id,
+        payment_id
+      ) VALUES (?, ?)
+    `).bind(
+      customerPackageId,
+      paymentId
+    ).run();
+
     const origin =
       new URL(request.url).origin;
 
