@@ -38,6 +38,13 @@ const paymentMethod =
     "paymentMethod"
   );
 
+const recordPaymentDeductionType = document.getElementById("recordPaymentDeductionType");
+const recordPaymentDeductionValueWrap = document.getElementById("recordPaymentDeductionValueWrap");
+const recordPaymentDeductionValue = document.getElementById("recordPaymentDeductionValue");
+const recordPaymentVoucherWrap = document.getElementById("recordPaymentVoucherWrap");
+const recordPaymentVoucher = document.getElementById("recordPaymentVoucher");
+const recordPaymentDeductionSummary = document.getElementById("recordPaymentDeductionSummary");
+
 const paymentFormStatus =
   document.getElementById(
     "paymentFormStatus"
@@ -1026,6 +1033,48 @@ function prefillOutstandingAmount() {
 }
 
 
+function recordPaymentDeductionPayload() {
+  const type = recordPaymentDeductionType?.value || "none";
+  if (type === "amount") return { type, amount_minor: Math.round(Number(recordPaymentDeductionValue.value || 0) * 100) };
+  if (type === "percent") return { type, percent: Number(recordPaymentDeductionValue.value || 0) };
+  if (type === "voucher") return { type, voucher_id: recordPaymentVoucher.value };
+  return { type: "none" };
+}
+
+function updateRecordPaymentDeductionUi() {
+  if (!recordPaymentDeductionType) return;
+  const type = recordPaymentDeductionType.value;
+  recordPaymentDeductionValueWrap.hidden = !["amount", "percent"].includes(type);
+  recordPaymentVoucherWrap.hidden = type !== "voucher";
+  if (type === "percent") {
+    recordPaymentDeductionValue.step = "1";
+    recordPaymentDeductionValue.max = "100";
+  } else {
+    recordPaymentDeductionValue.step = "0.01";
+    recordPaymentDeductionValue.removeAttribute("max");
+  }
+  if (recordPaymentDeductionSummary) {
+    recordPaymentDeductionSummary.hidden = type === "none";
+    recordPaymentDeductionSummary.textContent = type === "none"
+      ? ""
+      : "The deduction reduces the balance without being recorded as money received.";
+  }
+}
+
+recordPaymentDeductionType?.addEventListener("change", updateRecordPaymentDeductionUi);
+recordPaymentDeductionType?.addEventListener("change", async () => {
+  if (recordPaymentDeductionType.value === "voucher") {
+    try {
+      await loadPaymentVouchers();
+      if (recordPaymentVoucher) {
+        recordPaymentVoucher.innerHTML = takePaymentVoucher?.innerHTML || '<option value="">No active vouchers</option>';
+      }
+    } catch (error) {
+      showFormError(error.message || "Unable to load vouchers.");
+    }
+  }
+});
+
 paymentForm.addEventListener(
   "submit",
   async (event) => {
@@ -1116,6 +1165,9 @@ paymentForm.addEventListener(
 
                 amount_minor:
                   amountMinor,
+
+                deduction:
+                  recordPaymentDeductionPayload(),
 
                 payment_type:
                   paymentType.value,

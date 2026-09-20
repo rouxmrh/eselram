@@ -1059,6 +1059,27 @@
             Apple Pay and Google Pay are recorded as payment methods. The provider records which gateway processed the payment.
           </p>
 
+          <div class="es-deduction-card">
+            <p class="es-eyebrow" style="margin-top:0;">Optional deduction</p>
+            <div class="es-deduction-grid">
+              <label>Deduction
+                <select id="recordPaymentDeductionType">
+                  <option value="none">No deduction</option>
+                  <option value="amount">Amount (£)</option>
+                  <option value="percent">Discount (%)</option>
+                  <option value="voucher">Voucher</option>
+                </select>
+              </label>
+              <label id="recordPaymentDeductionValueWrap" hidden>Value
+                <input id="recordPaymentDeductionValue" type="number" min="0" step="0.01">
+              </label>
+              <label id="recordPaymentVoucherWrap" hidden>Voucher
+                <select id="recordPaymentVoucher"></select>
+              </label>
+            </div>
+            <p id="recordPaymentDeductionSummary" class="es-payment-form-note" style="margin:10px 0 0;" hidden></p>
+          </div>
+
 
           <label>
             Provider reference

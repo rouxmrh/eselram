@@ -20,6 +20,12 @@ import {
   reconcilePendingPublicPackageSales
 } from "../../../lib/public-package-payment.js";
 
+import {
+  calculatePaymentDeduction,
+  createDiscountAdjustment,
+  setDiscountAdjustmentStatus
+} from "../../../lib/payment-discounts.js";
+
 
 async function getUserContext(
   request,
@@ -936,6 +942,21 @@ export async function onRequestPost({
       ).trim();
 
 
+    let deductionResult = { discountMinor: 0, type: "none", label: "", voucher: null };
+    try {
+      deductionResult = await calculatePaymentDeduction({
+        env,
+        businessId: user.business_id,
+        baseAmountMinor: amountMinor,
+        deduction: body.deduction
+      });
+    } catch (error) {
+      return badRequest(error.message || "Unable to apply deduction.");
+    }
+
+    const receivedAmountMinor = Math.max(0, amountMinor - deductionResult.discountMinor);
+
+
     if (!customerId) {
 
       return badRequest(
@@ -954,6 +975,11 @@ export async function onRequestPost({
       return badRequest(
         "A valid amount is required."
       );
+    }
+
+
+    if (receivedAmountMinor <= 0) {
+      return badRequest("The deduction must leave an amount to record as payment.");
     }
 
 
@@ -1400,7 +1426,7 @@ export async function onRequestPost({
         customerId,
         provider,
         paymentType,
-        amountMinor,
+        receivedAmountMinor,
         user.currency ||
           "GBP",
         providerReference || null,
@@ -1424,6 +1450,33 @@ export async function onRequestPost({
           id
         )
         .run();
+    }
+
+
+    if (deductionResult.discountMinor > 0) {
+      await createDiscountAdjustment({
+        env,
+        businessId: user.business_id,
+        paymentId: id,
+        appointmentId: appointmentId || null,
+        customerId,
+        customerPackageId: customerPackageId || null,
+        paymentType,
+        currency: user.currency || "GBP",
+        discountMinor: deductionResult.discountMinor,
+        deductionType: deductionResult.type,
+        label: deductionResult.label,
+        voucher: deductionResult.voucher,
+        status: "paid"
+      });
+
+      await setDiscountAdjustmentStatus({
+        env,
+        businessId: user.business_id,
+        paymentId: id,
+        status: "paid",
+        customerPackageId: customerPackageId || null
+      });
     }
 
 
