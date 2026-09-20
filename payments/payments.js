@@ -170,8 +170,6 @@ const recordTakePaymentManually =
 const takePaymentDeductionType = document.getElementById("takePaymentDeductionType");
 const takePaymentDeductionValueWrap = document.getElementById("takePaymentDeductionValueWrap");
 const takePaymentDeductionValue = document.getElementById("takePaymentDeductionValue");
-const takePaymentCollectAmountWrap = document.getElementById("takePaymentCollectAmountWrap");
-const takePaymentCollectAmount = document.getElementById("takePaymentCollectAmount");
 const takePaymentVoucherWrap = document.getElementById("takePaymentVoucherWrap");
 const takePaymentVoucher = document.getElementById("takePaymentVoucher");
 const prepareTakePayment = document.getElementById("prepareTakePayment");
@@ -291,11 +289,7 @@ async function prepareActiveTakePaymentCheckout() {
   try {
     const endpoint = isPackage ? "/api/payments/stripe/package-checkout" : "/api/payments/stripe/checkout";
     const body = isPackage
-      ? {
-          customer_package_id:item.id,
-          deduction:currentDeductionPayload(),
-          collect_amount_minor: Math.round(Number(takePaymentCollectAmount?.value || 0) * 100)
-        }
+      ? {customer_package_id:item.id, deduction:currentDeductionPayload()}
       : {appointment_id:item.id, deduction:currentDeductionPayload()};
     const response = await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body)});
     handleAuthentication(response); const data = await response.json();
@@ -1861,8 +1855,6 @@ async function createPackagePaymentCheckout(
   takePaymentDeductionType.value = "none";
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
-  takePaymentCollectAmountWrap.hidden = false;
-  takePaymentCollectAmount.value = (Number(item.balance_minor || 0) / 100).toFixed(2);
   takePaymentVoucherWrap.hidden = true;
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
@@ -1934,8 +1926,6 @@ async function createTakePaymentCheckout(
   takePaymentDeductionType.value = "none";
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
-  takePaymentCollectAmountWrap.hidden = true;
-  takePaymentCollectAmount.value = "";
   takePaymentVoucherWrap.hidden = true;
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
