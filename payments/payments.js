@@ -2125,6 +2125,77 @@ function discountDetailMarkup(payment) {
     `;
   }
 
+  const appointmentItem =
+    payment.appointment_id
+      ? appointments.find(item => item.id === payment.appointment_id)
+      : null;
+
+  if (appointmentItem) {
+    const consultationCreditMinor = Math.max(
+      0,
+      Number(appointmentItem.consultation_credit_minor || 0)
+    );
+    const currentServiceValueMinor = Math.max(
+      0,
+      Number(appointmentItem.price_minor || 0)
+    );
+    const serviceValueBeforeDiscountMinor =
+      currentServiceValueMinor + discount.discountMinor;
+    const totalPaidMinor = Math.max(
+      0,
+      Number(appointmentItem.paid_minor || 0)
+    );
+    const paidBeforeThisPaymentMinor = Math.max(
+      0,
+      totalPaidMinor - Number(payment.amount_minor || 0)
+    );
+    const amountDueAfterDeductionMinor = Math.max(
+      0,
+      currentServiceValueMinor - consultationCreditMinor
+    );
+    const currentRemainingMinor = Math.max(
+      0,
+      Number(appointmentItem.balance_minor || 0)
+    );
+
+    return `
+      ${detailItem("Service value", formatMoney(serviceValueBeforeDiscountMinor))}
+      ${
+        paidBeforeThisPaymentMinor > 0
+          ? detailItem("Deposit / previously paid", formatMoney(paidBeforeThisPaymentMinor))
+          : ""
+      }
+      ${
+        consultationCreditMinor > 0
+          ? detailItem("Consultation credit", formatMoney(consultationCreditMinor))
+          : ""
+      }
+      ${detailItem(
+        discount.type === "voucher" ? "Voucher discount" : "Discount amount",
+        formatMoney(discount.discountMinor)
+      )}
+      ${detailItem("Amount due after deduction", formatMoney(amountDueAfterDeductionMinor))}
+      ${detailItem("This payment", formatMoney(payment.amount_minor))}
+      ${detailItem("Current remaining balance", formatMoney(currentRemainingMinor))}
+      ${detailItem("Discount type", discount.typeLabel)}
+      ${
+        discount.type === "percent" && discount.percent !== null
+          ? detailItem("Percentage", `${discount.percent}%`)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.voucherCode
+          ? detailItem("Voucher code", discount.voucherCode)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.percent !== null
+          ? detailItem("Voucher value", `${discount.percent}%`)
+          : ""
+      }
+    `;
+  }
+
   return `
     ${detailItem("Amount paid", formatMoney(payment.amount_minor))}
     ${detailItem("Discount amount", formatMoney(discount.discountMinor))}

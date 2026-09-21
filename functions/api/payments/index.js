@@ -1340,6 +1340,42 @@ export async function onRequestPost({
         );
 
 
+      // Record Payment: percentage deductions are based on the full service
+      // value, not the remaining balance after a deposit/previous payment.
+      // Fixed-amount deductions retain their existing behaviour.
+      if (body.deduction && String(body.deduction.type || "none") !== "none") {
+        try {
+          const initialDeduction = await calculatePaymentDeduction({
+            env,
+            businessId: user.business_id,
+            baseAmountMinor: amountMinor,
+            deduction: body.deduction
+          });
+
+          const isPercentageDeduction =
+            initialDeduction.type === "percent" ||
+            (initialDeduction.type === "voucher" &&
+              initialDeduction.voucher?.discount_type === "percent");
+
+          deductionResult = isPercentageDeduction
+            ? await calculatePaymentDeduction({
+                env,
+                businessId: user.business_id,
+                baseAmountMinor: appointmentPriceMinor,
+                deduction: body.deduction
+              })
+            : initialDeduction;
+
+          receivedAmountMinor = Math.max(
+            0,
+            amountMinor - deductionResult.discountMinor
+          );
+        } catch (error) {
+          return badRequest(error.message || "Unable to apply deduction.");
+        }
+      }
+
+
       if (
         outstandingMinor <= 0
       ) {
