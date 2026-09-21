@@ -620,18 +620,6 @@ function renderCustomerPackages() {
             `
             : ""}
 
-          ${item.status === "active" && Number(item.outstanding_minor) > 0
-            ? `
-              <button
-                class="es-secondary-button"
-                type="button"
-                data-package-payment="${escapeHtml(item.id)}"
-              >
-                Record payment
-              </button>
-            `
-            : ""}
-
           ${item.status === "active"
             ? `
               <button
@@ -648,15 +636,6 @@ function renderCustomerPackages() {
       </article>
     `;
   }).join("");
-
-  wrap.querySelectorAll("[data-package-payment]").forEach(button => {
-    button.addEventListener("click", () => {
-      const item = customerPackages.find(
-        p => p.id === button.dataset.packagePayment
-      );
-      if (item) openPaymentDialog(item);
-    });
-  });
 
   wrap.querySelectorAll("[data-package-status]").forEach(button => {
     button.addEventListener("click", async () => {
