@@ -2065,8 +2065,67 @@ function discountDetailMarkup(payment) {
   const discount = paymentDiscountDetails(payment);
   if (!discount) return "";
 
+  const packageItem =
+    payment.customer_package_id
+      ? packageBalances.find(
+          item => item.id === payment.customer_package_id
+        )
+      : null;
+
+  if (packageItem) {
+    const consultationCreditMinor = Math.max(
+      0,
+      Number(packageItem.consultation_credit_minor || 0)
+    );
+    const discountedPackageValueMinor = Math.max(
+      0,
+      Number(packageItem.price_minor || 0)
+    );
+    const packageValueBeforeDiscountMinor =
+      discountedPackageValueMinor + discount.discountMinor;
+    const discountedAmountDueMinor = Math.max(
+      discountedPackageValueMinor - consultationCreditMinor,
+      0
+    );
+    const currentRemainingMinor = Math.max(
+      0,
+      Number(packageItem.balance_minor || 0)
+    );
+
+    return `
+      ${detailItem("Package value", formatMoney(packageValueBeforeDiscountMinor))}
+      ${
+        consultationCreditMinor > 0
+          ? detailItem("Consultation credit", formatMoney(consultationCreditMinor))
+          : ""
+      }
+      ${detailItem(
+        discount.type === "voucher" ? "Voucher discount" : "Discount amount",
+        formatMoney(discount.discountMinor)
+      )}
+      ${detailItem("Amount due after deduction", formatMoney(discountedAmountDueMinor))}
+      ${detailItem("This payment", formatMoney(payment.amount_minor))}
+      ${detailItem("Current remaining package balance", formatMoney(currentRemainingMinor))}
+      ${detailItem("Discount type", discount.typeLabel)}
+      ${
+        discount.type === "percent" && discount.percent !== null
+          ? detailItem("Percentage", `${discount.percent}%`)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.voucherCode
+          ? detailItem("Voucher code", discount.voucherCode)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.percent !== null
+          ? detailItem("Voucher value", `${discount.percent}%`)
+          : ""
+      }
+    `;
+  }
+
   return `
-    ${detailItem("Original amount", formatMoney(discount.originalMinor))}
     ${detailItem("Amount paid", formatMoney(payment.amount_minor))}
     ${detailItem("Discount amount", formatMoney(discount.discountMinor))}
     ${detailItem("Discount type", discount.typeLabel)}
