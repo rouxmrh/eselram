@@ -172,6 +172,8 @@ const takePaymentDeductionValueWrap = document.getElementById("takePaymentDeduct
 const takePaymentDeductionValue = document.getElementById("takePaymentDeductionValue");
 const takePaymentVoucherWrap = document.getElementById("takePaymentVoucherWrap");
 const takePaymentVoucher = document.getElementById("takePaymentVoucher");
+const takePaymentCollectAmountWrap = document.getElementById("takePaymentCollectAmountWrap");
+const takePaymentCollectAmount = document.getElementById("takePaymentCollectAmount");
 const prepareTakePayment = document.getElementById("prepareTakePayment");
 const manageVouchersButton = document.getElementById("manageVouchersButton");
 const vouchersDialog = document.getElementById("vouchersDialog");
@@ -288,8 +290,15 @@ async function prepareActiveTakePaymentCheckout() {
 
   try {
     const endpoint = isPackage ? "/api/payments/stripe/package-checkout" : "/api/payments/stripe/checkout";
+    const collectAmountMinor = isPackage
+      ? Math.round(Number(takePaymentCollectAmount?.value || 0) * 100)
+      : 0;
     const body = isPackage
-      ? {customer_package_id:item.id, deduction:currentDeductionPayload()}
+      ? {
+          customer_package_id:item.id,
+          deduction:currentDeductionPayload(),
+          ...(collectAmountMinor > 0 ? {collect_amount_minor:collectAmountMinor} : {})
+        }
       : {appointment_id:item.id, deduction:currentDeductionPayload()};
     const response = await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body)});
     handleAuthentication(response); const data = await response.json();
@@ -1856,6 +1865,8 @@ async function createPackagePaymentCheckout(
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
   takePaymentVoucherWrap.hidden = true;
+  takePaymentCollectAmountWrap.hidden = false;
+  takePaymentCollectAmount.value = "";
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
   try { await loadPaymentVouchers(); } catch {}
@@ -1927,6 +1938,8 @@ async function createTakePaymentCheckout(
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
   takePaymentVoucherWrap.hidden = true;
+  takePaymentCollectAmountWrap.hidden = true;
+  takePaymentCollectAmount.value = "";
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
   try { await loadPaymentVouchers(); } catch {}
