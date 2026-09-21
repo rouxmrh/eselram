@@ -825,11 +825,18 @@ export async function onRequestPost({
 
 
     let deductionResult;
+    const getDeductionBaseMinor = () =>
+      plan.paymentType === "balance" &&
+      Number(appointment.consultation_credit_minor || 0) <= 0 &&
+      Number(netPaid || 0) > 0
+        ? Math.max(0, Number(appointment.price_minor || plan.amountMinor))
+        : plan.amountMinor;
+
     try {
       deductionResult = await calculatePaymentDeduction({
         env,
         businessId: user.business_id,
-        baseAmountMinor: plan.amountMinor,
+        baseAmountMinor: getDeductionBaseMinor(),
         deduction: body.deduction
       });
     } catch (error) {
@@ -907,7 +914,7 @@ export async function onRequestPost({
         deductionResult = await calculatePaymentDeduction({
           env,
           businessId: user.business_id,
-          baseAmountMinor: plan.amountMinor,
+          baseAmountMinor: getDeductionBaseMinor(),
           deduction: body.deduction
         });
       } catch (error) {
