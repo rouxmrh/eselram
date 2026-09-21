@@ -196,6 +196,8 @@ let activeTakePaymentAppointment = null;
 let activeTakePaymentPackage = null;
 let activeTakePaymentPaymentId = null;
 let activeRecordPackage = null;
+let recordPaymentGrossAmountMinor = null;
+let updatingRecordPaymentAmount = false;
 let paymentVouchers = [];
 
 
@@ -723,6 +725,7 @@ function renderStats(
 function openPaymentForm() {
 
   activeRecordPackage = null;
+  recordPaymentGrossAmountMinor = null;
 
   paymentForm.reset();
   paymentCustomer.disabled = false;
@@ -1053,6 +1056,74 @@ function recordPaymentDeductionPayload() {
   return { type: "none" };
 }
 
+function recordPaymentDeductionPreviewMinor() {
+  const type = recordPaymentDeductionType?.value || "none";
+  if (type === "none") return 0;
+
+  const appointment = appointments.find(item => item.id === paymentAppointment.value);
+  const outstandingMinor = activeRecordPackage
+    ? Math.max(0, Number(activeRecordPackage.balance_minor || 0))
+    : Math.max(0, Number(appointment?.balance_minor || 0));
+  const fullValueMinor = activeRecordPackage
+    ? Math.max(0, Number(activeRecordPackage.price_minor || 0))
+    : Math.max(0, Number(appointment?.price_minor || 0));
+
+  if (!outstandingMinor) return 0;
+
+  if (type === "amount") {
+    return Math.min(outstandingMinor, Math.max(0, Math.round(Number(recordPaymentDeductionValue?.value || 0) * 100)));
+  }
+
+  let percent = 0;
+  if (type === "percent") {
+    percent = Number(recordPaymentDeductionValue?.value || 0);
+  } else if (type === "voucher") {
+    const voucher = paymentVouchers.find(item => item.id === recordPaymentVoucher?.value);
+    if (!voucher) return 0;
+    if (voucher.discount_type === "amount") {
+      return Math.min(outstandingMinor, Math.max(0, Math.round(Number(voucher.value || 0) * 100)));
+    }
+    percent = Number(voucher.value || 0);
+  }
+
+  if (!Number.isFinite(percent) || percent <= 0 || percent > 100) return 0;
+  return Math.min(outstandingMinor, Math.round(fullValueMinor * percent / 100));
+}
+
+function refreshRecordPaymentAmountForDeduction() {
+  const type = recordPaymentDeductionType?.value || "none";
+  const appointment = appointments.find(item => item.id === paymentAppointment.value);
+  const outstandingMinor = activeRecordPackage
+    ? Math.max(0, Number(activeRecordPackage.balance_minor || 0))
+    : Math.max(0, Number(appointment?.balance_minor || 0));
+
+  if (!outstandingMinor) {
+    recordPaymentGrossAmountMinor = null;
+    return;
+  }
+
+  const discountMinor = recordPaymentDeductionPreviewMinor();
+  const netMinor = type === "none"
+    ? outstandingMinor
+    : Math.max(0, outstandingMinor - discountMinor);
+
+  recordPaymentGrossAmountMinor = type === "none" ? null : outstandingMinor;
+  updatingRecordPaymentAmount = true;
+  paymentAmount.value = (netMinor / 100).toFixed(2);
+  updatingRecordPaymentAmount = false;
+
+  if (recordPaymentDeductionSummary) {
+    recordPaymentDeductionSummary.hidden = type === "none";
+    recordPaymentDeductionSummary.textContent = type === "none"
+      ? ""
+      : `${formatMoney(discountMinor)} deduction applied · ${formatMoney(netMinor)} to record.`;
+  }
+}
+
+paymentAmount?.addEventListener("input", () => {
+  if (!updatingRecordPaymentAmount) recordPaymentGrossAmountMinor = null;
+});
+
 function updateRecordPaymentDeductionUi() {
   if (!recordPaymentDeductionType) return;
   const type = recordPaymentDeductionType.value;
@@ -1085,7 +1156,10 @@ recordPaymentDeductionType?.addEventListener("change", async () => {
       showFormError(error.message || "Unable to load vouchers.");
     }
   }
+  refreshRecordPaymentAmountForDeduction();
 });
+recordPaymentDeductionValue?.addEventListener("input", refreshRecordPaymentAmountForDeduction);
+recordPaymentVoucher?.addEventListener("change", refreshRecordPaymentAmountForDeduction);
 
 paymentForm.addEventListener(
   "submit",
@@ -1094,12 +1168,20 @@ paymentForm.addEventListener(
     event.preventDefault();
 
 
-    const amountMinor =
+    const displayedAmountMinor =
       Math.round(
         Number(
           paymentAmount.value
         ) * 100
       );
+
+    // The Amount field shows the money actually being received. The existing
+    // API expects the pre-deduction outstanding amount and subtracts the
+    // deduction server-side, so preserve that gross amount only for submission.
+    const amountMinor =
+      recordPaymentGrossAmountMinor != null
+        ? recordPaymentGrossAmountMinor
+        : displayedAmountMinor;
 
 
     if (
@@ -1115,9 +1197,9 @@ paymentForm.addEventListener(
 
 
     if (
-      !Number.isFinite(
-        amountMinor
-      ) ||
+      !Number.isFinite(displayedAmountMinor) ||
+      displayedAmountMinor <= 0 ||
+      !Number.isFinite(amountMinor) ||
       amountMinor <= 0
     ) {
 
