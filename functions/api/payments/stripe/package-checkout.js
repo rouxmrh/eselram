@@ -11,6 +11,7 @@ import {
 
 import {
   calculatePaymentDeduction,
+  calculatePackagePaymentDeduction,
   createDiscountAdjustment,
   setDiscountAdjustmentStatus
 } from "../../../../lib/payment-discounts.js";
@@ -234,10 +235,11 @@ export async function onRequestPost({request, env}) {
 
     let deductionResult;
     try {
-      deductionResult = await calculatePaymentDeduction({
+      deductionResult = await calculatePackagePaymentDeduction({
         env,
         businessId: user.business_id,
-        baseAmountMinor: outstandingMinor,
+        packagePriceMinor: Number(item.price_minor || 0),
+        payableBaseMinor: outstandingMinor,
         deduction: body.deduction
       });
     } catch (error) {

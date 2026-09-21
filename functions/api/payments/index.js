@@ -22,6 +22,7 @@ import {
 
 import {
   calculatePaymentDeduction,
+  calculatePackagePaymentDeduction,
   createDiscountAdjustment,
   setDiscountAdjustmentStatus
 } from "../../../lib/payment-discounts.js";
@@ -955,18 +956,20 @@ export async function onRequestPost({
 
 
     let deductionResult = { discountMinor: 0, type: "none", label: "", voucher: null };
-    try {
-      deductionResult = await calculatePaymentDeduction({
-        env,
-        businessId: user.business_id,
-        baseAmountMinor: amountMinor,
-        deduction: body.deduction
-      });
-    } catch (error) {
-      return badRequest(error.message || "Unable to apply deduction.");
+    if (!customerPackageId) {
+      try {
+        deductionResult = await calculatePaymentDeduction({
+          env,
+          businessId: user.business_id,
+          baseAmountMinor: amountMinor,
+          deduction: body.deduction
+        });
+      } catch (error) {
+        return badRequest(error.message || "Unable to apply deduction.");
+      }
     }
 
-    const receivedAmountMinor = Math.max(0, amountMinor - deductionResult.discountMinor);
+    let receivedAmountMinor = Math.max(0, amountMinor - deductionResult.discountMinor);
 
 
     if (!customerId) {
@@ -1172,6 +1175,23 @@ export async function onRequestPost({
           0
         );
 
+
+      try {
+        deductionResult = await calculatePackagePaymentDeduction({
+          env,
+          businessId: user.business_id,
+          packagePriceMinor: Number(customerPackage.price_minor || 0),
+          payableBaseMinor: amountMinor,
+          deduction: body.deduction
+        });
+      } catch (error) {
+        return badRequest(error.message || "Unable to apply deduction.");
+      }
+
+      receivedAmountMinor = Math.max(
+        0,
+        amountMinor - deductionResult.discountMinor
+      );
 
       if (
         amountMinor >
