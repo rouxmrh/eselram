@@ -1176,9 +1176,14 @@ function openPackageCheckoutDialog(data) {
           ? `Voucher discount ${money(discountMinor)}`
           : `Discount ${money(discountMinor)}`;
 
+    const consultationCreditMinor = Number(data.consultation_credit_minor || 0);
+    const consultationCreditLabel = consultationCreditMinor > 0
+      ? ` · Consultation credit ${money(consultationCreditMinor)}`
+      : "";
+
     $("#packageCheckoutAmount").innerHTML =
       `<span style="display:block;font-size:14px;font-weight:600;margin-bottom:5px">` +
-      `Package value ${money(packageValueMinor)} · ${discountLabel}</span>` +
+      `Package value ${money(packageValueMinor)} · ${discountLabel}${consultationCreditLabel}</span>` +
       `<span style="display:block">${money(data.amount_minor)} ready to collect</span>`;
   } else {
     $("#packageCheckoutAmount").textContent =
