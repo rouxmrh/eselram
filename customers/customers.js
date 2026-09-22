@@ -430,6 +430,9 @@ document.addEventListener(
 );
 
 
+let businessCurrency = "GBP";
+let businessLocale = "en-GB";
+
 /* =======================================================
    Load list
    ======================================================= */
@@ -476,6 +479,9 @@ async function loadCustomers() {
     customers =
       data.customers ||
       [];
+
+    businessCurrency = String(data.currency || "GBP").toUpperCase();
+    businessLocale = data.locale || "en-GB";
 
 
     if (customerHubTotalCustomers) {
@@ -4822,12 +4828,12 @@ function formatMoney(
 ) {
 
   return new Intl.NumberFormat(
-    "en-GB",
+    businessLocale || "en-GB",
     {
       style:
         "currency",
       currency:
-        "GBP"
+        businessCurrency || "GBP"
     }
   ).format(
     Number(
