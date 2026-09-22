@@ -52,6 +52,7 @@ export async function onRequestGet({
 
             b.name AS business_name,
             b.currency,
+            b.locale,
             b.timezone
 
           FROM user_sessions s
@@ -700,6 +701,9 @@ export async function onRequestGet({
           currency:
             session.currency ||
             "GBP",
+          locale:
+            session.locale ||
+            "en-GB",
           timezone:
             session.timezone ||
             "Europe/London"

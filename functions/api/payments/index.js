@@ -55,7 +55,8 @@ async function getUserContext(
       SELECT
         u.id AS user_id,
         u.business_id,
-        b.currency
+        b.currency,
+        b.locale
 
       FROM user_sessions s
 
@@ -793,6 +794,10 @@ export async function onRequestGet({
       currency:
         user.currency ||
         "GBP",
+
+      locale:
+        user.locale ||
+        "en-GB",
 
       stats: {
         paid_month_minor:

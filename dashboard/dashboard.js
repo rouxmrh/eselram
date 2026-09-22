@@ -1,4 +1,5 @@
 let dashboardTimezone = "Europe/London";
+let dashboardLocale = "en-GB";
 
 const welcomeTitle =
   document.getElementById("welcomeTitle");
@@ -40,6 +41,7 @@ async function loadDashboard() {
     }
 
     dashboardTimezone = data.business?.timezone || "Europe/London";
+    dashboardLocale = data.business?.locale || "en-GB";
     renderHeader(data);
     renderStats(data);
     renderTodaySchedule(
@@ -365,7 +367,7 @@ function formatMoney(
   currency
 ) {
   return new Intl.NumberFormat(
-    "en-GB",
+    dashboardLocale || "en-GB",
     {
       style: "currency",
       currency: currency || "GBP"

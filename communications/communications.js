@@ -140,8 +140,9 @@ function formatDate(value) {
 
 function money(minor, currency = "GBP") {
   try {
+    const locale = ({USD:"en-US", AUD:"en-AU", NZD:"en-NZ", ZAR:"en-ZA", EUR:"en-IE", GBP:"en-GB"})[String(currency||"GBP").toUpperCase()] || "en-GB";
     return new Intl.NumberFormat(
-      "en-GB",
+      locale,
       {
         style: "currency",
         currency:
@@ -779,7 +780,7 @@ function sampleVariables() {
     form_name:
       "Consultation Form",
     amount:
-      "£30.00",
+      "30.00",
     default_subject:
       "Eselram smart subject",
     default_title:
@@ -1564,7 +1565,7 @@ function renderBookingCopyEditor() {
       preview.textContent = previewTemplateText(field?.value || "", {
         group_name: group.name,
         consultation_duration: "30",
-        consultation_payment: "£30.00 online",
+        consultation_payment: "30.00 online",
         consultation_credit_sentence: "Any unused consultation credit will be deducted from the first eligible treatment or package you go on to purchase.",
         patch_test_sentence: patchText,
         post_consultation_sentence: "Existing clients can book an eligible treatment online using the same customer details held by the business."

@@ -184,6 +184,9 @@ const saveVouchersButton = document.getElementById("saveVouchersButton");
 const voucherStatus = document.getElementById("voucherStatus");
 
 
+let businessCurrency = "GBP";
+let businessLocale = "en-GB";
+
 let payments = [];
 let outstanding = [];
 let customers = [];
@@ -223,7 +226,7 @@ function renderVoucherRows() {
     <div class="es-voucher-row" data-voucher-index="${i}">
       <input class="voucher-code" value="${escapeVoucherHtml(v.code)}" placeholder="CODE" aria-label="Voucher code">
       <select class="voucher-type" aria-label="Voucher type">
-        <option value="amount" ${v.discount_type === "amount" ? "selected" : ""}>Amount (£)</option>
+        <option value="amount" ${v.discount_type === "amount" ? "selected" : ""} data-currency-amount-option>Amount</option>
         <option value="percent" ${v.discount_type === "percent" ? "selected" : ""}>Discount (%)</option>
       </select>
       <input class="voucher-value" type="number" min="0.01" step="0.01" value="${Number(v.value || 0)}" aria-label="Voucher value">
@@ -617,6 +620,10 @@ async function loadPayments() {
       );
     }
 
+
+    businessCurrency = String(data.currency || "GBP").toUpperCase();
+    businessLocale = data.locale || "en-GB";
+    applyCurrencyLabels();
 
     payments =
       data.payments ||
@@ -2136,7 +2143,7 @@ function cleanPaymentNotes(notes) {
     .filter(Boolean)
     .filter(part => !/^(discount_minor|deduction_type|voucher|label)=/i.test(part))
     .filter(part => part !== "discount_balance_applied=1")
-    .filter(part => !/^£[\d,.]+\s+(?:voucher discount|discount|deduction)/i.test(part))
+    .filter(part => !/^(?:[£$€]|GBP|USD|EUR|AUD|NZD|ZAR)\s*[\d,.]+\s+(?:voucher discount|discount|deduction)/i.test(part))
     .join(" · ")
     .trim();
 
@@ -2747,21 +2754,27 @@ function paymentDateValue(
 function formatMoney(
   amountMinor
 ) {
-
   return new Intl.NumberFormat(
-    "en-GB",
-    {
-      style:
-        "currency",
-      currency:
-        "GBP"
-    }
-  ).format(
-    Number(
-      amountMinor ||
-      0
-    ) / 100
-  );
+    businessLocale || "en-GB",
+    { style: "currency", currency: businessCurrency || "GBP" }
+  ).format(Number(amountMinor || 0) / 100);
+}
+
+function currencySymbol() {
+  try {
+    return new Intl.NumberFormat(businessLocale || "en-GB", {
+      style: "currency", currency: businessCurrency || "GBP", currencyDisplay: "narrowSymbol"
+    }).formatToParts(0).find(part => part.type === "currency")?.value || businessCurrency;
+  } catch { return businessCurrency; }
+}
+
+function applyCurrencyLabels() {
+  const symbol = currencySymbol();
+  document.querySelectorAll('[data-currency-amount-option]').forEach(el => el.textContent = `Amount (${symbol})`);
+  document.querySelectorAll('[data-currency-amount-label]').forEach(el => {
+    const text = el.dataset.currencyAmountLabel || "Amount";
+    el.childNodes[0].textContent = `${text} (${symbol}) `;
+  });
 }
 
 

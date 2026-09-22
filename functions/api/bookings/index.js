@@ -38,9 +38,14 @@ async function getUserContext(
     .prepare(`
       SELECT
         u.id AS user_id,
-        u.business_id
+        u.business_id,
+        b.currency,
+        b.locale
 
       FROM user_sessions s
+
+      JOIN businesses b
+        ON b.id = u.business_id
 
       JOIN users u
         ON u.id = s.user_id
@@ -114,7 +119,7 @@ function conflict(message) {
 }
 
 
-function formatMoneyMinor(value) {
+function formatMoneyMinor(value, currency = "GBP", locale = "en-GB") {
   const amount =
     Math.max(
       Number(value || 0),
@@ -122,10 +127,10 @@ function formatMoneyMinor(value) {
     ) / 100;
 
   return new Intl.NumberFormat(
-    "en-GB",
+    locale || "en-GB",
     {
       style: "currency",
-      currency: "GBP"
+      currency: String(currency || "GBP").toUpperCase()
     }
   ).format(amount);
 }
@@ -1928,7 +1933,9 @@ export async function onRequestPut({
 
         return conflict(
           `Take the outstanding payment of ${formatMoneyMinor(
-            outstandingMinor
+            outstandingMinor,
+            user.currency,
+            user.locale
           )} before marking this booking as complete.`
         );
       }

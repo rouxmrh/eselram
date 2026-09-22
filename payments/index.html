@@ -855,7 +855,7 @@
           </span>
 
           <strong id="paidMonth">
-            £0.00
+            0.00
           </strong>
 
           <small>
@@ -869,7 +869,7 @@
           </span>
 
           <strong id="outstandingTotal">
-            £0.00
+            0.00
           </strong>
 
           <small>
@@ -883,7 +883,7 @@
           </span>
 
           <strong id="refundMonth">
-            £0.00
+            0.00
           </strong>
 
           <small>
@@ -1065,7 +1065,7 @@
               <label>Deduction
                 <select id="recordPaymentDeductionType">
                   <option value="none">No deduction</option>
-                  <option value="amount">Amount (£)</option>
+                  <option value="amount" data-currency-amount-option>Amount</option>
                   <option value="percent">Discount (%)</option>
                   <option value="voucher">Voucher</option>
                 </select>
@@ -1272,7 +1272,7 @@
           <label>Deduction
             <select id="takePaymentDeductionType">
               <option value="none">No deduction</option>
-              <option value="amount">Amount (£)</option>
+              <option value="amount" data-currency-amount-option>Amount</option>
               <option value="percent">Discount (%)</option>
               <option value="voucher">Voucher</option>
             </select>
@@ -1283,7 +1283,7 @@
           <label id="takePaymentVoucherWrap" hidden>Voucher
             <select id="takePaymentVoucher"></select>
           </label>
-          <label id="takePaymentCollectAmountWrap" hidden>Amount to collect now (£)
+          <label id="takePaymentCollectAmountWrap" hidden data-currency-amount-label="Amount to collect now">Amount to collect now
             <input id="takePaymentCollectAmount" type="number" min="0.01" step="0.01" inputmode="decimal">
           </label>
           <button id="prepareTakePayment" class="es-button" type="button">Prepare payment</button>
