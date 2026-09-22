@@ -4021,7 +4021,9 @@ function formatMoney(
       style:
         "currency",
       currency:
-        businessCurrency || "GBP"
+        businessCurrency || "GBP",
+      currencyDisplay:
+        "narrowSymbol"
     }
   ).format(
     Number(
