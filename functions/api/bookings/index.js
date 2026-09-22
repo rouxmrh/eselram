@@ -1274,7 +1274,7 @@ export async function onRequestGet({
     const business =
       await env.DB
         .prepare(`
-          SELECT timezone
+          SELECT timezone, currency, locale
           FROM businesses
           WHERE id = ?
           LIMIT 1
@@ -1287,6 +1287,10 @@ export async function onRequestGet({
       timezone:
         business?.timezone ||
         "Europe/London",
+      currency:
+        String(business?.currency || "GBP").toUpperCase(),
+      locale:
+        business?.locale || "en-GB",
       bookings:
         bookings.results ||
         []

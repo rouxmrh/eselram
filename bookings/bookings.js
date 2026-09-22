@@ -142,6 +142,8 @@ const backToCalendarButton =
 let services = [];
 let bookings = [];
 let businessTimezone = "Europe/London";
+let businessCurrency = "GBP";
+let businessLocale = "en-GB";
 let bookingPackages = [];
 let currentDetailBookingId = null;
 
@@ -1500,6 +1502,12 @@ async function loadBookings() {
     businessTimezone =
       data.timezone ||
       businessTimezone;
+
+    businessCurrency =
+      String(data.currency || businessCurrency || "GBP").toUpperCase();
+
+    businessLocale =
+      data.locale || businessLocale || "en-GB";
 
     bookings =
       data.bookings ||
@@ -4002,12 +4010,12 @@ function formatMoney(
 ) {
 
   return new Intl.NumberFormat(
-    "en-GB",
+    businessLocale || "en-GB",
     {
       style:
         "currency",
       currency:
-        "GBP"
+        businessCurrency || "GBP"
     }
   ).format(
     Number(
