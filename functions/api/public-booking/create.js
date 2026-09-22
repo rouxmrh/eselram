@@ -545,7 +545,7 @@ export async function onRequestPost({ request, env }) {
     createdPaymentId = paymentId;
     const paymentType = paymentTiming === "online_deposit" ? "deposit" : "full";
     const currency = String(
-      stripeIntegration.config?.currency || business.currency || "GBP"
+      business.currency || stripeIntegration.config?.currency || "GBP"
     ).toLowerCase();
 
     await env.DB

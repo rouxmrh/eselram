@@ -967,7 +967,7 @@ export async function onRequestPost({ request, env }) {
 
     const paymentId = `pay_${crypto.randomUUID()}`;
     const stripeCurrency = String(
-      integration.config.currency || user.currency || "GBP"
+      user.currency || integration.config.currency || "GBP"
     ).toUpperCase();
 
     await env.DB.prepare(`

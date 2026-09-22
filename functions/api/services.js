@@ -25,12 +25,17 @@ async function getUserContext(
     .prepare(`
       SELECT
         u.id AS user_id,
-        u.business_id
+        u.business_id,
+        b.currency,
+        b.locale
 
       FROM user_sessions s
 
       JOIN users u
         ON u.id = s.user_id
+
+      JOIN businesses b
+        ON b.id = u.business_id
 
       WHERE
         s.token_hash = ?
@@ -280,7 +285,9 @@ export async function onRequestGet({
         providers.results || [],
 
       client_templates:
-        clientTemplates.results || []
+        clientTemplates.results || [],
+      currency: String(user.currency || "GBP").toUpperCase(),
+      locale: user.locale || "en-GB"
     });
 
 

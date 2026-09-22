@@ -936,8 +936,8 @@ export async function onRequestPost({
 
     const currency =
       String(
-        integration.config.currency ||
         user.currency ||
+        integration.config.currency ||
         "GBP"
       ).toLowerCase();
 

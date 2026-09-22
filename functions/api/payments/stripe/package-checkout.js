@@ -293,8 +293,8 @@ export async function onRequestPost({request, env}) {
 
     const currency =
       String(
-        integration.config.currency ||
         user.currency ||
+        integration.config.currency ||
         "GBP"
       ).toUpperCase();
 
