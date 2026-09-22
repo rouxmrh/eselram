@@ -186,6 +186,7 @@ const voucherStatus = document.getElementById("voucherStatus");
 
 let businessCurrency = "GBP";
 let businessLocale = "en-GB";
+let businessTimezone = "Europe/London";
 
 let payments = [];
 let outstanding = [];
@@ -623,6 +624,7 @@ async function loadPayments() {
 
     businessCurrency = String(data.currency || "GBP").toUpperCase();
     businessLocale = data.locale || "en-GB";
+    businessTimezone = data.timezone || "Europe/London";
     applyCurrencyLabels();
 
     payments =
@@ -2788,7 +2790,8 @@ function formatShortDate(
       day:
         "numeric",
       month:
-        "short"
+        "short",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
@@ -2806,7 +2809,8 @@ function formatFullDateTime(
       dateStyle:
         "medium",
       timeStyle:
-        "short"
+        "short",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
@@ -2824,7 +2828,8 @@ function formatTime(
       hour:
         "2-digit",
       minute:
-        "2-digit"
+        "2-digit",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)

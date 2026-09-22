@@ -26,12 +26,17 @@ async function getUserContext(request, env) {
     .prepare(`
       SELECT
         u.id AS user_id,
-        u.business_id
+        u.business_id,
+        b.timezone,
+        b.locale
 
       FROM user_sessions s
 
       JOIN users u
         ON u.id = s.user_id
+
+      JOIN businesses b
+        ON b.id = u.business_id
 
       WHERE
         s.token_hash = ?
@@ -170,7 +175,9 @@ export async function onRequestGet({
       communications:
         rows.results ||
         [],
-      settings
+      settings,
+      timezone: user.timezone || "Europe/London",
+      locale: user.locale || "en-GB"
     });
   } catch (error) {
     console.error(

@@ -99,6 +99,8 @@ let selectedAftercareKey = "";
 
 let rows = [];
 let settings = {};
+let businessTimezone = "Europe/London";
+let businessLocale = "en-GB";
 let selectedCategory = "";
 
 
@@ -117,13 +119,14 @@ function formatDate(value) {
 
   try {
     return new Intl.DateTimeFormat(
-      "en-GB",
+      businessLocale || "en-GB",
       {
         day: "numeric",
         month: "short",
         year: "numeric",
         hour: "2-digit",
-        minute: "2-digit"
+        minute: "2-digit",
+        timeZone: businessTimezone
       }
     ).format(
       new Date(
@@ -2544,6 +2547,9 @@ async function loadCommunications() {
     settings =
       data.settings ||
       {};
+
+    businessTimezone = data.timezone || "Europe/London";
+    businessLocale = data.locale || "en-GB";
 
     renderSummary();
     renderAutomationSummary();

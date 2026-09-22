@@ -41,7 +41,8 @@ async function getUserContext(
         u.id AS user_id,
         u.business_id,
         b.currency,
-        b.locale
+        b.locale,
+        b.timezone
 
       FROM user_sessions s
 
@@ -1488,6 +1489,7 @@ export async function onRequestGet({
         ok: true,
         currency: user.currency || "GBP",
         locale: user.locale || "en-GB",
+        timezone: user.timezone || "Europe/London",
 
         customer: {
           ...customer,

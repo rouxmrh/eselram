@@ -432,6 +432,7 @@ document.addEventListener(
 
 let businessCurrency = "GBP";
 let businessLocale = "en-GB";
+let businessTimezone = "Europe/London";
 
 /* =======================================================
    Load list
@@ -482,6 +483,7 @@ async function loadCustomers() {
 
     businessCurrency = String(data.currency || "GBP").toUpperCase();
     businessLocale = data.locale || "en-GB";
+    businessTimezone = data.timezone || "Europe/London";
 
 
     if (customerHubTotalCustomers) {
@@ -4859,7 +4861,8 @@ function formatDate(value) {
       month:
         "short",
       year:
-        "numeric"
+        "numeric",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
@@ -4875,7 +4878,8 @@ function formatShortDate(value) {
       day:
         "numeric",
       month:
-        "short"
+        "short",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
@@ -4891,7 +4895,8 @@ function formatTime(value) {
       hour:
         "2-digit",
       minute:
-        "2-digit"
+        "2-digit",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
