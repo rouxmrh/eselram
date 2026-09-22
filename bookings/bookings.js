@@ -1307,6 +1307,12 @@ async function loadBookingPackages() {
       );
     }
 
+    // Packages are loaded independently from bookings, so take the business
+    // currency from this response before rendering. This avoids a race where
+    // the package panel briefly/permanently renders with the GBP default.
+    businessCurrency =
+      String(data.currency || businessCurrency || "GBP").toUpperCase();
+
     bookingPackages =
       data.customer_packages ||
       [];

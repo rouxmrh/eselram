@@ -2803,18 +2803,31 @@ function formatFullDateTime(
   value
 ) {
 
+  // D1 CURRENT_TIMESTAMP is UTC but may arrive as "YYYY-MM-DD HH:mm:ss"
+  // without a timezone suffix. Browsers otherwise treat that as local time,
+  // which makes payment times wrong when the business is in another zone.
+  const raw = String(value || "").trim();
+  const utcValue =
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(raw)
+      ? `${raw.replace(" ", "T")}Z`
+      : raw;
+
+  const date = new Date(utcValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return raw || "—";
+  }
+
   return new Intl.DateTimeFormat(
-    "en-GB",
+    businessLocale || "en-GB",
     {
       dateStyle:
         "medium",
       timeStyle:
         "short",
-      timeZone: businessTimezone
+      timeZone: businessTimezone || "Europe/London"
     }
-  ).format(
-    new Date(value)
-  );
+  ).format(date);
 }
 
 
