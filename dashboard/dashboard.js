@@ -1,3 +1,5 @@
+let dashboardTimezone = "Europe/London";
+
 const welcomeTitle =
   document.getElementById("welcomeTitle");
 
@@ -37,6 +39,7 @@ async function loadDashboard() {
       );
     }
 
+    dashboardTimezone = data.business?.timezone || "Europe/London";
     renderHeader(data);
     renderStats(data);
     renderTodaySchedule(
@@ -83,15 +86,21 @@ function renderHeader(data) {
         weekday: "long",
         day: "numeric",
         month: "long",
-        year: "numeric"
+        year: "numeric",
+        timeZone: dashboardTimezone
       }
     ).format(new Date());
 }
 
 
 function greeting() {
-  const hour =
-    new Date().getHours();
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: dashboardTimezone,
+      hour: "2-digit",
+      hourCycle: "h23"
+    }).format(new Date())
+  );
 
   if (hour < 12) {
     return "Good morning";
@@ -372,9 +381,10 @@ function formatTime(value) {
     "en-GB",
     {
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
+      timeZone: "UTC"
     }
-  ).format(new Date(value));
+  ).format(new Date(String(value).replace(" ", "T") + (/[zZ]|[+-]\d\d:\d\d$/.test(String(value)) ? "" : "Z")));
 }
 
 
@@ -384,9 +394,10 @@ function formatShortDate(value) {
     {
       weekday: "short",
       day: "numeric",
-      month: "short"
+      month: "short",
+      timeZone: "UTC"
     }
-  ).format(new Date(value));
+  ).format(new Date(String(value).replace(" ", "T") + (/[zZ]|[+-]\d\d:\d\d$/.test(String(value)) ? "" : "Z")));
 }
 
 
