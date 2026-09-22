@@ -141,6 +141,7 @@ const backToCalendarButton =
 
 let services = [];
 let bookings = [];
+let businessTimezone = "Europe/London";
 let bookingPackages = [];
 let currentDetailBookingId = null;
 
@@ -1495,6 +1496,10 @@ async function loadBookings() {
       );
     }
 
+
+    businessTimezone =
+      data.timezone ||
+      businessTimezone;
 
     bookings =
       data.bookings ||
@@ -4055,17 +4060,33 @@ function formatFullDateTime(
   value
 ) {
 
+  // D1 CURRENT_TIMESTAMP values are UTC but are commonly returned as
+  // "YYYY-MM-DD HH:mm:ss" without an explicit zone. Normalise those values
+  // to UTC, then display the instant in the business IANA timezone. This lets
+  // Intl apply DST automatically (for example GMT/BST for Europe/London).
+  const raw = String(value || "").trim();
+  const utcValue =
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(raw)
+      ? `${raw.replace(" ", "T")}Z`
+      : raw;
+
+  const date = new Date(utcValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return raw || "—";
+  }
+
   return new Intl.DateTimeFormat(
     "en-GB",
     {
       dateStyle:
         "medium",
       timeStyle:
-        "short"
+        "short",
+      timeZone:
+        businessTimezone || "Europe/London"
     }
-  ).format(
-    new Date(value)
-  );
+  ).format(date);
 }
 
 

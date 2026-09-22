@@ -1266,8 +1266,22 @@ export async function onRequestGet({
         .all();
 
 
+    const business =
+      await env.DB
+        .prepare(`
+          SELECT timezone
+          FROM businesses
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(user.business_id)
+        .first();
+
     return Response.json({
       ok: true,
+      timezone:
+        business?.timezone ||
+        "Europe/London",
       bookings:
         bookings.results ||
         []
