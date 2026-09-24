@@ -43,6 +43,8 @@ const emailPanel =
     "tab-email"
   );
 
+const integrationsPanel = document.getElementById("tab-integrations");
+
 const notificationsPanel =
   document.getElementById(
     "tab-notifications"
@@ -659,6 +661,7 @@ function showTab(tab) {
   hoursPanel.hidden = true;
   paymentsPanel.hidden = true;
   emailPanel.hidden = true;
+  integrationsPanel.hidden = true;
   notificationsPanel.hidden = true;
   updatesPanel.hidden = true;
   placeholderPanel.hidden = true;
@@ -709,6 +712,12 @@ function showTab(tab) {
     return;
   }
 
+
+  if (tab === "integrations") {
+    integrationsPanel.hidden = false;
+    loadGoogleAnalyticsIntegration();
+    return;
+  }
 
   if (tab === "hours") {
 
@@ -789,7 +798,7 @@ function loadTabFromHash() {
       .replace("#", "");
 
   const supportedTab =
-    ["business", "account", "branding", "hours", "payments", "email", "notifications", "updates"]
+    ["business", "account", "branding", "hours", "payments", "email", "integrations", "notifications", "updates"]
       .includes(requested)
       ? requested
       : "business";
@@ -4032,3 +4041,55 @@ loadSettings();
 
 
 loadEmailProviderChoice();
+
+
+/* =======================================================
+   Google Analytics integration
+   ======================================================= */
+const googleAnalyticsForm = document.getElementById("googleAnalyticsForm");
+const googleAnalyticsMeasurementId = document.getElementById("googleAnalyticsMeasurementId");
+const googleAnalyticsStatus = document.getElementById("googleAnalyticsStatus");
+const disconnectGoogleAnalyticsButton = document.getElementById("disconnectGoogleAnalyticsButton");
+
+async function loadGoogleAnalyticsIntegration() {
+  if (!googleAnalyticsForm) return;
+  googleAnalyticsStatus.hidden = true;
+  try {
+    const response = await fetch("/api/integrations/analytics/google", {headers:{Accept:"application/json"},cache:"no-store"});
+    if (response.status === 401) { window.location.href="/auth/login.html"; return; }
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load Google Analytics settings.");
+    googleAnalyticsMeasurementId.value = data.integration?.measurement_id || "";
+    disconnectGoogleAnalyticsButton.hidden = !data.integration?.measurement_id;
+  } catch (error) {
+    googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status error";
+    googleAnalyticsStatus.textContent=error.message || "Unable to load Google Analytics settings.";
+  }
+}
+
+googleAnalyticsForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button=document.getElementById("saveGoogleAnalyticsButton");
+  googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status"; googleAnalyticsStatus.textContent="Saving Google Analytics…"; button.disabled=true;
+  try {
+    const response=await fetch("/api/integrations/analytics/google",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({measurement_id:googleAnalyticsMeasurementId.value.trim()})});
+    const data=await response.json().catch(()=>({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to save Google Analytics.");
+    googleAnalyticsMeasurementId.value=data.measurement_id || googleAnalyticsMeasurementId.value.trim().toUpperCase();
+    disconnectGoogleAnalyticsButton.hidden=false;
+    googleAnalyticsStatus.className="es-status success"; googleAnalyticsStatus.textContent="Google Analytics connected. Visitors will be asked for analytics consent on the public booking page.";
+  } catch(error) { googleAnalyticsStatus.className="es-status error"; googleAnalyticsStatus.textContent=error.message || "Unable to save Google Analytics."; }
+  finally { button.disabled=false; }
+});
+
+disconnectGoogleAnalyticsButton?.addEventListener("click", async () => {
+  disconnectGoogleAnalyticsButton.disabled=true;
+  try {
+    const response=await fetch("/api/integrations/analytics/google",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({action:"disconnect"})});
+    const data=await response.json().catch(()=>({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to disconnect Google Analytics.");
+    googleAnalyticsMeasurementId.value=""; disconnectGoogleAnalyticsButton.hidden=true;
+    googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status success"; googleAnalyticsStatus.textContent="Google Analytics disconnected. Eselram's built-in Analytics is unchanged.";
+  } catch(error) { googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status error"; googleAnalyticsStatus.textContent=error.message || "Unable to disconnect Google Analytics."; }
+  finally { disconnectGoogleAnalyticsButton.disabled=false; }
+});

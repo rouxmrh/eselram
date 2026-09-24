@@ -29,7 +29,7 @@ export async function onRequestGet({ env }) {
         business.id
       );
 
-    const [branding, services, stripeIntegration, publicPackageCount] = await Promise.all([
+    const [branding, services, stripeIntegration, publicPackageCount, analyticsIntegration] = await Promise.all([
       env.DB
         .prepare(`
           SELECT
@@ -150,6 +150,18 @@ export async function onRequestGet({ env }) {
             )
         `)
         .bind(business.id)
+        .first(),
+
+      env.DB
+        .prepare(`
+          SELECT config_json, status
+          FROM business_integrations
+          WHERE business_id = ?
+            AND integration_type = 'analytics'
+            AND provider = 'google_analytics'
+          LIMIT 1
+        `)
+        .bind(business.id)
         .first()
     ]);
 
@@ -268,7 +280,16 @@ export async function onRequestGet({ env }) {
           : [],
 
       has_public_packages:
-        Number(publicPackageCount?.count || 0) > 0
+        Number(publicPackageCount?.count || 0) > 0,
+
+      analytics: (() => {
+        if (!analyticsIntegration || analyticsIntegration.status !== "configured") return { google_analytics_measurement_id: null };
+        try {
+          const config = JSON.parse(analyticsIntegration.config_json || "{}");
+          const id = String(config.measurement_id || "").trim().toUpperCase();
+          return { google_analytics_measurement_id: /^G-[A-Z0-9]{6,20}$/.test(id) ? id : null };
+        } catch { return { google_analytics_measurement_id: null }; }
+      })()
     });
   } catch (error) {
     console.error("Public booking config failed:", error);
