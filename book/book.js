@@ -1201,16 +1201,36 @@ async function releaseReturnedCheckout() {
   }
 }
 
+async function loadPublicBookingConfig() {
+  const url = eselramPublicApiUrl("/api/public-booking/config");
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Unable to load the booking page.");
+      }
+      return data;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+    }
+  }
+
+  throw lastError || new Error("Unable to load the booking page.");
+}
+
 async function init() {
   try {
-    const response = await fetch(eselramPublicApiUrl("/api/public-booking/config"), {
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
-    const data = await response.json();
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Unable to load the booking page.");
-    }
+    const data = await loadPublicBookingConfig();
+    showError("");
 
     state.config = data;
     applyBranding(data);
@@ -1280,7 +1300,8 @@ async function init() {
       await releaseReturnedCheckout();
     }
   } catch (error) {
-    showError(error.message || "Unable to load the booking page.");
+    console.warn("Public booking configuration failed to load", error);
+    showError("We couldn't load the booking page. Please refresh and try again.");
   }
 }
 
