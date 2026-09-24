@@ -4050,6 +4050,7 @@ const googleAnalyticsForm = document.getElementById("googleAnalyticsForm");
 const googleAnalyticsMeasurementId = document.getElementById("googleAnalyticsMeasurementId");
 const googleAnalyticsStatus = document.getElementById("googleAnalyticsStatus");
 const disconnectGoogleAnalyticsButton = document.getElementById("disconnectGoogleAnalyticsButton");
+const viewGoogleAnalyticsButton = document.getElementById("viewGoogleAnalyticsButton");
 
 async function loadGoogleAnalyticsIntegration() {
   if (!googleAnalyticsForm) return;
@@ -4061,6 +4062,7 @@ async function loadGoogleAnalyticsIntegration() {
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load Google Analytics settings.");
     googleAnalyticsMeasurementId.value = data.integration?.measurement_id || "";
     disconnectGoogleAnalyticsButton.hidden = !data.integration?.measurement_id;
+    if (viewGoogleAnalyticsButton) viewGoogleAnalyticsButton.hidden = !data.integration?.measurement_id;
   } catch (error) {
     googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status error";
     googleAnalyticsStatus.textContent=error.message || "Unable to load Google Analytics settings.";
@@ -4077,7 +4079,8 @@ googleAnalyticsForm?.addEventListener("submit", async (event) => {
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to save Google Analytics.");
     googleAnalyticsMeasurementId.value=data.measurement_id || googleAnalyticsMeasurementId.value.trim().toUpperCase();
     disconnectGoogleAnalyticsButton.hidden=false;
-    googleAnalyticsStatus.className="es-status success"; googleAnalyticsStatus.textContent="Google Analytics connected. Visitors will be asked for analytics consent on the public booking page.";
+    if (viewGoogleAnalyticsButton) viewGoogleAnalyticsButton.hidden=false;
+    googleAnalyticsStatus.className="es-status success"; googleAnalyticsStatus.textContent="Google Analytics connected. Eselram will send consented booking-page activity to your Google Analytics account.";
   } catch(error) { googleAnalyticsStatus.className="es-status error"; googleAnalyticsStatus.textContent=error.message || "Unable to save Google Analytics."; }
   finally { button.disabled=false; }
 });
@@ -4088,7 +4091,7 @@ disconnectGoogleAnalyticsButton?.addEventListener("click", async () => {
     const response=await fetch("/api/integrations/analytics/google",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({action:"disconnect"})});
     const data=await response.json().catch(()=>({}));
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to disconnect Google Analytics.");
-    googleAnalyticsMeasurementId.value=""; disconnectGoogleAnalyticsButton.hidden=true;
+    googleAnalyticsMeasurementId.value=""; disconnectGoogleAnalyticsButton.hidden=true; if (viewGoogleAnalyticsButton) viewGoogleAnalyticsButton.hidden=true;
     googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status success"; googleAnalyticsStatus.textContent="Google Analytics disconnected. Eselram's built-in Analytics is unchanged.";
   } catch(error) { googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status error"; googleAnalyticsStatus.textContent=error.message || "Unable to disconnect Google Analytics."; }
   finally { disconnectGoogleAnalyticsButton.disabled=false; }
