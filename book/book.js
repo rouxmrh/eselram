@@ -1201,7 +1201,22 @@ async function releaseReturnedCheckout() {
   }
 }
 
+function publicBookingDiagnostic(stage, detail = "") {
+  try {
+    const img = new Image();
+    const params = new URLSearchParams({
+      stage: String(stage || "").slice(0, 80),
+      detail: String(detail || "").slice(0, 240),
+      t: String(Date.now())
+    });
+    img.src = eselramPublicApiUrl(`/api/public-booking/diagnostic/pixel?${params.toString()}`);
+  } catch (_) {}
+}
+
+publicBookingDiagnostic("book_js_loaded", `href=${location.pathname}${location.search}`);
+
 function loadPublicBookingConfigWithXhr(url) {
+  publicBookingDiagnostic("config_xhr_start");
   return new Promise((resolve, reject) => {
     try {
       const xhr = new XMLHttpRequest();
@@ -1216,9 +1231,11 @@ function loadPublicBookingConfigWithXhr(url) {
             reject(new Error(data.error || "Unable to load the booking page."));
             return;
           }
-          resolve(data);
+          publicBookingDiagnostic("config_xhr_success", `status=${xhr.status}`);
+        resolve(data);
         } catch {
-          reject(new Error("Unable to load the booking page."));
+          publicBookingDiagnostic("config_xhr_fail", `status=${xhr.status}`);
+        reject(new Error("Unable to load the booking page."));
         }
       };
 
@@ -1233,6 +1250,7 @@ function loadPublicBookingConfigWithXhr(url) {
 
 async function loadPublicBookingConfig() {
   const url = eselramPublicApiUrl("/api/public-booking/config");
+  publicBookingDiagnostic("config_fetch_start", url);
 
   // Normal browsers use fetch. Some iOS in-app WebViews (including
   // Facebook) can transiently abort fetch during initial navigation even
@@ -1247,7 +1265,8 @@ async function loadPublicBookingConfig() {
     if (!response.ok || !data.ok) {
       throw new Error(data.error || "Unable to load the booking page.");
     }
-    return data;
+    publicBookingDiagnostic("config_fetch_success", `status=${response.status}`);
+      return data;
   } catch (fetchError) {
     console.warn("Initial public booking config fetch failed; trying compatibility fallback", fetchError);
     return loadPublicBookingConfigWithXhr(url);
@@ -1257,6 +1276,7 @@ async function loadPublicBookingConfig() {
 async function init() {
   try {
     const data = await loadPublicBookingConfig();
+    publicBookingDiagnostic("init_config_ready");
     showError("");
 
     state.config = data;
@@ -1332,6 +1352,8 @@ async function init() {
       await releaseReturnedCheckout();
     }
   } catch (error) {
+      publicBookingDiagnostic("config_fetch_fail", error?.message || String(error));
+    publicBookingDiagnostic("init_failed", error?.message || String(error));
     console.warn("Public booking configuration failed to load", error);
     showError("We couldn't load the booking page. Please refresh and try again.");
   }
