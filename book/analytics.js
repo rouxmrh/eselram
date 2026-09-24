@@ -15,8 +15,18 @@
     catch { return `v_${crypto.randomUUID().replace(/-/g,"")}`; }
   }
   function safeReferrer() { if (!document.referrer) return ""; try { const u=new URL(document.referrer); return `${u.origin}${u.pathname}`.slice(0,500); } catch { return ""; } }
-  function inferredSource(params) {
-    const explicit=String(params.get("utm_source")||"").trim().toLowerCase(); if (explicit) return explicit.slice(0,80); if (!document.referrer) return "direct";
+  function cleanPathAttribution() {
+    const parts=window.location.pathname.split("/").filter(Boolean);
+    if (!parts.length || parts[0]==="book") return null;
+    const pathToSource={instagram:"instagram",facebook:"facebook",website:"website",google:"google",tiktok:"tiktok",whatsapp:"whatsapp",email:"email",sms:"sms","google-ads":"google_ads",other:"other"};
+    const source=pathToSource[parts[0]]; if(!source)return null;
+    const standard={instagram:["social","profile"],facebook:["social","profile"],website:["referral","booking_button"],google:["organic","business_profile"]};
+    const medium=standard[source]?.[0] || (["instagram","facebook"].includes(source)?"social":source==="website"?"referral":source==="google"?"campaign":source);
+    const campaign=parts[1] ? parts.slice(1).join("-").slice(0,120) : (standard[source]?.[1]||"");
+    return {source,medium,campaign};
+  }
+  function inferredSource(params,clean) {
+    const explicit=String(params.get("utm_source")||"").trim().toLowerCase(); if (explicit) return explicit.slice(0,80); if(clean?.source)return clean.source; if (!document.referrer) return "direct";
     try { const host=new URL(document.referrer).hostname.toLowerCase(); if(host.includes("instagram.com")||host.includes("l.instagram.com"))return"instagram"; if(host.includes("facebook.com")||host.includes("fb.com"))return"facebook"; if(host.includes("google."))return"google"; if(host.includes("bing.com"))return"bing"; if(host===window.location.hostname.toLowerCase()||host.endsWith(".eselram.com")||host.endsWith(".pages.dev"))return"direct"; return"referral"; } catch{return"direct";}
   }
   async function post(path,body){try{await fetch(apiUrl(path),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),keepalive:true});}catch(e){console.debug("Booking analytics unavailable.",e);}}
@@ -31,7 +41,10 @@
     if (!gaMeasurementId || gaReady) return;
     window.dataLayer=window.dataLayer||[]; window.gtag=window.gtag||function(){dataLayer.push(arguments);};
     window.gtag("js",new Date());
-    window.gtag("config",gaMeasurementId,{send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false});
+    const gaConfig={send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false};
+    const clean=cleanPathAttribution();
+    if(clean){gaConfig.campaign_source=clean.source;gaConfig.campaign_medium=clean.medium;if(clean.campaign)gaConfig.campaign_name=clean.campaign;}
+    window.gtag("config",gaMeasurementId,gaConfig);
     const script=document.createElement("script"); script.async=true; script.src=`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaMeasurementId)}`; document.head.appendChild(script);
     gaReady=true;
     window.gtag("event","page_view",{page_title:document.title,page_location:window.location.href,page_path:window.location.pathname});
@@ -63,7 +76,7 @@
     }
     window.addEventListener("eselram:public-booking-config",(event)=>applyGaConfig(event.detail),{once:true});
   }
-  async function recordBookingPageView(){const params=new URLSearchParams(window.location.search);await post("/api/public-booking/analytics/session",{session_token:safeStoredToken(),source:inferredSource(params),medium:String(params.get("utm_medium")||"").slice(0,80),campaign:String(params.get("utm_campaign")||"").slice(0,120),content:String(params.get("utm_content")||"").slice(0,120),landing_page:window.location.pathname.slice(0,300),referrer:safeReferrer()});}
+  async function recordBookingPageView(){const params=new URLSearchParams(window.location.search),clean=cleanPathAttribution();await post("/api/public-booking/analytics/session",{session_token:safeStoredToken(),source:inferredSource(params,clean),medium:String(params.get("utm_medium")||clean?.medium||"").slice(0,80),campaign:String(params.get("utm_campaign")||clean?.campaign||"").slice(0,120),content:String(params.get("utm_content")||"").slice(0,120),landing_page:window.location.pathname.slice(0,300),referrer:safeReferrer()});}
 
   window.EselramBookingAnalytics={
     track(eventType,details={}){ gaEvent(eventType,{service_id:details.service_id||undefined,package_template_id:details.package_template_id||undefined}); return post("/api/public-booking/analytics/event",{session_token:safeStoredToken(),event_type:eventType,service_id:details.service_id||null,package_template_id:details.package_template_id||null}); },

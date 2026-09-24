@@ -5,8 +5,16 @@ let bookingUrl = "", report = null;
 const statusBox = document.getElementById("analyticsStatus"), generated = document.getElementById("generatedLink"), loadStatus = document.getElementById("analyticsLoadStatus");
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function showStatus(message,isError=false){statusBox.hidden=false;statusBox.textContent=message;statusBox.classList.toggle("is-error",isError)}
-function slug(v){return String(v||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,120)}
-function trackedUrl(source,medium,campaign){const u=new URL(bookingUrl);u.searchParams.set("utm_source",source);u.searchParams.set("utm_medium",medium);u.searchParams.set("utm_campaign",campaign);return u.toString()}
+function slug(v){return String(v||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,120)}
+function sourcePath(source){return String(source||"").trim().toLowerCase().replace(/_/g,"-").replace(/[^a-z0-9-]+/g,"-").replace(/^-+|-+$/g,"")}
+function trackedUrl(source,medium,campaign){
+  const u=new URL(bookingUrl), base=u.pathname.replace(/\/+$/,"");
+  const standard={instagram:["social","profile"],facebook:["social","profile"],website:["referral","booking_button"],google:["organic","business_profile"]};
+  const isStandard=standard[source]&&standard[source][0]===medium&&standard[source][1]===campaign;
+  u.search=""; u.hash="";
+  u.pathname=`${base}/${sourcePath(source)}${isStandard?"":`/${slug(campaign)}`}`.replace(/\/{2,}/g,"/");
+  return u.toString();
+}
 async function copy(text){await navigator.clipboard.writeText(text);showStatus("Tracking link copied.")}
 function money(minor){const b=report?.business||{};try{return new Intl.NumberFormat(b.locale||undefined,{style:"currency",currency:String(b.currency||"GBP").toUpperCase()}).format(Number(minor||0)/100)}catch{return `${Number(minor||0)/100} ${b.currency||""}`.trim()}}
 function pct(a,b){return b ? `${((Number(a)/Number(b))*100).toFixed(1)}%` : "0.0%"}
