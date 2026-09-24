@@ -46,8 +46,22 @@
     wrap.querySelector('[data-ga="accept"]').onclick=()=>{consentDecision="granted";try{localStorage.setItem(consentKey(),"granted");}catch{}wrap.remove();loadGa();};
     wrap.querySelector('[data-ga="decline"]').onclick=()=>{consentDecision="denied";pendingGaEvents.length=0;try{localStorage.setItem(consentKey(),"denied");}catch{}wrap.remove();};
   }
-  async function initGa() {
-    try { const r=await fetch(apiUrl("/api/public-booking/config"),{headers:{Accept:"application/json"},cache:"no-store"}); const d=await r.json(); gaMeasurementId=String(d?.analytics?.google_analytics_measurement_id||"").trim().toUpperCase(); if(!gaMeasurementId)return; try{consentDecision=localStorage.getItem(consentKey());}catch{} if(consentDecision==="granted")loadGa(); else if(consentDecision!=="denied")showConsent(); } catch(e){console.debug("Google Analytics configuration unavailable.",e);}
+  function applyGaConfig(d) {
+    if (gaMeasurementId) return;
+    gaMeasurementId=String(d?.analytics?.google_analytics_measurement_id||"").trim().toUpperCase();
+    if(!gaMeasurementId)return;
+    try{consentDecision=localStorage.getItem(consentKey());}catch{}
+    if(consentDecision==="granted")loadGa();
+    else if(consentDecision!=="denied")showConsent();
+  }
+  function initGa() {
+    // Reuse the config loaded by book.js instead of issuing a second config
+    // request during startup. This is more reliable in mobile in-app browsers.
+    if (window.__ESELRAM_PUBLIC_BOOKING_CONFIG__) {
+      applyGaConfig(window.__ESELRAM_PUBLIC_BOOKING_CONFIG__);
+      return;
+    }
+    window.addEventListener("eselram:public-booking-config",(event)=>applyGaConfig(event.detail),{once:true});
   }
   async function recordBookingPageView(){const params=new URLSearchParams(window.location.search);await post("/api/public-booking/analytics/session",{session_token:safeStoredToken(),source:inferredSource(params),medium:String(params.get("utm_medium")||"").slice(0,80),campaign:String(params.get("utm_campaign")||"").slice(0,120),content:String(params.get("utm_content")||"").slice(0,120),landing_page:window.location.pathname.slice(0,300),referrer:safeReferrer()});}
 

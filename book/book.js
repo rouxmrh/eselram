@@ -1233,6 +1233,11 @@ async function init() {
     showError("");
 
     state.config = data;
+    // Share the already-loaded public config with optional page integrations.
+    // This avoids a second simultaneous /api/public-booking/config request,
+    // which some mobile in-app browsers (notably Facebook on iOS) can abort.
+    window.__ESELRAM_PUBLIC_BOOKING_CONFIG__ = data;
+    window.dispatchEvent(new CustomEvent("eselram:public-booking-config", { detail: data }));
     applyBranding(data);
     renderServices();
 
