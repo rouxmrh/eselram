@@ -345,6 +345,10 @@ function selectServiceRoute(service, bookingIntent) {
   state.date = "";
   state.time = "";
 
+  window.EselramBookingAnalytics?.track("select_service", {
+    service_id: service?.id || null
+  });
+
   const isConsultation =
     state.bookingIntent === "consultation";
 
@@ -1012,6 +1016,10 @@ async function confirmBooking() {
   button.textContent = "Confirming…";
 
   try {
+    window.EselramBookingAnalytics?.track("begin_booking", {
+      service_id: state.service?.id || null
+    });
+
     const response = await fetch(eselramPublicApiUrl("/api/public-booking/create"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -1043,6 +1051,7 @@ async function confirmBooking() {
       return;
     }
 
+    window.EselramBookingAnalytics?.complete(data.booking?.id);
     renderFinal(data.booking);
     setStep(5);
   } catch (error) {

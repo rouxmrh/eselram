@@ -128,6 +128,21 @@ async function init() {
 
     clearCompletedCheckoutState();
 
+    try {
+      const analyticsToken = localStorage.getItem("eselram_booking_analytics_session") || "";
+      if (/^[A-Za-z0-9_-]{16,120}$/.test(analyticsToken)) {
+        fetch(eselramPublicApiUrl("/api/public-booking/analytics/complete"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            session_token: analyticsToken,
+            appointment_id: data.booking?.id || appointmentId
+          }),
+          keepalive: true
+        }).catch(() => {});
+      }
+    } catch {}
+
     title.textContent = "Your appointment is confirmed";
     text.textContent = "Thank you. Your secure payment has been received and your appointment is now booked.";
     summary.hidden = false;
