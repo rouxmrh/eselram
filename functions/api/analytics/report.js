@@ -30,45 +30,78 @@ export async function onRequestGet({ request, env }) {
     const since = rangeStart(range);
     const businessId = user.business_id;
 
-    const [visits, selected, started, bookings, revenue, sources, campaigns, services] = await Promise.all([
+    const [visits, selected, started, bookings, bookedValue, revenue, sources, campaigns, services] = await Promise.all([
       env.DB.prepare(`SELECT COUNT(*) AS count FROM analytics_sessions WHERE business_id = ? AND datetime(first_seen_at) >= datetime(?)`).bind(businessId, since).first(),
       env.DB.prepare(`SELECT COUNT(DISTINCT analytics_session_id) AS count FROM analytics_events WHERE business_id = ? AND event_type='select_service' AND datetime(created_at) >= datetime(?)`).bind(businessId, since).first(),
       env.DB.prepare(`SELECT COUNT(DISTINCT analytics_session_id) AS count FROM analytics_events WHERE business_id = ? AND event_type='begin_booking' AND datetime(created_at) >= datetime(?)`).bind(businessId, since).first(),
       env.DB.prepare(`SELECT COUNT(*) AS count FROM analytics_attribution WHERE business_id = ? AND datetime(attributed_at) >= datetime(?)`).bind(businessId, since).first(),
       env.DB.prepare(`
+        SELECT COALESCE(SUM(a.price_minor),0) AS amount_minor
+        FROM analytics_attribution aa
+        JOIN appointments a ON a.id = aa.appointment_id AND a.business_id = aa.business_id
+        WHERE aa.business_id = ? AND datetime(aa.attributed_at) >= datetime(?)
+          AND a.status != 'cancelled'
+      `).bind(businessId, since).first(),
+      env.DB.prepare(`
         SELECT COALESCE(SUM(CASE WHEN p.payment_type='refund' THEN -p.amount_minor ELSE p.amount_minor END),0) AS amount_minor
         FROM analytics_attribution aa
-        JOIN payments p ON p.id = aa.payment_id AND p.business_id = aa.business_id
+        JOIN payments p ON p.appointment_id = aa.appointment_id AND p.business_id = aa.business_id
         WHERE aa.business_id = ? AND datetime(aa.attributed_at) >= datetime(?)
           AND p.status IN ('paid','partially_refunded','refunded')
       `).bind(businessId, since).first(),
       env.DB.prepare(`
+        WITH paid AS (
+          SELECT appointment_id, business_id,
+            SUM(CASE WHEN payment_type='refund' THEN -amount_minor ELSE amount_minor END) AS paid_minor
+          FROM payments
+          WHERE status IN ('paid','partially_refunded','refunded')
+          GROUP BY appointment_id, business_id
+        )
         SELECT COALESCE(aa.source,'direct') AS source,
           COUNT(*) AS bookings,
           COUNT(DISTINCT aa.analytics_session_id) AS converting_sessions,
-          COALESCE(SUM(CASE WHEN p.payment_type='refund' THEN -p.amount_minor ELSE p.amount_minor END),0) AS revenue_minor
+          COALESCE(SUM(CASE WHEN a.status!='cancelled' THEN a.price_minor ELSE 0 END),0) AS booked_value_minor,
+          COALESCE(SUM(COALESCE(paid.paid_minor,0)),0) AS revenue_minor
         FROM analytics_attribution aa
-        LEFT JOIN payments p ON p.id=aa.payment_id AND p.business_id=aa.business_id AND p.status IN ('paid','partially_refunded','refunded')
+        JOIN appointments a ON a.id=aa.appointment_id AND a.business_id=aa.business_id
+        LEFT JOIN paid ON paid.appointment_id=aa.appointment_id AND paid.business_id=aa.business_id
         WHERE aa.business_id=? AND datetime(aa.attributed_at)>=datetime(?)
         GROUP BY COALESCE(aa.source,'direct') ORDER BY bookings DESC, source ASC
       `).bind(businessId, since).all(),
       env.DB.prepare(`
+        WITH paid AS (
+          SELECT appointment_id, business_id,
+            SUM(CASE WHEN payment_type='refund' THEN -amount_minor ELSE amount_minor END) AS paid_minor
+          FROM payments
+          WHERE status IN ('paid','partially_refunded','refunded')
+          GROUP BY appointment_id, business_id
+        )
         SELECT COALESCE(aa.source,'direct') AS source, COALESCE(aa.campaign,'(none)') AS campaign,
           COUNT(*) AS bookings,
-          COALESCE(SUM(CASE WHEN p.payment_type='refund' THEN -p.amount_minor ELSE p.amount_minor END),0) AS revenue_minor
+          COALESCE(SUM(CASE WHEN a.status!='cancelled' THEN a.price_minor ELSE 0 END),0) AS booked_value_minor,
+          COALESCE(SUM(COALESCE(paid.paid_minor,0)),0) AS revenue_minor
         FROM analytics_attribution aa
-        LEFT JOIN payments p ON p.id=aa.payment_id AND p.business_id=aa.business_id AND p.status IN ('paid','partially_refunded','refunded')
+        JOIN appointments a ON a.id=aa.appointment_id AND a.business_id=aa.business_id
+        LEFT JOIN paid ON paid.appointment_id=aa.appointment_id AND paid.business_id=aa.business_id
         WHERE aa.business_id=? AND datetime(aa.attributed_at)>=datetime(?) AND aa.campaign IS NOT NULL
         GROUP BY aa.source, aa.campaign ORDER BY bookings DESC, campaign ASC LIMIT 50
       `).bind(businessId, since).all(),
       env.DB.prepare(`
+        WITH paid AS (
+          SELECT appointment_id, business_id,
+            SUM(CASE WHEN payment_type='refund' THEN -amount_minor ELSE amount_minor END) AS paid_minor
+          FROM payments
+          WHERE status IN ('paid','partially_refunded','refunded')
+          GROUP BY appointment_id, business_id
+        )
         SELECT s.id AS service_id, s.name,
           COUNT(aa.id) AS bookings,
-          COALESCE(SUM(CASE WHEN p.payment_type='refund' THEN -p.amount_minor ELSE p.amount_minor END),0) AS revenue_minor
+          COALESCE(SUM(CASE WHEN a.status!='cancelled' THEN a.price_minor ELSE 0 END),0) AS booked_value_minor,
+          COALESCE(SUM(COALESCE(paid.paid_minor,0)),0) AS revenue_minor
         FROM analytics_attribution aa
         JOIN appointments a ON a.id=aa.appointment_id AND a.business_id=aa.business_id
         JOIN services s ON s.id=a.service_id AND s.business_id=a.business_id
-        LEFT JOIN payments p ON p.id=aa.payment_id AND p.business_id=aa.business_id AND p.status IN ('paid','partially_refunded','refunded')
+        LEFT JOIN paid ON paid.appointment_id=aa.appointment_id AND paid.business_id=aa.business_id
         WHERE aa.business_id=? AND datetime(aa.attributed_at)>=datetime(?)
         GROUP BY s.id, s.name ORDER BY bookings DESC, s.name ASC LIMIT 50
       `).bind(businessId, since).all()
@@ -82,7 +115,7 @@ export async function onRequestGet({ request, env }) {
     const visitsBySource = Object.fromEntries((sourceVisits.results || []).map(r => [r.source, Number(r.visits || 0)]));
     const sourceRows = (sources.results || []).map(r => ({ ...r, visits: visitsBySource[r.source] || 0 }));
     for (const [source, count] of Object.entries(visitsBySource)) {
-      if (!sourceRows.some(r => r.source === source)) sourceRows.push({ source, visits: count, bookings: 0, converting_sessions: 0, revenue_minor: 0 });
+      if (!sourceRows.some(r => r.source === source)) sourceRows.push({ source, visits: count, bookings: 0, converting_sessions: 0, booked_value_minor: 0, revenue_minor: 0 });
     }
     sourceRows.sort((a,b) => Number(b.bookings)-Number(a.bookings) || Number(b.visits)-Number(a.visits));
 
@@ -91,7 +124,7 @@ export async function onRequestGet({ request, env }) {
       business: { currency: user.currency || "GBP", locale: user.locale || "en-GB", timezone: user.timezone || "Europe/London" },
       totals: {
         visits: Number(visits?.count || 0), selected: Number(selected?.count || 0), started: Number(started?.count || 0),
-        bookings: Number(bookings?.count || 0), revenue_minor: Number(revenue?.amount_minor || 0)
+        bookings: Number(bookings?.count || 0), booked_value_minor: Number(bookedValue?.amount_minor || 0), revenue_minor: Number(revenue?.amount_minor || 0)
       },
       sources: sourceRows,
       campaigns: campaigns.results || [],
