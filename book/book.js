@@ -1201,30 +1201,57 @@ async function releaseReturnedCheckout() {
   }
 }
 
+function loadPublicBookingConfigWithXhr(url) {
+  return new Promise((resolve, reject) => {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.setRequestHeader("Accept", "application/json");
+      xhr.timeout = 15000;
+
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText || "{}");
+          if (xhr.status < 200 || xhr.status >= 300 || !data.ok) {
+            reject(new Error(data.error || "Unable to load the booking page."));
+            return;
+          }
+          resolve(data);
+        } catch {
+          reject(new Error("Unable to load the booking page."));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Unable to load the booking page."));
+      xhr.ontimeout = () => reject(new Error("Unable to load the booking page."));
+      xhr.send();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 async function loadPublicBookingConfig() {
   const url = eselramPublicApiUrl("/api/public-booking/config");
-  let lastError = null;
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const response = await fetch(url, {
-        headers: { Accept: "application/json" },
-        cache: "no-store"
-      });
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Unable to load the booking page.");
-      }
-      return data;
-    } catch (error) {
-      lastError = error;
-      if (attempt === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-      }
+  // Normal browsers use fetch. Some iOS in-app WebViews (including
+  // Facebook) can transiently abort fetch during initial navigation even
+  // though the same endpoint is reachable. Fall back to XHR rather than
+  // failing the booking page. This changes transport only, not booking data.
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Unable to load the booking page.");
     }
+    return data;
+  } catch (fetchError) {
+    console.warn("Initial public booking config fetch failed; trying compatibility fallback", fetchError);
+    return loadPublicBookingConfigWithXhr(url);
   }
-
-  throw lastError || new Error("Unable to load the booking page.");
 }
 
 async function init() {
