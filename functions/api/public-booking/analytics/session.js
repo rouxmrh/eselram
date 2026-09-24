@@ -92,27 +92,44 @@ export async function onRequestPost({ request, env }) {
         .run();
     }
 
-    await env.DB
+    // Avoid inflating visits when the booking router/return flow reloads the page
+    // more than once in a few seconds. A genuine later visit is still counted.
+    const recentPageView = await env.DB
       .prepare(`
-        INSERT INTO analytics_events (
-          id,
-          business_id,
-          analytics_session_id,
-          event_type,
+        SELECT id
+        FROM analytics_events
+        WHERE business_id = ?
+          AND analytics_session_id = ?
+          AND event_type = 'booking_page_view'
+          AND datetime(created_at) >= datetime('now', '-10 seconds')
+        LIMIT 1
+      `)
+      .bind(business.id, analyticsSessionId)
+      .first();
+
+    if (!recentPageView) {
+      await env.DB
+        .prepare(`
+          INSERT INTO analytics_events (
+            id,
+            business_id,
+            analytics_session_id,
+            event_type,
+            source,
+            medium,
+            campaign
+          ) VALUES (?, ?, ?, 'booking_page_view', ?, ?, ?)
+        `)
+        .bind(
+          `ae_${crypto.randomUUID()}`,
+          business.id,
+          analyticsSessionId,
           source,
           medium,
           campaign
-        ) VALUES (?, ?, ?, 'booking_page_view', ?, ?, ?)
-      `)
-      .bind(
-        `ae_${crypto.randomUUID()}`,
-        business.id,
-        analyticsSessionId,
-        source,
-        medium,
-        campaign
-      )
-      .run();
+        )
+        .run();
+    }
 
     return Response.json({ ok: true });
   } catch (error) {

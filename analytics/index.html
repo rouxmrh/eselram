@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analytics | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css?v=20260821-mobile-nav-v2">
+  <style>
+    .es-analytics-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}.es-analytics-tab{padding:10px 15px;border:1px solid var(--es-border);border-radius:999px;background:var(--es-surface);font:inherit;font-weight:800;cursor:pointer}.es-analytics-tab.active{background:var(--es-primary);border-color:var(--es-primary);color:#fff}.es-analytics-card{padding:22px;border:1px solid var(--es-border);border-radius:18px;background:var(--es-surface);box-shadow:0 7px 22px rgba(28,34,30,.035);margin-bottom:16px}.es-analytics-card h2{margin:0 0 6px}.es-analytics-muted{color:var(--es-muted);margin:0 0 18px}.es-link-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.es-link-card{padding:17px;border:1px solid var(--es-border);border-radius:15px}.es-link-card h3{margin:0 0 5px}.es-link-card p{margin:0 0 14px;color:var(--es-muted);font-size:13px}.es-link-actions{display:flex;gap:8px;flex-wrap:wrap}.es-custom-grid{display:grid;grid-template-columns:1fr 220px;gap:12px}.es-generated-link{margin-top:14px;padding:13px;border-radius:12px;background:#f6f7f5;word-break:break-all;font-size:12px}.es-coming{padding:34px;text-align:center;color:var(--es-muted)}@media(max-width:760px){.es-link-grid,.es-custom-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="es-dashboard-body">
+<div class="es-dashboard-layout">
+  <aside id="appSidebar" class="es-sidebar"></aside>
+  <main class="es-dashboard-main">
+    <header class="es-dashboard-header">
+      <div><p class="es-eyebrow">Insights</p><h1>Analytics</h1><p class="es-lead">Understand where clients find you and what turns into bookings.</p></div>
+    </header>
+    <div class="es-analytics-tabs" role="tablist">
+      <button class="es-analytics-tab" data-panel="overview">Overview</button>
+      <button class="es-analytics-tab" data-panel="marketing">Marketing</button>
+      <button class="es-analytics-tab" data-panel="services">Services</button>
+      <button class="es-analytics-tab active" data-panel="tracking">Tracking Links</button>
+    </div>
+    <section id="panel-tracking">
+      <div class="es-analytics-card">
+        <h2>Tracking Links</h2>
+        <p class="es-analytics-muted">Use these links in your social profiles, website and Google Business Profile so Eselram can attribute completed bookings to the right source.</p>
+        <div class="es-link-grid">
+          <div class="es-link-card"><h3>Instagram</h3><p>Use for your Instagram bio or booking button.</p><div class="es-link-actions"><button class="es-button" data-source="instagram" data-medium="social" data-campaign="profile">Copy booking link</button></div></div>
+          <div class="es-link-card"><h3>Facebook</h3><p>Use for your Facebook page or booking button.</p><div class="es-link-actions"><button class="es-button" data-source="facebook" data-medium="social" data-campaign="profile">Copy booking link</button></div></div>
+          <div class="es-link-card"><h3>Website</h3><p>Use for the booking button on your own website.</p><div class="es-link-actions"><button class="es-button" data-source="website" data-medium="referral" data-campaign="booking_button">Copy booking link</button></div></div>
+          <div class="es-link-card"><h3>Google Business Profile</h3><p>Use for your Google Business Profile booking link.</p><div class="es-link-actions"><button class="es-button" data-source="google" data-medium="organic" data-campaign="business_profile">Copy booking link</button></div></div>
+        </div>
+      </div>
+      <div class="es-analytics-card">
+        <h2>Create a custom campaign link</h2>
+        <p class="es-analytics-muted">Give the campaign a simple name and choose where you will share it. Eselram creates the tracking link for you.</p>
+        <div class="es-custom-grid">
+          <label>Campaign name<input id="campaignName" type="text" maxlength="120" placeholder="September tattoo offer"></label>
+          <label>Source<select id="campaignSource"><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="google">Google</option><option value="website">Website</option><option value="email">Email</option><option value="other">Other</option></select></label>
+        </div>
+        <div class="es-form-actions"><button id="createCampaignLink" class="es-button" type="button">Create tracking link</button></div>
+        <div id="generatedLink" class="es-generated-link" hidden></div>
+        <div id="analyticsStatus" class="es-status" hidden></div>
+      </div>
+    </section>
+    <section id="panel-placeholder" class="es-analytics-card es-coming" hidden>Analytics reporting will appear here in the next stage. Tracking is already active.</section>
+  </main>
+</div>
+<script type="module" src="/analytics/analytics.js"></script>
+</body>
+</html>

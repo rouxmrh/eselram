@@ -9,10 +9,10 @@
 
   function safeStoredToken() {
     try {
-      const existing = localStorage.getItem(STORAGE_KEY) || "";
+      const existing = sessionStorage.getItem(STORAGE_KEY) || "";
       if (/^[A-Za-z0-9_-]{16,120}$/.test(existing)) return existing;
       const token = `v_${crypto.randomUUID().replace(/-/g, "")}`;
-      localStorage.setItem(STORAGE_KEY, token);
+      sessionStorage.setItem(STORAGE_KEY, token);
       return token;
     } catch {
       return `v_${crypto.randomUUID().replace(/-/g, "")}`;
@@ -37,6 +37,8 @@
       if (host.includes("facebook.com") || host.includes("fb.com")) return "facebook";
       if (host.includes("google.")) return "google";
       if (host.includes("bing.com")) return "bing";
+      // Internal Eselram routing/preview hops are not marketing referrals.
+      if (host === window.location.hostname.toLowerCase() || host.endsWith(".eselram.com") || host.endsWith(".pages.dev")) return "direct";
       return "referral";
     } catch { return "direct"; }
   }

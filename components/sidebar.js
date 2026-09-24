@@ -49,6 +49,16 @@ const navItems = [
     `
   },
   {
+    key: "analytics",
+    label: "Analytics",
+    href: "/analytics/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 19V10M10 19V5M16 19v-7M22 19V8"/>
+      </svg>
+    `
+  },
+  {
     key: "communications",
     label: "Communications",
     href: "/communications/",
