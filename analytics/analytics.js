@@ -1,73 +1,25 @@
 import { renderSidebar } from "/components/sidebar.js?v=20260821-mobile-nav-v2";
 renderSidebar("analytics");
 
-let bookingUrl = "";
-const statusBox = document.getElementById("analyticsStatus");
-const generated = document.getElementById("generatedLink");
-
-function showStatus(message, isError = false) {
-  statusBox.hidden = false;
-  statusBox.textContent = message;
-  statusBox.classList.toggle("is-error", isError);
-}
-
-function slug(value) {
-  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 120);
-}
-
-function trackedUrl(source, medium, campaign) {
-  const url = new URL(bookingUrl);
-  url.searchParams.set("utm_source", source);
-  url.searchParams.set("utm_medium", medium);
-  url.searchParams.set("utm_campaign", campaign);
-  return url.toString();
-}
-
-async function copy(text) {
-  await navigator.clipboard.writeText(text);
-  showStatus("Tracking link copied.");
-}
-
-async function loadBookingUrl() {
-  try {
-    const response = await fetch("/api/setup-health", { headers: { Accept: "application/json" } });
-    const data = await response.json();
-    if (!response.ok || !data?.environment?.public_booking_url) throw new Error("Booking link unavailable.");
-    bookingUrl = data.environment.public_booking_url;
-  } catch (error) {
-    document.querySelectorAll("[data-source]").forEach(button => button.disabled = true);
-    document.getElementById("createCampaignLink").disabled = true;
-    showStatus("Unable to load your public booking link. Check Setup Health and try again.", true);
-  }
-}
-
-document.querySelectorAll("[data-source]").forEach(button => {
-  button.addEventListener("click", async () => {
-    if (!bookingUrl) return;
-    await copy(trackedUrl(button.dataset.source, button.dataset.medium, button.dataset.campaign));
-  });
-});
-
-document.getElementById("createCampaignLink").addEventListener("click", () => {
-  if (!bookingUrl) return;
-  const name = slug(document.getElementById("campaignName").value);
-  const source = document.getElementById("campaignSource").value;
-  if (!name) return showStatus("Enter a campaign name first.", true);
-  const medium = ["instagram", "facebook"].includes(source) ? "social" : source === "website" ? "referral" : source === "google" ? "campaign" : source;
-  const url = trackedUrl(source, medium, name);
-  generated.hidden = false;
-  generated.innerHTML = `<strong>Your tracking link</strong><br><span>${url.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</span><div class="es-form-actions"><button id="copyGeneratedLink" class="es-secondary-button" type="button">Copy link</button></div>`;
-  document.getElementById("copyGeneratedLink").addEventListener("click", () => copy(url));
-  statusBox.hidden = true;
-});
-
-document.querySelectorAll(".es-analytics-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".es-analytics-tab").forEach(x => x.classList.toggle("active", x === tab));
-    const tracking = tab.dataset.panel === "tracking";
-    document.getElementById("panel-tracking").hidden = !tracking;
-    document.getElementById("panel-placeholder").hidden = tracking;
-  });
-});
-
-loadBookingUrl();
+let bookingUrl = "", report = null;
+const statusBox = document.getElementById("analyticsStatus"), generated = document.getElementById("generatedLink"), loadStatus = document.getElementById("analyticsLoadStatus");
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function showStatus(message,isError=false){statusBox.hidden=false;statusBox.textContent=message;statusBox.classList.toggle("is-error",isError)}
+function slug(v){return String(v||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,120)}
+function trackedUrl(source,medium,campaign){const u=new URL(bookingUrl);u.searchParams.set("utm_source",source);u.searchParams.set("utm_medium",medium);u.searchParams.set("utm_campaign",campaign);return u.toString()}
+async function copy(text){await navigator.clipboard.writeText(text);showStatus("Tracking link copied.")}
+function money(minor){const b=report?.business||{};try{return new Intl.NumberFormat(b.locale||undefined,{style:"currency",currency:String(b.currency||"GBP").toUpperCase()}).format(Number(minor||0)/100)}catch{return `${Number(minor||0)/100} ${b.currency||""}`.trim()}}
+function pct(a,b){return b ? `${((Number(a)/Number(b))*100).toFixed(1)}%` : "0.0%"}
+function sourceName(v){const s=String(v||"direct");return ({instagram:"Instagram",facebook:"Facebook",google:"Google",website:"Website",direct:"Direct",email:"Email",referral:"Referral"}[s]||s.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()))}
+function table(headers,rows){if(!rows.length)return '<div class="es-empty">No tracked data for this period yet.</div>';return `<div class="es-table-wrap"><table class="es-analytics-table"><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`}
+function render(){const t=report.totals;document.getElementById("statVisits").textContent=t.visits;document.getElementById("statBookings").textContent=t.bookings;document.getElementById("statConversion").textContent=pct(t.bookings,t.visits);document.getElementById("statRevenue").textContent=money(t.revenue_minor);document.getElementById("funnelVisits").textContent=t.visits;document.getElementById("funnelSelected").textContent=t.selected;document.getElementById("funnelStarted").textContent=t.started;document.getElementById("funnelBooked").textContent=t.bookings;
+ const srcRows=report.sources.map(r=>`<tr><td>${esc(sourceName(r.source))}</td><td>${Number(r.visits||0)}</td><td>${Number(r.bookings||0)}</td><td>${pct(r.bookings,r.visits)}</td><td>${esc(money(r.revenue_minor))}</td></tr>`);const srcTable=table(["Source","Visits","Bookings","Conversion","Paid revenue"],srcRows);document.getElementById("overviewSources").innerHTML=srcTable;document.getElementById("marketingSources").innerHTML=srcTable;
+ document.getElementById("campaignTable").innerHTML=table(["Source","Campaign","Bookings","Paid revenue"],report.campaigns.map(r=>`<tr><td>${esc(sourceName(r.source))}</td><td>${esc(r.campaign)}</td><td>${Number(r.bookings||0)}</td><td>${esc(money(r.revenue_minor))}</td></tr>`));
+ document.getElementById("servicesTable").innerHTML=table(["Service","Bookings","Paid revenue"],report.services.map(r=>`<tr><td>${esc(r.name)}</td><td>${Number(r.bookings||0)}</td><td>${esc(money(r.revenue_minor))}</td></tr>`));}
+async function loadReport(){loadStatus.hidden=false;loadStatus.textContent="Loading analytics…";try{const range=document.getElementById("analyticsRange").value;const res=await fetch(`/api/analytics/report?range=${encodeURIComponent(range)}`,{headers:{Accept:"application/json"}});const data=await res.json();if(!res.ok||!data.ok)throw new Error(data.error||"Unable to load analytics.");report=data;render();loadStatus.hidden=true}catch(e){loadStatus.hidden=false;loadStatus.textContent=e.message||"Unable to load analytics.";loadStatus.classList.add("is-error")}}
+async function loadBookingUrl(){try{const r=await fetch("/api/setup-health",{headers:{Accept:"application/json"}}),d=await r.json();if(!r.ok||!d?.environment?.public_booking_url)throw new Error();bookingUrl=d.environment.public_booking_url}catch{document.querySelectorAll("[data-source]").forEach(b=>b.disabled=true);document.getElementById("createCampaignLink").disabled=true;showStatus("Unable to load your public booking link. Check Setup Health and try again.",true)}}
+document.querySelectorAll("[data-source]").forEach(b=>b.addEventListener("click",()=>bookingUrl&&copy(trackedUrl(b.dataset.source,b.dataset.medium,b.dataset.campaign))));
+document.getElementById("createCampaignLink").addEventListener("click",()=>{if(!bookingUrl)return;const name=slug(document.getElementById("campaignName").value),source=document.getElementById("campaignSource").value;if(!name)return showStatus("Enter a campaign name first.",true);const medium=["instagram","facebook"].includes(source)?"social":source==="website"?"referral":source==="google"?"campaign":source;const url=trackedUrl(source,medium,name);generated.hidden=false;generated.innerHTML=`<strong>Your tracking link</strong><br><span>${esc(url)}</span><div class="es-form-actions"><button id="copyGeneratedLink" class="es-secondary-button" type="button">Copy link</button></div>`;document.getElementById("copyGeneratedLink").addEventListener("click",()=>copy(url));statusBox.hidden=true});
+document.querySelectorAll(".es-analytics-tab").forEach(tab=>tab.addEventListener("click",()=>{document.querySelectorAll(".es-analytics-tab").forEach(x=>x.classList.toggle("active",x===tab));document.querySelectorAll(".analytics-panel").forEach(p=>p.hidden=true);document.getElementById(`panel-${tab.dataset.panel}`).hidden=false}));
+document.getElementById("analyticsRange").addEventListener("change",loadReport);
+loadBookingUrl();loadReport();
