@@ -337,24 +337,7 @@ function serviceDisplayName(value) {
   return String(value || "");
 }
 
-function consultationDiag(message) {
-  let box = document.getElementById("consultationDiag");
-  if (!box) {
-    box = document.createElement("div");
-    box.id = "consultationDiag";
-    box.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;background:#fff;color:#111;border:2px solid #111;border-radius:10px;padding:10px;font:12px/1.35 monospace;max-height:38vh;overflow:auto;box-shadow:0 4px 18px rgba(0,0,0,.25)";
-    box.innerHTML = '<strong>Consultation diagnostic (QA only)</strong><div id="consultationDiagLog"></div>';
-    document.body.appendChild(box);
-  }
-  const log = box.querySelector("#consultationDiagLog");
-  const row = document.createElement("div");
-  row.textContent = `${new Date().toLocaleTimeString()}  ${message}`;
-  log.appendChild(row);
-  box.scrollTop = box.scrollHeight;
-}
-
 function selectServiceRoute(service, bookingIntent) {
-  if (bookingIntent === "consultation") consultationDiag("selectServiceRoute entered");
   state.service = service;
   state.bookingIntent = bookingIntent || "service";
   state.date = "";
@@ -380,9 +363,7 @@ function selectServiceRoute(service, bookingIntent) {
   $("#slots").innerHTML = "";
   $("#slotStatus").textContent =
     "Choose a date to see available times.";
-  if (isConsultation) consultationDiag("calling setStep(2)");
   setStep(2);
-  if (isConsultation) consultationDiag(`step 2 active: ${Boolean(document.querySelector('.step[data-step="2"].active'))}`);
 }
 
 function publicBookingGroup(service) {
@@ -568,22 +549,10 @@ function renderSelectedBookingGroup(groupName) {
       </div>
     `;
 
-    const consultationDiagButton = panel.querySelector("#bookStandaloneConsultation");
-    if (consultationDiagButton) {
-      consultationDiag("standalone consultation button rendered");
-      ["touchstart", "pointerdown", "touchend", "pointerup"].forEach(type => {
-        consultationDiagButton.addEventListener(type, () => consultationDiag(`${type} received`), { passive: true });
-      });
-      consultationDiagButton.addEventListener("click", () => {
-        consultationDiag("click received / handler entered");
-        try {
-          selectServiceRoute(consultationService, "consultation");
-        } catch (error) {
-          consultationDiag(`ERROR: ${error?.message || error}`);
-          throw error;
-        }
-      });
-    }
+    panel.querySelector("#bookStandaloneConsultation")?.addEventListener(
+      "click",
+      () => selectServiceRoute(consultationService, "consultation")
+    );
 
     if (clientBookable.length) {
       const summary = panel.querySelector("#existingServiceSummary");

@@ -11,9 +11,27 @@
     if (!configured) return path;
     try { return new URL(path, `${configured}/`).toString(); } catch { return path; }
   }
+  function analyticsRandomToken() {
+    try {
+      if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID().replace(/-/g, "");
+      if (globalThis.crypto?.getRandomValues) {
+        const bytes = new Uint8Array(16);
+        globalThis.crypto.getRandomValues(bytes);
+        return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+      }
+    } catch {}
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  }
   function safeStoredToken() {
-    try { const existing=sessionStorage.getItem(STORAGE_KEY)||""; if (/^[A-Za-z0-9_-]{16,120}$/.test(existing)) return existing; const token=`v_${crypto.randomUUID().replace(/-/g,"")}`; sessionStorage.setItem(STORAGE_KEY,token); return token; }
-    catch { return `v_${crypto.randomUUID().replace(/-/g,"")}`; }
+    try {
+      const existing=sessionStorage.getItem(STORAGE_KEY)||"";
+      if (/^[A-Za-z0-9_-]{16,120}$/.test(existing)) return existing;
+      const token=`v_${analyticsRandomToken()}`;
+      sessionStorage.setItem(STORAGE_KEY,token);
+      return token;
+    } catch {
+      return `v_${analyticsRandomToken()}`;
+    }
   }
   function safeReferrer() { if (!document.referrer) return ""; try { const u=new URL(document.referrer); return `${u.origin}${u.pathname}`.slice(0,500); } catch { return ""; } }
   function cleanPathAttribution() {
