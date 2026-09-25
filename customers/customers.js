@@ -450,29 +450,29 @@ function escapeCsvValue(value) {
 
 function exportMarketingContacts() {
   const contacts = (customers || [])
-    .filter((customer) =>
-      Number(customer.marketing_consent || 0) === 1 &&
-      String(customer.email || "").trim()
-    )
+    .filter((customer) => String(customer.email || "").trim())
     .map((customer) => ({
       firstName: String(customer.first_name || "").trim(),
       lastName: String(customer.last_name || "").trim(),
-      email: String(customer.email || "").trim()
+      email: String(customer.email || "").trim(),
+      marketingConsent:
+        Number(customer.marketing_consent || 0) === 1 ? "Yes" : "No"
     }));
 
   if (!contacts.length) {
     window.alert(
-      "There are no customers with marketing consent and an email address to export."
+      "There are no customers with an email address to export."
     );
     return;
   }
 
   const rows = [
-    ["First name", "Last name", "Email"],
+    ["First name", "Last name", "Email", "Marketing consent"],
     ...contacts.map((contact) => [
       contact.firstName,
       contact.lastName,
-      contact.email
+      contact.email,
+      contact.marketingConsent
     ])
   ];
 
@@ -490,7 +490,7 @@ function exportMarketingContacts() {
   const date = new Date().toISOString().slice(0, 10);
 
   link.href = url;
-  link.download = `eselram-marketing-contacts-${date}.csv`;
+  link.download = `eselram-customer-emails-${date}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
