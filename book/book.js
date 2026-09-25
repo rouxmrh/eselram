@@ -509,6 +509,10 @@ function renderSelectedBookingGroup(groupName) {
           )
         : defaultConsultationCopy;
 
+    const consultationBookingUrl = new URL(window.location.href);
+    consultationBookingUrl.searchParams.set("service_id", consultationService.id);
+    consultationBookingUrl.searchParams.set("booking_intent", "consultation");
+
     panel.innerHTML = `
       <h3>${escapeHtml(group.name)}</h3>
       <p class="booking-category-copy">
@@ -533,14 +537,13 @@ function renderSelectedBookingGroup(groupName) {
       ` : ""}
 
       <div class="service-choice-actions">
-        <button
+        <a
           class="primary-button service-choice-button"
-          type="button"
           id="bookStandaloneConsultation"
-          
+          href="${escapeHtml(consultationBookingUrl.toString())}"
         >
           Book consultation
-        </button>
+        </a>
         ${clientBookable.length ? `
           <button class="text-button service-choice-button" type="button" id="bookExistingTreatment">
             Existing client · Book treatment
@@ -549,10 +552,7 @@ function renderSelectedBookingGroup(groupName) {
       </div>
     `;
 
-    panel.querySelector("#bookStandaloneConsultation")?.addEventListener(
-      "click",
-      () => selectServiceRoute(consultationService, "consultation")
-    );
+
 
     if (clientBookable.length) {
       const summary = panel.querySelector("#existingServiceSummary");
@@ -1239,11 +1239,16 @@ async function init() {
         );
 
       if (requestedService) {
+        const requestedBookingIntent =
+          new URLSearchParams(location.search).get("booking_intent");
+
         selectServiceRoute(
           requestedService,
-          Number(requestedService.requires_consultation || 0) === 1
+          requestedBookingIntent === "consultation"
             ? "consultation"
-            : "service"
+            : Number(requestedService.requires_consultation || 0) === 1
+              ? "consultation"
+              : "service"
         );
       }
     }
