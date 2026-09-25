@@ -2378,9 +2378,16 @@ async function loadEmailIntegration() {
     };
 
 
+    const emailDeliveryReady =
+      data.central_email_ready === true ||
+      ["configured", "verified"].includes(
+        String(integration.status || "").trim().toLowerCase()
+      );
+
     emailIntegrationStatus.textContent =
-      data.central_email_ready ? "Ready" : "Email service configuration required";
-    if (gmailConnectedAccount) gmailConnectedAccount.textContent = data.central_email_ready ? "Ready" : "Configuration required";
+      emailDeliveryReady ? "Ready" : "Email service configuration required";
+    if (gmailConnectedAccount) gmailConnectedAccount.textContent =
+      emailDeliveryReady ? "Ready" : "Configuration required";
 
     if (resendProviderState) {
       if (integration.status === "verified") {
