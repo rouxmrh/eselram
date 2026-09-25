@@ -26,8 +26,13 @@
     const campaign=parts[1] ? parts.slice(1).join("-").slice(0,120) : (standard[source]?.[1]||"");
     return {source,medium,campaign};
   }
+  function normaliseSource(value) {
+    const source=String(value||"").trim().toLowerCase().replace(/\s+/g,"-");
+    const aliases={ig:"instagram",insta:"instagram",instagram:"instagram",fb:"facebook",facebook:"facebook",web:"website",website:"website",googlebusiness:"google","google-business":"google",google:"google"};
+    return (aliases[source]||source).slice(0,80);
+  }
   function inferredSource(params,clean) {
-    const explicit=String(params.get("utm_source")||"").trim().toLowerCase(); if (explicit) return explicit.slice(0,80); if(clean?.source)return clean.source; if (!document.referrer) return "direct";
+    const explicit=normaliseSource(params.get("utm_source")); if (explicit) return explicit; if(clean?.source)return clean.source; if (!document.referrer) return "direct";
     try { const host=new URL(document.referrer).hostname.toLowerCase(); if(host.includes("instagram.com")||host.includes("l.instagram.com"))return"instagram"; if(host.includes("facebook.com")||host.includes("fb.com"))return"facebook"; if(host.includes("google."))return"google"; if(host.includes("bing.com"))return"bing"; if(host===window.location.hostname.toLowerCase()||host.endsWith(".eselram.com")||host.endsWith(".pages.dev"))return"direct"; return"referral"; } catch{return"direct";}
   }
   async function post(path,body){try{await fetch(apiUrl(path),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),keepalive:true});}catch(e){console.debug("Booking analytics unavailable.",e);}}
