@@ -27,7 +27,11 @@
     return {source,medium,campaign};
   }
   function inferredSource(params,clean) {
-    const explicit=String(params.get("utm_source")||"").trim().toLowerCase(); if (explicit) return explicit.slice(0,80); if(clean?.source)return clean.source; if (!document.referrer) return "direct";
+    // A recognised clean tracking path is authoritative. Meta in-app browsers may
+    // append/alter attribution parameters (for example `ig` or `direct`), but
+    // /instagram and /facebook should always retain their intended source.
+    if(clean?.source)return clean.source;
+    const explicit=String(params.get("utm_source")||"").trim().toLowerCase(); if (explicit) return explicit.slice(0,80); if (!document.referrer) return "direct";
     try { const host=new URL(document.referrer).hostname.toLowerCase(); if(host.includes("instagram.com")||host.includes("l.instagram.com"))return"instagram"; if(host.includes("facebook.com")||host.includes("fb.com"))return"facebook"; if(host.includes("google."))return"google"; if(host.includes("bing.com"))return"bing"; if(host===window.location.hostname.toLowerCase()||host.endsWith(".eselram.com")||host.endsWith(".pages.dev"))return"direct"; return"referral"; } catch{return"direct";}
   }
   async function post(path,body){try{await fetch(apiUrl(path),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),keepalive:true});}catch(e){console.debug("Booking analytics unavailable.",e);}}
