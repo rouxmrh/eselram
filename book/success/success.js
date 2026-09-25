@@ -129,7 +129,7 @@ async function init() {
     clearCompletedCheckoutState();
 
     try {
-      const analyticsToken = localStorage.getItem("eselram_booking_analytics_session") || "";
+      const analyticsToken = sessionStorage.getItem("eselram_booking_analytics_session") || "";
       if (/^[A-Za-z0-9_-]{16,120}$/.test(analyticsToken)) {
         fetch(eselramPublicApiUrl("/api/public-booking/analytics/complete"), {
           method: "POST",
