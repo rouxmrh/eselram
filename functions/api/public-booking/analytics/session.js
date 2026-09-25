@@ -9,20 +9,8 @@ function validSessionToken(value) {
 }
 
 function normaliseSource(value) {
-  const source = clean(value, 80).toLowerCase().replace(/\s+/g, "-");
-  const aliases = {
-    ig: "instagram",
-    insta: "instagram",
-    instagram: "instagram",
-    fb: "facebook",
-    facebook: "facebook",
-    web: "website",
-    website: "website",
-    googlebusiness: "google",
-    "google-business": "google",
-    google: "google",
-  };
-  return aliases[source] || source || "direct";
+  const source = clean(value, 80).toLowerCase();
+  return source || "direct";
 }
 
 export async function onRequestPost({ request, env }) {
