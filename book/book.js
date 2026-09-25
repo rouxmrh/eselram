@@ -549,10 +549,32 @@ function renderSelectedBookingGroup(groupName) {
       </div>
     `;
 
-    panel.querySelector("#bookStandaloneConsultation")?.addEventListener(
-      "click",
-      () => selectServiceRoute(consultationService, "consultation")
-    );
+    const standaloneConsultationButton = panel.querySelector("#bookStandaloneConsultation");
+    if (standaloneConsultationButton) {
+      let consultationTouchHandled = false;
+
+      const openStandaloneConsultation = () => {
+        selectServiceRoute(consultationService, "consultation");
+      };
+
+      standaloneConsultationButton.addEventListener("touchend", event => {
+        consultationTouchHandled = true;
+        event.preventDefault();
+        openStandaloneConsultation();
+
+        window.setTimeout(() => {
+          consultationTouchHandled = false;
+        }, 500);
+      }, { passive: false });
+
+      standaloneConsultationButton.addEventListener("click", event => {
+        if (consultationTouchHandled) {
+          event.preventDefault();
+          return;
+        }
+        openStandaloneConsultation();
+      });
+    }
 
     if (clientBookable.length) {
       const summary = panel.querySelector("#existingServiceSummary");
