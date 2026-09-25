@@ -1278,7 +1278,7 @@
             data-tab="email"
           >
             <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4.5 7 7.5 6 7.5-6"/></svg></span>
-            <span>Email provider</span>
+            <span>Email</span>
           </button>
 
 
@@ -1423,12 +1423,10 @@
               <div class="es-form-grid">
 
                 <label>
-                  Email
+                  Business contact / reply email
 
-                  <input
-                    id="businessEmail"
-                    type="email"
-                  >
+                  <input id="businessEmail" type="email" placeholder="hello@yourbusiness.com">
+                  <small class="es-field-help">Eselram sends automated client emails securely. Customer replies are sent to this address, so you can use Gmail, Outlook, Yahoo or your own business domain.</small>
                 </label>
 
 
@@ -1854,11 +1852,11 @@
                 </p>
 
                 <h2>
-                  Email provider
+                  Email
                 </h2>
 
                 <p class="es-muted-copy">
-                  Connect a Google account so Eselram can send confirmations, reminders and other client emails through Gmail. No website or sending domain is required.
+                  Eselram automatically sends booking confirmations, reminders, forms, aftercare and other client emails for your business. No Google account or sending domain is required.
                 </p>
               </div>
 
@@ -1888,74 +1886,20 @@
             </div>
 
             <div class="es-email-provider-grid">
-              <article
-                id="gmailProviderCard"
-                class="es-email-provider-card"
-              >
+              <article id="gmailProviderCard" class="es-email-provider-card is-active">
                 <div>
                   <span class="es-email-provider-kicker">Email sending</span>
-                  <h3>Gmail / Google</h3>
-                  <p>
-                    No domain required. Connect your Google account and start sending.
-                  </p>
-                  <strong id="gmailConnectedAccount">Not connected</strong>
+                  <h3>Eselram Email</h3>
+                  <p>Automated client emails are securely sent by Eselram. Replies go directly to your business contact email.</p>
+                  <strong id="gmailConnectedAccount">Ready</strong>
                 </div>
-
-                <div class="es-settings-actions">
-                  <a
-                    id="connectGmailButton"
-                    class="es-button"
-                    href="/api/integrations/email/gmail/start"
-                  >
-                    Connect Gmail
-                  </a>
-                  <button
-                    id="useGmailButton"
-                    class="es-secondary-button"
-                    type="button"
-                    hidden
-                  >
-                    Use Gmail
-                  </button>
-                  <button
-                    id="disconnectGmailButton"
-                    class="es-secondary-button"
-                    type="button"
-                    hidden
-                  >
-                    Disconnect
-                  </button>
-                </div>
+                <div class="es-settings-actions"><a class="es-secondary-button" href="#business">Change reply email</a></div>
               </article>
-
-              <article
-                id="resendProviderCard"
-                class="es-email-provider-card"
-                hidden
-              >
-                <div>
-                  <span class="es-email-provider-kicker">Professional branded email</span>
-                  <h3>Resend</h3>
-                  <p>
-                    Send from your business domain. Eselram will guide you through setup.
-                  </p>
-                  <strong id="resendProviderState">Resend account connected</strong>
-                </div>
-
-                <div class="es-settings-actions">
-                  <button
-                    id="useResendButton"
-                    class="es-secondary-button"
-                    type="button"
-                  >
-                    Use Resend
-                  </button>
-                </div>
-              </article>
+              <article id="resendProviderCard" hidden></article>
+              <a id="connectGmailButton" hidden></a><button id="useGmailButton" type="button" hidden></button><button id="disconnectGmailButton" type="button" hidden></button><button id="useResendButton" type="button" hidden></button><strong id="resendProviderState" hidden></strong>
             </div>
 
-
-            <div id="resendSettingsSection" hidden>
+            <div id="resendSettingsSection" hidden aria-hidden="true">
               <div class="es-panel-header es-email-subheader">
                 <div>
                   <p class="es-eyebrow">Resend settings</p>
@@ -2437,7 +2381,7 @@
                 </h2>
 
                 <p class="es-muted-copy">
-                  Choose which automatic emails this installation sends using the business's own connected email provider.
+                  Choose which automatic emails this installation sends through Eselram Email.
                 </p>
               </div>
             </div>
@@ -2594,7 +2538,7 @@
               <div>
                 <p class="es-eyebrow">Eselram updates</p>
                 <h2>Keep Eselram up to date</h2>
-                <p class="es-muted-copy">Install protected Eselram updates without replacing your business database, file storage, email provider or payment settings.</p>
+                <p class="es-muted-copy">Install protected Eselram updates without replacing your business database, file storage, business email settings or payment settings.</p>
               </div>
             </div>
 

@@ -1680,193 +1680,16 @@ async function setEmailProvider(provider) {
 }
 
 async function loadEmailProviderChoice() {
-  try {
-    const [providerResponse, gmailResponse] =
-      await Promise.all([
-        fetch(
-          "/api/integrations/email/provider",
-          {
-            headers: { Accept: "application/json" },
-            cache: "no-store"
-          }
-        ),
-        fetch(
-          "/api/integrations/email/gmail",
-          {
-            headers: { Accept: "application/json" },
-            cache: "no-store"
-          }
-        )
-      ]);
-
-    const providerData =
-      await providerResponse.json();
-    const gmailData =
-      await gmailResponse.json();
-
-    const active =
-      providerData?.active_provider ||
-      "gmail";
-
-    const gmail =
-      gmailData?.gmail || {};
-    const gmailPermissionRequired =
-      Boolean(gmail.permission_required);
-
-    if (gmail.migration_required) {
-      if (gmailConnectedAccount) {
-        gmailConnectedAccount.textContent =
-          "Gmail update pending";
-      }
-
-      if (connectGmailButton) {
-        connectGmailButton.hidden = true;
-      }
-
-      if (useGmailButton) {
-        useGmailButton.hidden = true;
-      }
-
-      if (disconnectGmailButton) {
-        disconnectGmailButton.hidden = true;
-      }
-
-      if (emailIntegrationMessage) {
-        emailIntegrationMessage.hidden = false;
-        emailIntegrationMessage.className = "es-status";
-        emailIntegrationMessage.textContent =
-          "Gmail support has been added to Eselram, but this existing installation still needs database migration 036. New installations will receive it automatically.";
-      }
-    }
-
-    if (activeEmailProviderLabel) {
-      activeEmailProviderLabel.textContent =
-        active === "gmail"
-          ? "Gmail"
-          : "Resend";
-    }
-
-    gmailProviderCard?.classList.toggle(
-      "is-active",
-      active === "gmail"
-    );
-
-    resendProviderCard?.classList.toggle(
-      "is-active",
-      active === "resend"
-    );
-
-    if (gmailConnectedAccount) {
-      gmailConnectedAccount.textContent =
-        gmail.connected
-          ? `Connected as ${gmail.email}`
-          : (gmailPermissionRequired
-              ? "Email permission required"
-              : "Not connected");
-    }
-
-    if (connectGmailButton) {
-      connectGmailButton.hidden =
-        Boolean(gmail.connected) ||
-        Boolean(gmail.migration_required);
-      connectGmailButton.textContent =
-        gmailPermissionRequired
-          ? "Reconnect Google"
-          : "Connect Gmail";
-    }
-
-    if (useGmailButton) {
-      useGmailButton.hidden =
-        !gmail.connected ||
-        active === "gmail";
-    }
-
-    if (disconnectGmailButton) {
-      disconnectGmailButton.hidden =
-        !gmail.connected;
-    }
-
-    if (useResendButton) {
-      useResendButton.hidden =
-        active === "resend";
-    }
-
-    if (resendProviderCard) resendProviderCard.hidden = true;
-    if (resendSettingsSection) resendSettingsSection.hidden = true;
-
-    if (
-      emailIntegrationStatus &&
-      active === "gmail"
-    ) {
-      emailIntegrationStatus.textContent =
-        gmail.connected
-          ? "Gmail ready"
-          : (gmailPermissionRequired
-              ? "Email permission required"
-              : "Gmail selected — connection required");
-    }
-
-    if (gmailPermissionRequired && emailIntegrationMessage) {
-      emailIntegrationMessage.hidden = false;
-      emailIntegrationMessage.className =
-        "es-status error";
-      emailIntegrationMessage.textContent =
-        "Email permission required. Eselram needs permission to send confirmations, reminders and other client emails. Reconnect Google and allow ‘Send email on your behalf’.";
-    }
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    if (
-      params.get("gmail") === "connected" &&
-      emailIntegrationMessage
-    ) {
-      emailIntegrationMessage.hidden = false;
-      emailIntegrationMessage.className =
-        "es-status success";
-      emailIntegrationMessage.textContent =
-        "Gmail connected. Eselram can now send client emails directly from this Gmail account without a business domain.";
-      history.replaceState(
-        {},
-        "",
-        `${window.location.pathname}#email`
-      );
-    }
-
-    if (
-      params.get("gmail") === "permission" &&
-      emailIntegrationMessage
-    ) {
-      emailIntegrationMessage.hidden = false;
-      emailIntegrationMessage.className =
-        "es-status error";
-      emailIntegrationMessage.textContent =
-        "Email permission required. Reconnect Google and allow ‘Send email on your behalf’ so Eselram can send confirmations, reminders and other client emails.";
-      history.replaceState(
-        {},
-        "",
-        `${window.location.pathname}#email`
-      );
-    }
-
-    if (
-      params.get("gmail") === "error" &&
-      emailIntegrationMessage
-    ) {
-      emailIntegrationMessage.hidden = false;
-      emailIntegrationMessage.className =
-        "es-status error";
-      emailIntegrationMessage.textContent =
-        "Gmail could not be connected. Try again and approve the Gmail send permission.";
-    }
-  } catch (error) {
-    console.error(
-      "Unable to load email provider choice:",
-      error
-    );
-  }
+  if (activeEmailProviderLabel) activeEmailProviderLabel.textContent = "Eselram Email";
+  if (gmailConnectedAccount) gmailConnectedAccount.textContent = "Ready";
+  if (emailIntegrationStatus) emailIntegrationStatus.textContent = "Ready";
+  gmailProviderCard?.classList.add("is-active");
+  if (resendProviderCard) resendProviderCard.hidden = true;
+  if (resendSettingsSection) resendSettingsSection.hidden = true;
+  if (connectGmailButton) connectGmailButton.hidden = true;
+  if (useGmailButton) useGmailButton.hidden = true;
+  if (disconnectGmailButton) disconnectGmailButton.hidden = true;
+  if (useResendButton) useResendButton.hidden = true;
 }
 
 useGmailButton
@@ -2555,27 +2378,9 @@ async function loadEmailIntegration() {
     };
 
 
-    const gmailIsActive =
-      String(activeEmailProviderLabel?.textContent || "")
-        .trim()
-        .toLowerCase() === "gmail";
-
-    const gmailIsConnected =
-      String(gmailConnectedAccount?.textContent || "")
-        .trim()
-        .toLowerCase()
-        .startsWith("connected as ");
-
     emailIntegrationStatus.textContent =
-      gmailIsActive
-        ? (gmailIsConnected ? "Gmail ready" : "Gmail selected — connection required")
-        : (
-            statusLabels[
-              integration.status
-            ] ||
-            integration.status ||
-            "Not configured"
-          );
+      data.central_email_ready ? "Ready" : "Email service configuration required";
+    if (gmailConnectedAccount) gmailConnectedAccount.textContent = data.central_email_ready ? "Ready" : "Configuration required";
 
     if (resendProviderState) {
       if (integration.status === "verified") {

@@ -169,6 +169,7 @@ export async function onRequestGet({
     if (!integration) {
       return Response.json({
         ok: true,
+        central_email_ready: Boolean(String(env.ESELRAM_EMAIL_API_URL || "").trim() && String(env.ESELRAM_EMAIL_API_SECRET || "").trim()),
         integration: {
           provider: "resend",
           status: "not_configured",
@@ -197,6 +198,7 @@ export async function onRequestGet({
 
     return Response.json({
       ok: true,
+      central_email_ready: Boolean(String(env.ESELRAM_EMAIL_API_URL || "").trim() && String(env.ESELRAM_EMAIL_API_SECRET || "").trim()),
       integration: {
         provider:
           integration.provider,
