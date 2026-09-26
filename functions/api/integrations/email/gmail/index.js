@@ -51,6 +51,18 @@ function parseJson(value, fallback = {}) {
   }
 }
 
+
+const REQUIRED_GMAIL_SCOPE =
+  "https://www.googleapis.com/auth/gmail.send";
+
+function hasRequiredGmailScope(value) {
+  return String(value || "")
+    .split(/\s+/)
+    .map((scope) => scope.trim())
+    .filter(Boolean)
+    .includes(REQUIRED_GMAIL_SCOPE);
+}
+
 async function gmailTableReady(env) {
   const table =
     await env.DB
@@ -112,6 +124,7 @@ export async function onRequestGet({ request, env }) {
   const saved = await row(env, user.business_id);
   let email = "";
   let senderName = user.business_name || "";
+  let scopeGranted = false;
 
   if (saved?.encrypted_credentials) {
     try {
@@ -127,8 +140,14 @@ export async function onRequestGet({ request, env }) {
         String(config.email || credentials.email || "").trim();
       senderName =
         String(config.sender_name || senderName).trim();
+      scopeGranted = hasRequiredGmailScope(credentials.scope);
     } catch {}
   }
+
+  const permissionRequired = Boolean(
+    saved?.encrypted_credentials &&
+    (saved?.status === "reconnect_required" || !scopeGranted)
+  );
 
   const active = await env.DB
     .prepare(`
@@ -144,7 +163,13 @@ export async function onRequestGet({ request, env }) {
   return Response.json({
     ok: true,
     gmail: {
-      connected: Boolean(saved?.encrypted_credentials && email),
+      connected: Boolean(
+        saved?.encrypted_credentials &&
+        email &&
+        scopeGranted &&
+        saved?.status !== "reconnect_required"
+      ),
+      permission_required: permissionRequired,
       email,
       sender_name: senderName,
       status: saved?.status || "not_configured",
@@ -225,11 +250,14 @@ export async function onRequestDelete({ request, env }) {
     .bind(user.business_id)
     .first();
 
-  if (active?.setting_value === "gmail") {
+  // Gmail remains the selected sending method when it is disconnected.
+  // This lets the UI show a clear reconnect state instead of silently
+  // falling back to an unconfigured Resend integration.
+  if (active?.setting_value !== "gmail") {
     await setActiveEmailProvider(
       env,
       user.business_id,
-      "resend"
+      "gmail"
     );
   }
 

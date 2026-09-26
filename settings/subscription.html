@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subscription & Billing | Eselram</title>
+  <link rel="stylesheet" href="/app/assets/css/eselram.css?v=20260821-mobile-nav-v2">
+  <style>
+    .es-billing-wrap{max-width:1040px}.es-billing-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.es-billing-panel{border:1px solid var(--es-border);border-radius:18px;background:var(--es-surface);padding:22px;box-shadow:0 7px 22px rgba(28,34,30,.035);margin-bottom:16px}.es-billing-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}.es-billing-stat{border:1px solid var(--es-border);border-radius:14px;padding:15px;background:#fafbf8;min-width:0}.es-billing-stat span{display:block;color:var(--es-muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}.es-billing-stat strong{display:block;font-size:16px;overflow-wrap:anywhere}.es-billing-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.es-billing-actions .es-button,.es-billing-actions .es-secondary-button{min-height:42px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}.es-billing-warning{border:1px solid #e3d5a8;background:#fffaf0;border-radius:14px;padding:15px;margin-top:16px}.es-billing-warning strong{display:block;margin-bottom:5px}.es-billing-table-wrap{overflow:auto;margin-top:14px;border:1px solid var(--es-border);border-radius:14px}.es-billing-table{width:100%;border-collapse:collapse;min-width:650px}.es-billing-table th,.es-billing-table td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--es-border);font-size:13px}.es-billing-table th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--es-muted);background:#fafbf8}.es-billing-table tr:last-child td{border-bottom:0}.es-billing-table a{font-weight:700}.es-billing-empty{padding:18px;color:var(--es-muted)}.es-billing-danger{background:#fff7f5;border-color:#e7c4bd}.es-billing-danger .es-button{background:#8f3d32;border-color:#8f3d32}.es-billing-status-pill{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;background:#eef3ee;font-weight:800;font-size:12px;text-transform:capitalize}.es-billing-status-pill.grace{background:#fff3d8}.es-billing-status-pill.canceled,.es-billing-status-pill.suspended{background:#f7e4e1}.es-billing-note{font-size:12px;color:var(--es-muted);margin-top:10px}@media(max-width:850px){.es-billing-hero{flex-direction:column}.es-billing-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.es-billing-summary{grid-template-columns:1fr}.es-billing-actions .es-button,.es-billing-actions .es-secondary-button,.es-billing-hero .es-secondary-button{width:100%;justify-content:center}}
+  </style>
+</head>
+<body class="es-dashboard-body">
+  <div class="es-dashboard-layout">
+    <aside id="appSidebar" class="es-sidebar"></aside>
+    <main class="es-dashboard-main">
+      <div class="es-billing-wrap">
+        <header class="es-billing-hero">
+          <div>
+            <p class="es-eyebrow">Settings · Owner only</p>
+            <h1>Subscription & billing</h1>
+            <p class="es-lead">Manage the Eselram subscription for this business without affecting the Stripe account you use to take customer payments.</p>
+          </div>
+          <a class="es-secondary-button" href="/settings/" style="text-decoration:none">Back to Settings</a>
+        </header>
+
+        <div id="billingStatus" class="es-status" hidden></div>
+
+        <section class="es-billing-panel">
+          <div class="es-panel-header"><div><p class="es-eyebrow">Eselram plan</p><h2 id="planTitle">Loading subscription…</h2><p id="planMessage" class="es-muted-copy">Checking your Eselram billing status securely.</p></div></div>
+          <div class="es-billing-summary">
+            <div class="es-billing-stat"><span>Plan</span><strong id="planName">—</strong></div>
+            <div class="es-billing-stat"><span>Status</span><strong><span id="planStatus" class="es-billing-status-pill">—</span></strong></div>
+            <div class="es-billing-stat"><span id="renewalLabel">Renews</span><strong id="renewalDate">—</strong></div>
+            <div class="es-billing-stat"><span>Price</span><strong id="planPrice">—</strong></div>
+          </div>
+          <div id="cancelNotice" class="es-billing-warning" hidden><strong>Cancellation scheduled</strong><span id="cancelNoticeText"></span></div>
+          <div id="graceNotice" class="es-billing-warning" hidden><strong>Payment needs attention</strong><span id="graceNoticeText"></span></div>
+          <div class="es-billing-actions">
+            <button id="updatePaymentButton" class="es-button es-button-secondary" type="button">Update payment method</button>
+            <button id="keepSubscriptionButton" class="es-button" type="button" hidden>Keep subscription</button>
+          </div>
+          <p id="paymentNote" class="es-billing-note">Card details are handled on Stripe's secure page and are never stored by Eselram.</p>
+        </section>
+
+        <section id="invoicePanel" class="es-billing-panel">
+          <div class="es-panel-header"><div><p class="es-eyebrow">Payment history</p><h2>Invoices</h2><p class="es-muted-copy">Recent Eselram subscription invoices for this business.</p></div></div>
+          <div class="es-billing-table-wrap">
+            <table class="es-billing-table">
+              <thead><tr><th>Date</th><th>Description</th><th>Status</th><th>Amount</th><th>Invoice</th></tr></thead>
+              <tbody id="invoiceRows"><tr><td colspan="5" class="es-billing-empty">Loading invoices…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="cancelPanel" class="es-billing-panel es-billing-danger">
+          <div class="es-panel-header"><div><p class="es-eyebrow">Cancellation</p><h2>Cancel Eselram subscription</h2><p class="es-muted-copy">Cancellation takes effect at the end of the period you have already paid for. Your Eselram app remains available until that date.</p></div></div>
+          <button id="cancelSubscriptionButton" class="es-button" type="button">Cancel at end of billing period</button>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script type="module">
+    import { renderSidebar } from "/components/sidebar.js?v=20260821-mobile-nav-v2";
+    renderSidebar("settings");
+  </script>
+  <script src="/settings/subscription.js" type="module"></script>
+</body>
+</html>

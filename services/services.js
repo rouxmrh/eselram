@@ -94,6 +94,8 @@ const closeServiceEditorButton = document.getElementById("closeServiceEditorButt
 const serviceFamilyPills = document.getElementById("serviceFamilyPills");
 
 let selectedServiceFamily = "";
+let businessCurrency = "GBP";
+let businessLocale = "en-GB";
 
 let services = [];
 let providers = [];
@@ -201,6 +203,9 @@ async function loadServices() {
 
     clientTemplates =
       data.client_templates || [];
+
+    businessCurrency = String(data.currency || "GBP").toUpperCase();
+    businessLocale = data.locale || "en-GB";
 
 
     renderServiceSummary();
@@ -1279,10 +1284,10 @@ function formatMoney(
 ) {
 
   return new Intl.NumberFormat(
-    "en-GB",
+    businessLocale || "en-GB",
     {
       style: "currency",
-      currency: "GBP"
+      currency: businessCurrency || "GBP"
     }
   ).format(
     amountMinor / 100

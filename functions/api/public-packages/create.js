@@ -382,7 +382,7 @@ export async function onRequestPost({ request, env }) {
     saleId = `psl_${crypto.randomUUID()}`;
     paymentId = `pay_${crypto.randomUUID()}`;
     const currency = String(
-      integration.config.currency || business.currency || "GBP"
+      business.currency || integration.config.currency || "GBP"
     ).toUpperCase();
 
     await env.DB.prepare(`

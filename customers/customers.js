@@ -8,6 +8,11 @@ const customerSearch =
     "customerSearch"
   );
 
+const exportMarketingContactsButton =
+  document.getElementById(
+    "exportMarketingContactsButton"
+  );
+
 
 const customerHubTotalCustomers =
   document.getElementById("customerHubTotalCustomers");
@@ -430,6 +435,75 @@ document.addEventListener(
 );
 
 
+let businessCurrency = "GBP";
+let businessLocale = "en-GB";
+let businessTimezone = "Europe/London";
+
+/* =======================================================
+   Marketing contacts export
+   ======================================================= */
+
+function escapeCsvValue(value) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportMarketingContacts() {
+  const contacts = (customers || [])
+    .filter((customer) => String(customer.email || "").trim())
+    .map((customer) => ({
+      firstName: String(customer.first_name || "").trim(),
+      lastName: String(customer.last_name || "").trim(),
+      email: String(customer.email || "").trim(),
+      marketingConsent:
+        Number(customer.marketing_consent || 0) === 1 ? "Yes" : "No"
+    }));
+
+  if (!contacts.length) {
+    window.alert(
+      "There are no customers with an email address to export."
+    );
+    return;
+  }
+
+  const rows = [
+    ["First name", "Last name", "Email", "Marketing consent"],
+    ...contacts.map((contact) => [
+      contact.firstName,
+      contact.lastName,
+      contact.email,
+      contact.marketingConsent
+    ])
+  ];
+
+  const csv = rows
+    .map((row) => row.map(escapeCsvValue).join(","))
+    .join("\r\n");
+
+  // UTF-8 BOM helps Excel open names/characters correctly.
+  const blob = new Blob(["\uFEFF", csv], {
+    type: "text/csv;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+
+  link.href = url;
+  link.download = `eselram-customer-emails-${date}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+exportMarketingContactsButton?.addEventListener(
+  "click",
+  exportMarketingContacts
+);
+
+
 /* =======================================================
    Load list
    ======================================================= */
@@ -476,6 +550,10 @@ async function loadCustomers() {
     customers =
       data.customers ||
       [];
+
+    businessCurrency = String(data.currency || "GBP").toUpperCase();
+    businessLocale = data.locale || "en-GB";
+    businessTimezone = data.timezone || "Europe/London";
 
 
     if (customerHubTotalCustomers) {
@@ -4822,12 +4900,12 @@ function formatMoney(
 ) {
 
   return new Intl.NumberFormat(
-    "en-GB",
+    businessLocale || "en-GB",
     {
       style:
         "currency",
       currency:
-        "GBP"
+        businessCurrency || "GBP"
     }
   ).format(
     Number(
@@ -4853,7 +4931,8 @@ function formatDate(value) {
       month:
         "short",
       year:
-        "numeric"
+        "numeric",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
@@ -4869,7 +4948,8 @@ function formatShortDate(value) {
       day:
         "numeric",
       month:
-        "short"
+        "short",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
@@ -4885,7 +4965,8 @@ function formatTime(value) {
       hour:
         "2-digit",
       minute:
-        "2-digit"
+        "2-digit",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)

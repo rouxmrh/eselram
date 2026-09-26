@@ -11,6 +11,7 @@ import {
 
 import {
   calculatePaymentDeduction,
+  calculatePackagePaymentDeduction,
   createDiscountAdjustment,
   setDiscountAdjustmentStatus
 } from "../../../../lib/payment-discounts.js";
@@ -234,17 +235,31 @@ export async function onRequestPost({request, env}) {
 
     let deductionResult;
     try {
-      deductionResult = await calculatePaymentDeduction({
+      deductionResult = await calculatePackagePaymentDeduction({
         env,
         businessId: user.business_id,
-        baseAmountMinor: outstandingMinor,
+        packagePriceMinor: Number(item.price_minor || 0),
+        payableBaseMinor: outstandingMinor,
         deduction: body.deduction
       });
     } catch (error) {
       return badRequest(error.message || "Unable to apply deduction.");
     }
 
-    const chargeMinor = Math.max(0, outstandingMinor - deductionResult.discountMinor);
+    const adjustedOutstandingMinor = Math.max(0, outstandingMinor - deductionResult.discountMinor);
+
+    if (adjustedOutstandingMinor <= 0) {
+      return badRequest("The deduction covers the full outstanding package balance.");
+    }
+
+    const requestedCollectMinor = Math.round(Number(body.collect_amount_minor || 0));
+    const chargeMinor = requestedCollectMinor > 0
+      ? requestedCollectMinor
+      : adjustedOutstandingMinor;
+
+    if (chargeMinor > adjustedOutstandingMinor) {
+      return badRequest("The amount to collect cannot exceed the package balance after deductions.");
+    }
 
     const integration =
       await getBusinessStripeIntegration(
@@ -278,8 +293,8 @@ export async function onRequestPost({request, env}) {
 
     const currency =
       String(
-        integration.config.currency ||
         user.currency ||
+        integration.config.currency ||
         "GBP"
       ).toUpperCase();
 
@@ -329,6 +344,19 @@ export async function onRequestPost({request, env}) {
       voucher: deductionResult.voucher,
       status: "pending"
     });
+
+    // Link the payment to the package as soon as Checkout is created.
+    // The webhook repeats this with INSERT OR IGNORE, so this is safe and
+    // ensures partial package payments are included in the package balance.
+    await env.DB.prepare(`
+      INSERT OR IGNORE INTO customer_package_payments (
+        customer_package_id,
+        payment_id
+      ) VALUES (?, ?)
+    `).bind(
+      customerPackageId,
+      paymentId
+    ).run();
 
     const origin =
       new URL(request.url).origin;

@@ -23,6 +23,7 @@ import {
 
 import {
   calculatePaymentDeduction,
+  calculatePackagePaymentDeduction,
   createDiscountAdjustment,
   setDiscountAdjustmentStatus
 } from "../../../lib/payment-discounts.js";
@@ -861,12 +862,20 @@ export async function onRequestPost({ request, env }) {
 
     if (amountAfterConsultationCredit > 0) {
       try {
-        deductionResult = await calculatePaymentDeduction({
-          env,
-          businessId: user.business_id,
-          baseAmountMinor: amountAfterConsultationCredit,
-          deduction: body.deduction
-        });
+        deductionResult = paymentChoice === "full"
+          ? await calculatePackagePaymentDeduction({
+              env,
+              businessId: user.business_id,
+              packagePriceMinor: price,
+              payableBaseMinor: amountAfterConsultationCredit,
+              deduction: body.deduction
+            })
+          : await calculatePaymentDeduction({
+              env,
+              businessId: user.business_id,
+              baseAmountMinor: amountAfterConsultationCredit,
+              deduction: body.deduction
+            });
       } catch (error) {
         return badRequest(error.message || "Unable to apply deduction.");
       }
@@ -958,7 +967,7 @@ export async function onRequestPost({ request, env }) {
 
     const paymentId = `pay_${crypto.randomUUID()}`;
     const stripeCurrency = String(
-      integration.config.currency || user.currency || "GBP"
+      user.currency || integration.config.currency || "GBP"
     ).toUpperCase();
 
     await env.DB.prepare(`

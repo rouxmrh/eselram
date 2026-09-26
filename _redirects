@@ -1,0 +1,21 @@
+# Clean Eselram tracking links -> public booking page (internal rewrite; browser URL stays clean)
+/instagram /book/ 200
+/instagram/* /book/ 200
+/facebook /book/ 200
+/facebook/* /book/ 200
+/website /book/ 200
+/website/* /book/ 200
+/google /book/ 200
+/google/* /book/ 200
+/tiktok /book/ 200
+/tiktok/* /book/ 200
+/whatsapp /book/ 200
+/whatsapp/* /book/ 200
+/email /book/ 200
+/email/* /book/ 200
+/sms /book/ 200
+/sms/* /book/ 200
+/google-ads /book/ 200
+/google-ads/* /book/ 200
+/other /book/ 200
+/other/* /book/ 200

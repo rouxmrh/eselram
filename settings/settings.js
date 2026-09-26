@@ -18,6 +18,11 @@ const businessPanel =
     "tab-business"
   );
 
+const accountPanel =
+  document.getElementById(
+    "tab-account"
+  );
+
 const brandingPanel =
   document.getElementById(
     "tab-branding"
@@ -37,6 +42,8 @@ const emailPanel =
   document.getElementById(
     "tab-email"
   );
+
+const integrationsPanel = document.getElementById("tab-integrations");
 
 const notificationsPanel =
   document.getElementById(
@@ -58,6 +65,44 @@ const placeholderTitle =
     "placeholderTitle"
   );
 
+
+async function loadAccountSettings() {
+  const status = document.getElementById("accountEmailStatus");
+  try {
+    const response = await fetch("/api/auth/me", { headers:{Accept:"application/json"}, cache:"no-store" });
+    const data = await response.json();
+    if (!response.ok || !data.ok || !data.authenticated) throw new Error("Unable to load your account.");
+    document.getElementById("accountName").value = data.user?.name || "";
+    document.getElementById("accountCurrentEmail").value = data.user?.email || "";
+    const result = new URLSearchParams(window.location.search).get("account_email");
+    if (result && status) {
+      status.hidden = false;
+      if (result === "email-updated") { status.className="es-status success"; status.textContent="Login email updated. Use this email the next time you sign in or reset your password."; }
+      else if (result === "email-conflict") { status.className="es-status error"; status.textContent="That email is already used by another account."; }
+      else { status.className="es-status error"; status.textContent="That verification link is invalid or has expired. Please request a new one."; }
+    }
+  } catch (error) {
+    if (status) { status.hidden=false; status.className="es-status error"; status.textContent=error.message || "Unable to load your account."; }
+  }
+}
+
+const accountEmailForm = document.getElementById("accountEmailForm");
+if (accountEmailForm) accountEmailForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const status = document.getElementById("accountEmailStatus");
+  const button = document.getElementById("changeLoginEmailButton");
+  const email = document.getElementById("accountNewEmail").value.trim();
+  status.hidden=false; status.className="es-status"; status.textContent="Sending verification…"; button.disabled=true;
+  try {
+    const response = await fetch("/api/auth/change-email", { method:"POST", headers:{"Content-Type":"application/json",Accept:"application/json"}, body:JSON.stringify({email}) });
+    const data = await response.json().catch(()=>({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to send verification email.");
+    status.className="es-status success"; status.textContent=data.message;
+    document.getElementById("accountNewEmail").value="";
+  } catch (error) {
+    status.className="es-status error"; status.textContent=error.message || "Unable to send verification email.";
+  } finally { button.disabled=false; }
+});
 
 async function loadSettings() {
 
@@ -611,10 +656,12 @@ function showTab(tab) {
 
 
   businessPanel.hidden = true;
+  accountPanel.hidden = true;
   brandingPanel.hidden = true;
   hoursPanel.hidden = true;
   paymentsPanel.hidden = true;
   emailPanel.hidden = true;
+  integrationsPanel.hidden = true;
   notificationsPanel.hidden = true;
   updatesPanel.hidden = true;
   placeholderPanel.hidden = true;
@@ -624,6 +671,12 @@ function showTab(tab) {
 
     businessPanel.hidden = false;
 
+    return;
+  }
+
+  if (tab === "account") {
+    accountPanel.hidden = false;
+    loadAccountSettings();
     return;
   }
 
@@ -659,6 +712,12 @@ function showTab(tab) {
     return;
   }
 
+
+  if (tab === "integrations") {
+    integrationsPanel.hidden = false;
+    loadGoogleAnalyticsIntegration();
+    return;
+  }
 
   if (tab === "hours") {
 
@@ -739,7 +798,7 @@ function loadTabFromHash() {
       .replace("#", "");
 
   const supportedTab =
-    ["business", "branding", "hours", "payments", "email", "notifications", "updates"]
+    ["business", "account", "branding", "hours", "payments", "email", "integrations", "notifications", "updates"]
       .includes(requested)
       ? requested
       : "business";
@@ -1621,158 +1680,16 @@ async function setEmailProvider(provider) {
 }
 
 async function loadEmailProviderChoice() {
-  try {
-    const [providerResponse, gmailResponse] =
-      await Promise.all([
-        fetch(
-          "/api/integrations/email/provider",
-          {
-            headers: { Accept: "application/json" },
-            cache: "no-store"
-          }
-        ),
-        fetch(
-          "/api/integrations/email/gmail",
-          {
-            headers: { Accept: "application/json" },
-            cache: "no-store"
-          }
-        )
-      ]);
-
-    const providerData =
-      await providerResponse.json();
-    const gmailData =
-      await gmailResponse.json();
-
-    const active =
-      providerData?.active_provider ||
-      "gmail";
-
-    const gmail =
-      gmailData?.gmail || {};
-
-    if (gmail.migration_required) {
-      if (gmailConnectedAccount) {
-        gmailConnectedAccount.textContent =
-          "Gmail update pending";
-      }
-
-      if (connectGmailButton) {
-        connectGmailButton.hidden = true;
-      }
-
-      if (useGmailButton) {
-        useGmailButton.hidden = true;
-      }
-
-      if (disconnectGmailButton) {
-        disconnectGmailButton.hidden = true;
-      }
-
-      if (emailIntegrationMessage) {
-        emailIntegrationMessage.hidden = false;
-        emailIntegrationMessage.className = "es-status";
-        emailIntegrationMessage.textContent =
-          "Gmail support has been added to Eselram, but this existing installation still needs database migration 036. New installations will receive it automatically.";
-      }
-    }
-
-    if (activeEmailProviderLabel) {
-      activeEmailProviderLabel.textContent =
-        active === "gmail"
-          ? "Gmail"
-          : "Resend";
-    }
-
-    gmailProviderCard?.classList.toggle(
-      "is-active",
-      active === "gmail"
-    );
-
-    resendProviderCard?.classList.toggle(
-      "is-active",
-      active === "resend"
-    );
-
-    if (gmailConnectedAccount) {
-      gmailConnectedAccount.textContent =
-        gmail.connected
-          ? `Connected as ${gmail.email}`
-          : "Not connected";
-    }
-
-    if (connectGmailButton) {
-      connectGmailButton.hidden =
-        Boolean(gmail.connected) ||
-        Boolean(gmail.migration_required);
-    }
-
-    if (useGmailButton) {
-      useGmailButton.hidden =
-        !gmail.connected ||
-        active === "gmail";
-    }
-
-    if (disconnectGmailButton) {
-      disconnectGmailButton.hidden =
-        !gmail.connected;
-    }
-
-    if (useResendButton) {
-      useResendButton.hidden =
-        active === "resend";
-    }
-
-    if (resendProviderCard) resendProviderCard.hidden = true;
-    if (resendSettingsSection) resendSettingsSection.hidden = true;
-
-    if (
-      emailIntegrationStatus &&
-      active === "gmail" &&
-      gmail.connected
-    ) {
-      emailIntegrationStatus.textContent =
-        "Gmail ready";
-    }
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    if (
-      params.get("gmail") === "connected" &&
-      emailIntegrationMessage
-    ) {
-      emailIntegrationMessage.hidden = false;
-      emailIntegrationMessage.className =
-        "es-status success";
-      emailIntegrationMessage.textContent =
-        "Gmail connected. Eselram can now send client emails directly from this Gmail account without a business domain.";
-      history.replaceState(
-        {},
-        "",
-        `${window.location.pathname}#email`
-      );
-    }
-
-    if (
-      params.get("gmail") === "error" &&
-      emailIntegrationMessage
-    ) {
-      emailIntegrationMessage.hidden = false;
-      emailIntegrationMessage.className =
-        "es-status error";
-      emailIntegrationMessage.textContent =
-        "Gmail could not be connected. Try again and approve the Gmail send permission.";
-    }
-  } catch (error) {
-    console.error(
-      "Unable to load email provider choice:",
-      error
-    );
-  }
+  if (activeEmailProviderLabel) activeEmailProviderLabel.textContent = "Eselram Email";
+  if (gmailConnectedAccount) gmailConnectedAccount.textContent = "Ready";
+  if (emailIntegrationStatus) emailIntegrationStatus.textContent = "Ready";
+  gmailProviderCard?.classList.add("is-active");
+  if (resendProviderCard) resendProviderCard.hidden = true;
+  if (resendSettingsSection) resendSettingsSection.hidden = true;
+  if (connectGmailButton) connectGmailButton.hidden = true;
+  if (useGmailButton) useGmailButton.hidden = true;
+  if (disconnectGmailButton) disconnectGmailButton.hidden = true;
+  if (useResendButton) useResendButton.hidden = true;
 }
 
 useGmailButton
@@ -2461,27 +2378,16 @@ async function loadEmailIntegration() {
     };
 
 
-    const gmailIsActive =
-      String(activeEmailProviderLabel?.textContent || "")
-        .trim()
-        .toLowerCase() === "gmail";
-
-    const gmailIsConnected =
-      String(gmailConnectedAccount?.textContent || "")
-        .trim()
-        .toLowerCase()
-        .startsWith("connected as ");
+    const emailDeliveryReady =
+      data.central_email_ready === true ||
+      ["configured", "verified"].includes(
+        String(integration.status || "").trim().toLowerCase()
+      );
 
     emailIntegrationStatus.textContent =
-      gmailIsActive
-        ? (gmailIsConnected ? "Gmail ready" : "Gmail selected — connection required")
-        : (
-            statusLabels[
-              integration.status
-            ] ||
-            integration.status ||
-            "Not configured"
-          );
+      emailDeliveryReady ? "Ready" : "Email service configuration required";
+    if (gmailConnectedAccount) gmailConnectedAccount.textContent =
+      emailDeliveryReady ? "Ready" : "Configuration required";
 
     if (resendProviderState) {
       if (integration.status === "verified") {
@@ -2798,6 +2704,13 @@ sendEmailTestButton
         emailIntegrationMessage.textContent =
           error.message ||
           "Unable to send test email.";
+
+        if (
+          String(error?.message || "")
+            .startsWith("Email permission required.")
+        ) {
+          await loadEmailProviderChoice();
+        }
 
       } finally {
 
@@ -3940,3 +3853,58 @@ loadSettings();
 
 
 loadEmailProviderChoice();
+
+
+/* =======================================================
+   Google Analytics integration
+   ======================================================= */
+const googleAnalyticsForm = document.getElementById("googleAnalyticsForm");
+const googleAnalyticsMeasurementId = document.getElementById("googleAnalyticsMeasurementId");
+const googleAnalyticsStatus = document.getElementById("googleAnalyticsStatus");
+const disconnectGoogleAnalyticsButton = document.getElementById("disconnectGoogleAnalyticsButton");
+const viewGoogleAnalyticsButton = document.getElementById("viewGoogleAnalyticsButton");
+
+async function loadGoogleAnalyticsIntegration() {
+  if (!googleAnalyticsForm) return;
+  googleAnalyticsStatus.hidden = true;
+  try {
+    const response = await fetch("/api/integrations/analytics/google", {headers:{Accept:"application/json"},cache:"no-store"});
+    if (response.status === 401) { window.location.href="/auth/login.html"; return; }
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load Google Analytics settings.");
+    googleAnalyticsMeasurementId.value = data.integration?.measurement_id || "";
+    disconnectGoogleAnalyticsButton.hidden = !data.integration?.measurement_id;
+    if (viewGoogleAnalyticsButton) viewGoogleAnalyticsButton.hidden = !data.integration?.measurement_id;
+  } catch (error) {
+    googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status error";
+    googleAnalyticsStatus.textContent=error.message || "Unable to load Google Analytics settings.";
+  }
+}
+
+googleAnalyticsForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button=document.getElementById("saveGoogleAnalyticsButton");
+  googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status"; googleAnalyticsStatus.textContent="Saving Google Analytics…"; button.disabled=true;
+  try {
+    const response=await fetch("/api/integrations/analytics/google",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({measurement_id:googleAnalyticsMeasurementId.value.trim()})});
+    const data=await response.json().catch(()=>({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to save Google Analytics.");
+    googleAnalyticsMeasurementId.value=data.measurement_id || googleAnalyticsMeasurementId.value.trim().toUpperCase();
+    disconnectGoogleAnalyticsButton.hidden=false;
+    if (viewGoogleAnalyticsButton) viewGoogleAnalyticsButton.hidden=false;
+    googleAnalyticsStatus.className="es-status success"; googleAnalyticsStatus.textContent="Google Analytics connected. Eselram will send consented booking-page activity to your Google Analytics account.";
+  } catch(error) { googleAnalyticsStatus.className="es-status error"; googleAnalyticsStatus.textContent=error.message || "Unable to save Google Analytics."; }
+  finally { button.disabled=false; }
+});
+
+disconnectGoogleAnalyticsButton?.addEventListener("click", async () => {
+  disconnectGoogleAnalyticsButton.disabled=true;
+  try {
+    const response=await fetch("/api/integrations/analytics/google",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({action:"disconnect"})});
+    const data=await response.json().catch(()=>({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to disconnect Google Analytics.");
+    googleAnalyticsMeasurementId.value=""; disconnectGoogleAnalyticsButton.hidden=true; if (viewGoogleAnalyticsButton) viewGoogleAnalyticsButton.hidden=true;
+    googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status success"; googleAnalyticsStatus.textContent="Google Analytics disconnected. Eselram's built-in Analytics is unchanged.";
+  } catch(error) { googleAnalyticsStatus.hidden=false; googleAnalyticsStatus.className="es-status error"; googleAnalyticsStatus.textContent=error.message || "Unable to disconnect Google Analytics."; }
+  finally { disconnectGoogleAnalyticsButton.disabled=false; }
+});

@@ -52,6 +52,7 @@ export async function onRequestGet({
 
             b.name AS business_name,
             b.currency,
+            b.locale,
             b.timezone
 
           FROM user_sessions s
@@ -95,6 +96,28 @@ export async function onRequestGet({
 
     await cleanupPendingOnlineBookings(env, session.business_id);
 
+    // Appointments are stored as business-local wall-clock values.
+    // Build "now" in the business IANA timezone so DST is handled by Intl
+    // (for example Europe/London automatically switches GMT/BST).
+    const businessTimezone = session.timezone || "Europe/London";
+    const nowParts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: businessTimezone,
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(new Date())
+        .filter((part) => part.type !== "literal")
+        .map((part) => [part.type, part.value])
+    );
+    const businessToday = `${nowParts.year}-${nowParts.month}-${nowParts.day}`;
+    const businessNow = `${businessToday}T${nowParts.hour}:${nowParts.minute}:${nowParts.second}`;
+    const weekEndDate = new Date(Date.UTC(
+      Number(nowParts.year), Number(nowParts.month) - 1, Number(nowParts.day) + 7,
+      Number(nowParts.hour), Number(nowParts.minute), Number(nowParts.second)
+    ));
+    const businessWeekEnd = weekEndDate.toISOString().slice(0, 19);
+
 
     const [
       todayBookings,
@@ -121,10 +144,11 @@ export async function onRequestGet({
               AND status != 'cancelled'
               AND NOT (booking_source = 'online' AND status = 'pending')
               AND date(start_at)
-                  = date('now')
+                  = ?
           `)
           .bind(
-            session.business_id
+            session.business_id,
+            businessToday
           )
           .first(),
 
@@ -144,15 +168,14 @@ export async function onRequestGet({
               )
               AND NOT (booking_source = 'online' AND status = 'pending')
               AND datetime(start_at)
-                  >= datetime('now')
+                  >= datetime(?)
               AND datetime(start_at)
-                  < datetime(
-                    'now',
-                    '+7 days'
-                  )
+                  < datetime(?)
           `)
           .bind(
-            session.business_id
+            session.business_id,
+            businessNow,
+            businessWeekEnd
           )
           .first(),
 
@@ -476,7 +499,7 @@ export async function onRequestGet({
                   'cancelled'
               AND NOT (a.booking_source = 'online' AND a.status = 'pending')
               AND date(a.start_at)
-                  = date('now')
+                  = ?
 
             ORDER BY
               datetime(
@@ -484,7 +507,8 @@ export async function onRequestGet({
               ) ASC
           `)
           .bind(
-            session.business_id
+            session.business_id,
+            businessToday
           )
           .all(),
 
@@ -528,7 +552,7 @@ export async function onRequestGet({
               AND NOT (a.booking_source = 'online' AND a.status = 'pending')
               AND datetime(
                 a.start_at
-              ) >= datetime('now')
+              ) >= datetime(?)
 
             ORDER BY
               datetime(
@@ -538,7 +562,8 @@ export async function onRequestGet({
             LIMIT 6
           `)
           .bind(
-            session.business_id
+            session.business_id,
+            businessNow
           )
           .all(),
 
@@ -676,6 +701,9 @@ export async function onRequestGet({
           currency:
             session.currency ||
             "GBP",
+          locale:
+            session.locale ||
+            "en-GB",
           timezone:
             session.timezone ||
             "Europe/London"

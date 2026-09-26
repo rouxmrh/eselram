@@ -3,6 +3,10 @@ import {
   hashSessionToken
 } from "../../../lib/auth.js";
 
+import {
+  findAvailableConsultationCredit
+} from "../../../lib/consultation-credit.js";
+
 async function getUserContext(request, env) {
   const token = readSessionToken(request);
   if (!token) return null;
@@ -1003,6 +1007,19 @@ export async function onRequestPost({ request, env }) {
         expiresOn = date.toISOString().slice(0, 10);
       }
 
+      const availableCredit =
+        await findAvailableConsultationCredit({
+          env,
+          businessId: user.business_id,
+          customerId,
+          serviceId
+        });
+
+      const consultationCreditMinor = Math.min(
+        Number(availableCredit.available_minor || 0),
+        priceMinor
+      );
+
       const id = `cpk_${crypto.randomUUID()}`;
 
       await env.DB.prepare(`
@@ -1037,9 +1054,38 @@ export async function onRequestPost({ request, env }) {
         notes
       ).run();
 
+      // Staff-managed/pay-later package assignments still consume any
+      // eligible paid consultation credit. Recording the credit as a paid
+      // package sale keeps the existing one-time credit rules intact and
+      // lets package balance calculations subtract it automatically.
+      if (consultationCreditMinor > 0) {
+        await env.DB.prepare(`
+          INSERT INTO package_sales (
+            id, business_id, customer_id, package_template_id, package_variant_id,
+            source, payment_choice, amount_minor, currency, status, payment_id,
+            customer_package_id, created_by_user_id, paid_at,
+            consultation_credit_source_appointment_id, consultation_credit_minor
+          )
+          VALUES (?, ?, ?, ?, ?, 'staff', 'full', 0, ?, 'paid', NULL, ?, ?,
+                  CURRENT_TIMESTAMP, ?, ?)
+        `).bind(
+          `psl_${crypto.randomUUID()}`,
+          user.business_id,
+          customerId,
+          template.id,
+          variant?.id || null,
+          String(user.currency || "GBP").toUpperCase(),
+          id,
+          user.user_id,
+          availableCredit.source_appointment_id,
+          consultationCreditMinor
+        ).run();
+      }
+
       return Response.json({
         ok: true,
-        customer_package: { id }
+        customer_package: { id },
+        consultation_credit_minor: consultationCreditMinor
       });
     }
 

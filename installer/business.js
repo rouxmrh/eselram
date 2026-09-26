@@ -1,6 +1,16 @@
 const form = document.getElementById("businessForm");
 const statusBox = document.getElementById("formStatus");
 
+// Prefer the installer device's IANA timezone when it is one of the supported
+// business zones. IANA zones automatically apply local daylight-saving rules.
+try {
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezoneSelect = document.getElementById("timezone");
+  if (detectedTimezone && timezoneSelect?.querySelector(`option[value="${detectedTimezone}"]`)) {
+    timezoneSelect.value = detectedTimezone;
+  }
+} catch {}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 

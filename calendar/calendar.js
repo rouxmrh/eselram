@@ -50,6 +50,8 @@ const openBookingsButton =
 
 
 let bookings = [];
+let businessCurrency = "GBP";
+let businessLocale = "en-GB";
 
 const isEmbeddedCalendar =
   window.self !== window.top ||
@@ -212,6 +214,12 @@ async function loadBookings() {
       );
     }
 
+
+    businessCurrency =
+      String(data.currency || businessCurrency || "GBP").toUpperCase();
+
+    businessLocale =
+      data.locale || businessLocale || "en-GB";
 
     bookings =
       data.bookings ||
@@ -1034,12 +1042,12 @@ function formatMoney(
 ) {
 
   return new Intl.NumberFormat(
-    "en-GB",
+    businessLocale || "en-GB",
     {
       style:
         "currency",
       currency:
-        "GBP"
+        businessCurrency || "GBP"
     }
   ).format(
     Number(

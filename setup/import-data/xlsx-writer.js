@@ -11,7 +11,7 @@ function makeWorkbook(sheets){const workbook=`<?xml version="1.0" encoding="UTF-
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
 export function downloadPersonalisedTemplate(meta){
-  const services=meta.services||[],templates=meta.package_templates||[],variants=meta.package_variants||[];
+  const services=meta.services||[],templates=meta.package_templates||[],variants=meta.package_variants||[],staff=meta.staff||[];
   const packageChoices=[];
   for(const t of templates){
     packageChoices.push({label:t.name,service:t.service_name||"",type:"Package",sessions:t.sessions_total,price:(Number(t.price_minor||0)/100).toFixed(2),id:t.id});
@@ -20,24 +20,25 @@ export function downloadPersonalisedTemplate(meta){
   const setupRows=[["Type","Service","Service type","Package / course","Sessions","Price (£)"]];
   for(const s of services) setupRows.push(["Service",s.name,s.service_type,"","",(Number(s.price_minor||0)/100).toFixed(2)]);
   for(const p of packageChoices) setupRows.push([p.type,p.service,"",p.label,p.sessions,p.price]);
-  const listRows=[["service","package_or_course"],...Array.from({length:Math.max(services.length,packageChoices.length,1)},(_,i)=>[services[i]?.name||"",packageChoices[i]?.label||""])];
-  const serviceEnd=Math.max(2,services.length+1), packageEnd=Math.max(2,packageChoices.length+1);
+  const listRows=[["service","package_or_course","practitioner"],...Array.from({length:Math.max(services.length,packageChoices.length,staff.length,1)},(_,i)=>[services[i]?.name||"",packageChoices[i]?.label||"",staff[i]?.name||""])];
+  const serviceEnd=Math.max(2,services.length+1), packageEnd=Math.max(2,packageChoices.length+1), staffEnd=Math.max(2,staff.length+1);
   const sheets=[
     {name:"Instructions",rows:[
       ["Eselram import template","This workbook is personalised using this business's current Eselram services and packages."],
       ["Start with Customers","Enter each customer once. On the other sheets, identify them using the same email address, or phone number if they do not have an email."],
-      ["Bookings","Choose an Eselram service from the dropdown. Leave Price blank to use the current Eselram service price. Amount already paid creates a historical manual payment record."],
+      ["Bookings","Choose an Eselram service from the dropdown. You can preserve original duration/end time, practitioner, payment date/reference and source-system ID. Leave Price blank to use the current Eselram service price."],
       ["Packages & Courses","Choose the customer's Eselram package/course from the dropdown. Leave Package price blank to use the current Eselram price. If a paid completed consultation was credited to the package, enter that amount in Consultation credit (£). Completed bookings linked to that package count as used sessions."],
-      ["Treatment History","Use this only if you want to preserve standard historical treatment-record details."],
+      ["Treatment History","Use this to preserve historical treatment details. Wavelength, fluence and session number are retained inside the Eselram treatment record even though they are not separate database columns."],
+      ["Source IDs","For Fresha or another system, enter Source system plus the original client/booking/package/treatment ID when available. Eselram uses these references to make repeat imports safer."],
       ["Vouchers","Optional. Use only when you want to bring voucher definitions into Eselram."],
       ["Dates","Use DD/MM/YYYY or YYYY-MM-DD. Times can be 18:30 or 6:30 pm."],
       ["Safety","Importing never charges/refunds Stripe and does not send historical booking/payment emails. Future reminders are off unless you choose Yes."],
       ["Limits","Maximum 500 data rows in one workbook and 15 MB per file."]
     ]},
-    {name:"Customers",rows:[["First name","Last name","Email","Phone","Notes","Marketing consent"]],validations:[{range:"F2:F1000",formula:'"Yes,No"'}]},
-    {name:"Bookings",rows:[["Customer email or phone","Eselram service","Appointment date","Start time","Status","Price (£)","Amount already paid (£)","Payment method","Discount (£)","Voucher used","Package or course","Send future reminder","Notes","Cancellation reason"]],validations:[{range:"B2:B1000",formula:`'Lists'!$A$2:$A$${serviceEnd}`},{range:"E2:E1000",formula:'"Confirmed,Completed,Cancelled,No show"'},{range:"K2:K1000",formula:`'Lists'!$B$2:$B$${packageEnd}`},{range:"L2:L1000",formula:'"Yes,No"'}]},
-    {name:"Packages & Courses",rows:[["Customer email or phone","Eselram package or course","Status","Start date","Expiry date","Package price (£)","Consultation credit (£)","Amount already paid (£)","Payment method","Discount (£)","Voucher used","Notes"]],validations:[{range:"B2:B1000",formula:`'Lists'!$B$2:$B$${packageEnd}`},{range:"C2:C1000",formula:'"Active,Completed,Cancelled,Expired"'}]},
-    {name:"Treatment History",rows:[["Customer email or phone","Eselram service","Treatment date","Status","Practitioner","Treatment area","Device","Device settings","Treatment notes","Client response","Client tolerance","Aftercare notes","Next session plan","Next treatment date"]],validations:[{range:"B2:B1000",formula:`'Lists'!$A$2:$A$${serviceEnd}`},{range:"D2:D1000",formula:'"Complete,Draft"'}]},
+    {name:"Customers",rows:[["First name","Last name","Email","Phone","Notes","Marketing consent","Source system","Source client ID"]],validations:[{range:"F2:F1000",formula:'"Yes,No"'}]},
+    {name:"Bookings",rows:[["Customer email or phone","Eselram service","Appointment date","Start time","End time","Duration (minutes)","Status","Price (£)","Amount already paid (£)","Payment method","Payment date","Payment reference","Discount (£)","Voucher used","Package or course","Send future reminder","Practitioner","Notes","Cancellation reason","Source system","Source booking ID"]],validations:[{range:"B2:B1000",formula:`'Lists'!$A$2:$A$${serviceEnd}`},{range:"G2:G1000",formula:'"Confirmed,Completed,Cancelled,No show"'},{range:"O2:O1000",formula:`'Lists'!$B$2:$B$${packageEnd}`},{range:"P2:P1000",formula:'"Yes,No"'},{range:"Q2:Q1000",formula:`'Lists'!$C$2:$C$${staffEnd}`}]},
+    {name:"Packages & Courses",rows:[["Customer email or phone","Eselram package or course","Status","Start date","Expiry date","Package price (£)","Consultation credit (£)","Amount already paid (£)","Payment method","Payment date","Payment reference","Discount (£)","Voucher used","Notes","Source system","Source package ID"]],validations:[{range:"B2:B1000",formula:`'Lists'!$B$2:$B$${packageEnd}`},{range:"C2:C1000",formula:'"Active,Completed,Cancelled,Expired"'}]},
+    {name:"Treatment History",rows:[["Customer email or phone","Eselram service","Treatment date","Status","Practitioner","Treatment area","Device","Device settings","Wavelength","Fluence","Session number","Treatment notes","Client response","Client tolerance","Aftercare notes","Next session plan","Next treatment date","Source system","Source treatment ID"]],validations:[{range:"B2:B1000",formula:`'Lists'!$A$2:$A$${serviceEnd}`},{range:"D2:D1000",formula:'"Complete,Draft"'}]},
     {name:"Vouchers",rows:[["Code","Name","Discount type","Value","Active"]],validations:[{range:"C2:C1000",formula:'"Amount,Percent"'},{range:"E2:E1000",formula:'"Yes,No"'}]},
     {name:"Current Eselram Setup",rows:setupRows},
     {name:"Lists",rows:listRows,hidden:true}

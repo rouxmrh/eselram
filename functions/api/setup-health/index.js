@@ -46,7 +46,8 @@ const EXPECTED_MIGRATIONS = [
   "039_update_recovery_points",
   "040_r2_file_recovery",
   "041_r2_recovery_source_metadata",
-  "042_google_review_requests"
+  "042_google_review_requests",
+  "043_login_email_change"
 ];
 
 
@@ -512,9 +513,12 @@ export async function onRequestGet({
       emailIntegration?.status ===
         "verified";
 
-    const emailComplete =
-      gmailComplete ||
-      resendComplete;
+    const centralEmailComplete = Boolean(
+      String(env.ESELRAM_EMAIL_API_URL || "").trim() &&
+      String(env.ESELRAM_EMAIL_API_SECRET || "").trim()
+    );
+
+    const emailComplete = centralEmailComplete || gmailComplete || resendComplete;
 
 
     const enabledPaymentKeys = String(
@@ -769,19 +773,11 @@ export async function onRequestGet({
         complete:
           emailComplete,
         status:
-          gmailComplete
-            ? "Gmail ready"
-            : resendComplete
-              ? "Resend ready"
-              : emailIntegration?.provider === "resend"
-                ? "Gmail or domain setup available"
-                : "Optional setup",
+          centralEmailComplete ? "Eselram Email ready" : "Email service configuration required",
         detail:
-          gmailComplete
-            ? "Gmail is connected and can send automated client emails without a business domain."
-            : resendComplete
-              ? "The business email connection is ready."
-              : "Connect Gmail to send confirmations, reminders and other client emails. A website or sending domain is not required.",
+          centralEmailComplete
+            ? "Automated client emails are sent securely by Eselram. Replies go to the business contact email."
+            : "The Eselram Email service URL or secret is missing from this installation.",
         href:
           "/settings/#email",
         required:

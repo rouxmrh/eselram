@@ -1,0 +1,66 @@
+import { renderSidebar } from "/components/sidebar.js?v=20260821-mobile-nav-v2";
+renderSidebar("analytics");
+
+let bookingUrl = "", report = null;
+const statusBox = document.getElementById("analyticsStatus"), generated = document.getElementById("generatedLink"), loadStatus = document.getElementById("analyticsLoadStatus"), savedCampaigns = document.getElementById("savedCampaigns");
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function showStatus(message,isError=false){statusBox.hidden=false;statusBox.textContent=message;statusBox.classList.toggle("is-error",isError)}
+function slug(v){return String(v||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,120)}
+function sourcePath(source){return String(source||"").trim().toLowerCase().replace(/_/g,"-").replace(/[^a-z0-9-]+/g,"-").replace(/^-+|-+$/g,"")}
+function trackedUrl(source,medium,campaign){
+  const u=new URL(bookingUrl), base=u.pathname.replace(/\/+$/,"");
+  const standard={instagram:["social","profile"],facebook:["social","profile"],website:["referral","booking_button"],google:["organic","business_profile"]};
+  const isStandard=standard[source]&&standard[source][0]===medium&&standard[source][1]===campaign;
+  u.search=""; u.hash="";
+  u.pathname=`${base}/${sourcePath(source)}${isStandard?"":`/${slug(campaign)}`}`.replace(/\/{2,}/g,"/");
+  return u.toString();
+}
+async function copy(text){await navigator.clipboard.writeText(text);showStatus("Tracking link copied.")}
+function money(minor){const b=report?.business||{};try{return new Intl.NumberFormat(b.locale||undefined,{style:"currency",currency:String(b.currency||"GBP").toUpperCase()}).format(Number(minor||0)/100)}catch{return `${Number(minor||0)/100} ${b.currency||""}`.trim()}}
+function pct(a,b){return b ? `${((Number(a)/Number(b))*100).toFixed(1)}%` : "0.0%"}
+function sourceName(v){const s=String(v||"direct");return ({instagram:"Instagram",facebook:"Facebook",google:"Google",website:"Website",tiktok:"TikTok",whatsapp:"WhatsApp",email:"Email",sms:"SMS",google_ads:"Google Ads",other:"Other",direct:"Direct",referral:"Referral"}[s]||s.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()))}
+function table(headers,rows){if(!rows.length)return '<div class="es-empty">No tracked data for this period yet.</div>';return `<div class="es-table-wrap"><table class="es-analytics-table"><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`}
+function render(){const t=report.totals;document.getElementById("statVisits").textContent=t.visits;document.getElementById("statBookings").textContent=t.bookings;document.getElementById("statConversion").textContent=pct(t.bookings,t.visits);document.getElementById("statBookedValue").textContent=money(t.booked_value_minor);document.getElementById("statRevenue").textContent=money(t.revenue_minor);document.getElementById("funnelVisits").textContent=t.visits;document.getElementById("funnelSelected").textContent=t.selected;document.getElementById("funnelStarted").textContent=t.started;document.getElementById("funnelBooked").textContent=t.bookings;
+ const srcRows=report.sources.map(r=>`<tr><td>${esc(sourceName(r.source))}</td><td>${Number(r.visits||0)}</td><td>${Number(r.bookings||0)}</td><td>${pct(r.bookings,r.visits)}</td><td>${esc(money(r.booked_value_minor))}</td><td>${esc(money(r.revenue_minor))}</td></tr>`);const srcTable=table(["Source","Visits","Bookings","Conversion","Booked value","Paid revenue"],srcRows);document.getElementById("overviewSources").innerHTML=srcTable;document.getElementById("marketingSources").innerHTML=srcTable;
+ document.getElementById("campaignTable").innerHTML=table(["Source","Campaign","Bookings","Booked value","Paid revenue"],report.campaigns.map(r=>`<tr><td>${esc(sourceName(r.source))}</td><td>${esc(r.campaign)}</td><td>${Number(r.bookings||0)}</td><td>${esc(money(r.booked_value_minor))}</td><td>${esc(money(r.revenue_minor))}</td></tr>`));
+ document.getElementById("servicesTable").innerHTML=table(["Service","Bookings","Booked value","Paid revenue"],report.services.map(r=>`<tr><td>${esc(r.name)}</td><td>${Number(r.bookings||0)}</td><td>${esc(money(r.booked_value_minor))}</td><td>${esc(money(r.revenue_minor))}</td></tr>`));}
+async function loadReport(){loadStatus.hidden=false;loadStatus.textContent="Loading analytics…";try{const range=document.getElementById("analyticsRange").value;const res=await fetch(`/api/analytics/report?range=${encodeURIComponent(range)}`,{headers:{Accept:"application/json"}});const data=await res.json();if(!res.ok||!data.ok)throw new Error(data.error||"Unable to load analytics.");report=data;render();loadStatus.hidden=true}catch(e){loadStatus.hidden=false;loadStatus.textContent=e.message||"Unable to load analytics.";loadStatus.classList.add("is-error")}}
+async function loadBookingUrl(){try{const r=await fetch("/api/setup-health",{headers:{Accept:"application/json"}}),d=await r.json();if(!r.ok||!d?.environment?.public_booking_url)throw new Error();bookingUrl=d.environment.public_booking_url}catch{document.querySelectorAll("[data-source]").forEach(b=>b.disabled=true);document.getElementById("createCampaignLink").disabled=true;showStatus("Unable to load your public booking link. Check Setup Health and try again.",true)}}
+document.querySelectorAll("[data-source]").forEach(b=>b.addEventListener("click",()=>bookingUrl&&copy(trackedUrl(b.dataset.source,b.dataset.medium,b.dataset.campaign))));
+function campaignMedium(source){return ["instagram","facebook"].includes(source)?"social":source==="website"?"referral":source==="google"?"campaign":source}
+function renderSavedCampaigns(items){
+  if(!savedCampaigns)return;
+  if(!items.length){savedCampaigns.innerHTML='<div class="es-empty">No custom campaign links created yet.</div>';return;}
+  savedCampaigns.innerHTML=items.map(item=>{
+    const url=bookingUrl?trackedUrl(item.source,item.medium||campaignMedium(item.source),item.campaign):"";
+    return `<div class="es-campaign-item"><div class="es-campaign-meta"><strong>${esc(sourceName(item.source))} · ${esc(item.campaign.replace(/-/g," "))}</strong><div class="es-campaign-url">${esc(url)}</div></div><div class="es-campaign-actions"><button class="es-secondary-button" type="button" data-copy-campaign="${esc(item.id)}">Copy link</button><button class="es-secondary-button" type="button" data-delete-campaign="${esc(item.id)}">Delete</button></div></div>`;
+  }).join("");
+  savedCampaigns.querySelectorAll("[data-copy-campaign]").forEach(btn=>btn.addEventListener("click",()=>{const item=items.find(x=>x.id===btn.dataset.copyCampaign);if(item&&bookingUrl)copy(trackedUrl(item.source,item.medium||campaignMedium(item.source),item.campaign))}));
+  savedCampaigns.querySelectorAll("[data-delete-campaign]").forEach(btn=>btn.addEventListener("click",async()=>{if(!confirm("Delete this saved campaign link?"))return;try{const r=await fetch(`/api/analytics/campaigns?id=${encodeURIComponent(btn.dataset.deleteCampaign)}`,{method:"DELETE",headers:{Accept:"application/json"}}),d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Unable to delete campaign link.");await loadCampaigns();showStatus("Campaign link deleted.")}catch(e){showStatus(e.message||"Unable to delete campaign link.",true)}}));
+}
+async function loadCampaigns(){
+  if(!savedCampaigns)return;
+  try{const r=await fetch("/api/analytics/campaigns",{headers:{Accept:"application/json"}}),d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Unable to load campaign links.");renderSavedCampaigns(d.campaigns||[])}
+  catch(e){savedCampaigns.innerHTML=`<div class="es-empty">${esc(e.message||"Unable to load campaign links.")}</div>`}
+}
+document.getElementById("createCampaignLink").addEventListener("click",async()=>{
+  if(!bookingUrl)return;
+  const name=slug(document.getElementById("campaignName").value),source=document.getElementById("campaignSource").value;
+  if(!name)return showStatus("Enter a campaign name first.",true);
+  const medium=campaignMedium(source),url=trackedUrl(source,medium,name);
+  try{
+    const r=await fetch("/api/analytics/campaigns",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({source,medium,campaign:name})}),d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||"Unable to save campaign link.");
+    generated.hidden=false;
+    generated.innerHTML=`<strong>Your tracking link</strong><br><span>${esc(url)}</span><div class="es-form-actions"><button id="copyGeneratedLink" class="es-secondary-button" type="button">Copy link</button></div>`;
+    document.getElementById("copyGeneratedLink").addEventListener("click",()=>copy(url));
+    statusBox.hidden=true;
+    document.getElementById("campaignName").value="";
+    await loadCampaigns();
+  }catch(e){showStatus(e.message||"Unable to save campaign link.",true)}
+});
+document.querySelectorAll(".es-analytics-tab").forEach(tab=>tab.addEventListener("click",()=>{document.querySelectorAll(".es-analytics-tab").forEach(x=>x.classList.toggle("active",x===tab));document.querySelectorAll(".analytics-panel").forEach(p=>p.hidden=true);document.getElementById(`panel-${tab.dataset.panel}`).hidden=false}));
+document.getElementById("analyticsRange").addEventListener("change",loadReport);
+await loadBookingUrl();
+loadCampaigns();
+loadReport();

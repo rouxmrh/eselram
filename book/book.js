@@ -1,12 +1,10 @@
 function eselramPublicApiUrl(path) {
-  const configured = String(window.__ESELRAM_API_ORIGIN__ || "").trim().replace(/\/+$/, "");
-  if (!configured) return path;
-  try {
-    return new URL(path, `${configured}/`).toString();
-  } catch {
-    return path;
-  }
+  // Public booking APIs must stay on the customer-facing booking origin.
+  // This avoids cross-origin WebView failures and keeps the Pages deployment
+  // hostname as an internal implementation detail.
+  return path;
 }
+
 const state = {
   config: null,
   service: null,
@@ -344,6 +342,10 @@ function selectServiceRoute(service, bookingIntent) {
   state.bookingIntent = bookingIntent || "service";
   state.date = "";
   state.time = "";
+
+  window.EselramBookingAnalytics?.track("select_service", {
+    service_id: service?.id || null
+  });
 
   const isConsultation =
     state.bookingIntent === "consultation";
@@ -1012,6 +1014,10 @@ async function confirmBooking() {
   button.textContent = "Confirming…";
 
   try {
+    window.EselramBookingAnalytics?.track("begin_booking", {
+      service_id: state.service?.id || null
+    });
+
     const response = await fetch(eselramPublicApiUrl("/api/public-booking/create"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -1043,6 +1049,7 @@ async function confirmBooking() {
       return;
     }
 
+    window.EselramBookingAnalytics?.complete(data.booking?.id);
     renderFinal(data.booking);
     setStep(5);
   } catch (error) {
@@ -1192,18 +1199,29 @@ async function releaseReturnedCheckout() {
   }
 }
 
+async function loadPublicBookingConfig() {
+  const response = await fetch(eselramPublicApiUrl("/api/public-booking/config"), {
+    headers: { Accept: "application/json" },
+    cache: "no-store"
+  });
+  const data = await response.json();
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error || "Unable to load the booking page.");
+  }
+  return data;
+}
+
 async function init() {
   try {
-    const response = await fetch(eselramPublicApiUrl("/api/public-booking/config"), {
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
-    const data = await response.json();
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Unable to load the booking page.");
-    }
+    const data = await loadPublicBookingConfig();
+    showError("");
 
     state.config = data;
+    // Share the already-loaded public config with optional page integrations.
+    // This avoids a second simultaneous /api/public-booking/config request,
+    // which some mobile in-app browsers (notably Facebook on iOS) can abort.
+    window.__ESELRAM_PUBLIC_BOOKING_CONFIG__ = data;
+    window.dispatchEvent(new CustomEvent("eselram:public-booking-config", { detail: data }));
     applyBranding(data);
     renderServices();
 
@@ -1271,7 +1289,8 @@ async function init() {
       await releaseReturnedCheckout();
     }
   } catch (error) {
-    showError(error.message || "Unable to load the booking page.");
+    console.warn("Public booking configuration failed to load", error);
+    showError("We couldn't load the booking page. Please refresh and try again.");
   }
 }
 

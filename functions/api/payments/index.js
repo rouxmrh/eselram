@@ -20,6 +20,13 @@ import {
   reconcilePendingPublicPackageSales
 } from "../../../lib/public-package-payment.js";
 
+import {
+  calculatePaymentDeduction,
+  calculatePackagePaymentDeduction,
+  createDiscountAdjustment,
+  setDiscountAdjustmentStatus
+} from "../../../lib/payment-discounts.js";
+
 
 async function getUserContext(
   request,
@@ -48,7 +55,9 @@ async function getUserContext(
       SELECT
         u.id AS user_id,
         u.business_id,
-        b.currency
+        b.currency,
+        b.locale,
+        b.timezone
 
       FROM user_sessions s
 
@@ -306,6 +315,18 @@ export async function onRequestGet({
                     AND ps_public_checkout.business_id = p.business_id
                     AND ps_public_checkout.source = 'public'
                     AND ps_public_checkout.status IN ('pending', 'failed')
+                )
+              )
+              AND NOT (
+                p.provider = 'stripe'
+                AND p.status IN ('pending', 'failed')
+                AND (
+                  EXISTS (
+                    SELECT 1
+                    FROM customer_package_payments cpp_pending
+                    WHERE cpp_pending.payment_id = p.id
+                  )
+                  OR COALESCE(p.notes, '') LIKE 'Package balance:%'
                 )
               )
 
@@ -775,6 +796,13 @@ export async function onRequestGet({
         user.currency ||
         "GBP",
 
+      locale:
+        user.locale ||
+        "en-GB",
+      timezone:
+        user.timezone ||
+        "Europe/London",
+
       stats: {
         paid_month_minor:
           Number(
@@ -936,6 +964,23 @@ export async function onRequestPost({
       ).trim();
 
 
+    let deductionResult = { discountMinor: 0, type: "none", label: "", voucher: null };
+    if (!customerPackageId) {
+      try {
+        deductionResult = await calculatePaymentDeduction({
+          env,
+          businessId: user.business_id,
+          baseAmountMinor: amountMinor,
+          deduction: body.deduction
+        });
+      } catch (error) {
+        return badRequest(error.message || "Unable to apply deduction.");
+      }
+    }
+
+    let receivedAmountMinor = Math.max(0, amountMinor - deductionResult.discountMinor);
+
+
     if (!customerId) {
 
       return badRequest(
@@ -954,6 +999,11 @@ export async function onRequestPost({
       return badRequest(
         "A valid amount is required."
       );
+    }
+
+
+    if (receivedAmountMinor <= 0) {
+      return badRequest("The deduction must leave an amount to record as payment.");
     }
 
 
@@ -1135,6 +1185,23 @@ export async function onRequestPost({
         );
 
 
+      try {
+        deductionResult = await calculatePackagePaymentDeduction({
+          env,
+          businessId: user.business_id,
+          packagePriceMinor: Number(customerPackage.price_minor || 0),
+          payableBaseMinor: amountMinor,
+          deduction: body.deduction
+        });
+      } catch (error) {
+        return badRequest(error.message || "Unable to apply deduction.");
+      }
+
+      receivedAmountMinor = Math.max(
+        0,
+        amountMinor - deductionResult.discountMinor
+      );
+
       if (
         amountMinor >
           packageOutstanding
@@ -1282,6 +1349,42 @@ export async function onRequestPost({
         );
 
 
+      // Record Payment: percentage deductions are based on the full service
+      // value, not the remaining balance after a deposit/previous payment.
+      // Fixed-amount deductions retain their existing behaviour.
+      if (body.deduction && String(body.deduction.type || "none") !== "none") {
+        try {
+          const initialDeduction = await calculatePaymentDeduction({
+            env,
+            businessId: user.business_id,
+            baseAmountMinor: amountMinor,
+            deduction: body.deduction
+          });
+
+          const isPercentageDeduction =
+            initialDeduction.type === "percent" ||
+            (initialDeduction.type === "voucher" &&
+              initialDeduction.voucher?.discount_type === "percent");
+
+          deductionResult = isPercentageDeduction
+            ? await calculatePaymentDeduction({
+                env,
+                businessId: user.business_id,
+                baseAmountMinor: appointmentPriceMinor,
+                deduction: body.deduction
+              })
+            : initialDeduction;
+
+          receivedAmountMinor = Math.max(
+            0,
+            amountMinor - deductionResult.discountMinor
+          );
+        } catch (error) {
+          return badRequest(error.message || "Unable to apply deduction.");
+        }
+      }
+
+
       if (
         outstandingMinor <= 0
       ) {
@@ -1400,7 +1503,7 @@ export async function onRequestPost({
         customerId,
         provider,
         paymentType,
-        amountMinor,
+        receivedAmountMinor,
         user.currency ||
           "GBP",
         providerReference || null,
@@ -1424,6 +1527,33 @@ export async function onRequestPost({
           id
         )
         .run();
+    }
+
+
+    if (deductionResult.discountMinor > 0) {
+      await createDiscountAdjustment({
+        env,
+        businessId: user.business_id,
+        paymentId: id,
+        appointmentId: appointmentId || null,
+        customerId,
+        customerPackageId: customerPackageId || null,
+        paymentType,
+        currency: user.currency || "GBP",
+        discountMinor: deductionResult.discountMinor,
+        deductionType: deductionResult.type,
+        label: deductionResult.label,
+        voucher: deductionResult.voucher,
+        status: "paid"
+      });
+
+      await setDiscountAdjustmentStatus({
+        env,
+        businessId: user.business_id,
+        paymentId: id,
+        status: "paid",
+        customerPackageId: customerPackageId || null
+      });
     }
 
 

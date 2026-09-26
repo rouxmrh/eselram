@@ -620,18 +620,6 @@ function renderCustomerPackages() {
             `
             : ""}
 
-          ${item.status === "active" && Number(item.outstanding_minor) > 0
-            ? `
-              <button
-                class="es-secondary-button"
-                type="button"
-                data-package-payment="${escapeHtml(item.id)}"
-              >
-                Record payment
-              </button>
-            `
-            : ""}
-
           ${item.status === "active"
             ? `
               <button
@@ -648,15 +636,6 @@ function renderCustomerPackages() {
       </article>
     `;
   }).join("");
-
-  wrap.querySelectorAll("[data-package-payment]").forEach(button => {
-    button.addEventListener("click", () => {
-      const item = customerPackages.find(
-        p => p.id === button.dataset.packagePayment
-      );
-      if (item) openPaymentDialog(item);
-    });
-  });
 
   wrap.querySelectorAll("[data-package-status]").forEach(button => {
     button.addEventListener("click", async () => {
@@ -1176,9 +1155,14 @@ function openPackageCheckoutDialog(data) {
           ? `Voucher discount ${money(discountMinor)}`
           : `Discount ${money(discountMinor)}`;
 
+    const consultationCreditMinor = Number(data.consultation_credit_minor || 0);
+    const consultationCreditLabel = consultationCreditMinor > 0
+      ? ` · Consultation credit ${money(consultationCreditMinor)}`
+      : "";
+
     $("#packageCheckoutAmount").innerHTML =
       `<span style="display:block;font-size:14px;font-weight:600;margin-bottom:5px">` +
-      `Package value ${money(packageValueMinor)} · ${discountLabel}</span>` +
+      `Package value ${money(packageValueMinor)} · ${discountLabel}${consultationCreditLabel}</span>` +
       `<span style="display:block">${money(data.amount_minor)} ready to collect</span>`;
   } else {
     $("#packageCheckoutAmount").textContent =
@@ -1472,7 +1456,17 @@ $("#assignForm").addEventListener("submit", async event => {
       amount_minor:
         data.amount_minor,
       discount_minor:
-        data.discount_minor || 0
+        data.discount_minor || 0,
+      consultation_credit_minor:
+        data.consultation_credit_minor || 0,
+      package_value_minor:
+        data.package_value_minor || 0,
+      deduction_type:
+        data.deduction_type || "none",
+      deduction_label:
+        data.deduction_label || "",
+      voucher:
+        data.voucher || null
     });
   } catch (error) {
     status.className = "es-status error";

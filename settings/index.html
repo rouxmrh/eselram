@@ -1278,10 +1278,27 @@
             data-tab="email"
           >
             <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4.5 7 7.5 6 7.5-6"/></svg></span>
-            <span>Email provider</span>
+            <span>Email</span>
+          </button>
+
+
+          <button
+            type="button"
+            data-tab="integrations"
+          >
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.5 12a3.5 3.5 0 0 1 3.5-3.5h3.5"/><path d="M15.5 12A3.5 3.5 0 0 1 12 15.5H8.5"/><path d="M14 6.5h3.5a3.5 3.5 0 0 1 0 7H16"/><path d="M10 17.5H6.5a3.5 3.5 0 0 1 0-7H8"/></svg></span>
+            <span>Integrations</span>
           </button>
 
           <span class="es-settings-nav-group es-settings-nav-group-system">System</span>
+
+          <button
+            type="button"
+            data-tab="account"
+          >
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6"/></svg></span>
+            <span>Account</span>
+          </button>
 
           <button
             type="button"
@@ -1301,6 +1318,14 @@
 
           <a
             class="es-settings-nav-link"
+            href="/settings/subscription.html"
+          >
+            <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M3.5 9h17"/><path d="M7 15h4"/><path d="M16.5 13.5v3M15 15h3"/></svg></span>
+            <span>Subscription &amp; billing</span>
+          </a>
+
+          <a
+            class="es-settings-nav-link"
             href="/setup/"
           >
             <span class="es-settings-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.2s-7.5-4-7.5-9.5A4.2 4.2 0 0 1 12 8a4.2 4.2 0 0 1 7.5 2.7c0 5.5-7.5 9.5-7.5 9.5Z"/><path d="M7.7 12.5h2l1.2-2.5 2.1 5 1.2-2.5h2.1"/></svg></span>
@@ -1312,6 +1337,37 @@
 
 
         <section class="es-settings-content">
+
+          <div id="tab-account" class="es-settings-panel" hidden>
+            <div class="es-panel-header">
+              <div>
+                <p class="es-eyebrow">Account</p>
+                <h2>Your account</h2>
+                <p class="es-settings-panel-copy">Manage the email address you use to sign in to Eselram and reset your password.</p>
+              </div>
+            </div>
+            <div class="es-form-grid">
+              <label>
+                Name
+                <input id="accountName" type="text" readonly>
+              </label>
+              <label>
+                Current login email
+                <input id="accountCurrentEmail" type="email" readonly>
+              </label>
+            </div>
+            <form id="accountEmailForm" style="margin-top:18px">
+              <label>
+                New login email
+                <input id="accountNewEmail" type="email" autocomplete="email" required placeholder="Enter your new login email">
+              </label>
+              <p class="es-settings-panel-copy" style="margin-top:8px">We will send a verification link to the new address. Your current login email stays active until the new address is verified.</p>
+              <div id="accountEmailStatus" class="es-status" hidden></div>
+              <div class="es-form-actions">
+                <button id="changeLoginEmailButton" class="es-button" type="submit">Verify new email</button>
+              </div>
+            </form>
+          </div>
 
           <div
             id="tab-business"
@@ -1367,12 +1423,10 @@
               <div class="es-form-grid">
 
                 <label>
-                  Email
+                  Business contact / reply email
 
-                  <input
-                    id="businessEmail"
-                    type="email"
-                  >
+                  <input id="businessEmail" type="email" placeholder="hello@yourbusiness.com">
+                  <small class="es-field-help">Eselram sends automated client emails securely. Customer replies are sent to this address, so you can use Gmail, Outlook, Yahoo or your own business domain.</small>
                 </label>
 
 
@@ -1419,14 +1473,20 @@
                   Timezone
 
                   <select id="timezone">
-                    <option value="Europe/London">Europe/London</option>
-                    <option value="Europe/Dublin">Europe/Dublin</option>
-                    <option value="Africa/Johannesburg">Africa/Johannesburg</option>
-                    <option value="America/New_York">America/New_York</option>
-                    <option value="America/Los_Angeles">America/Los_Angeles</option>
-                    <option value="Australia/Sydney">Australia/Sydney</option>
-                    <option value="Pacific/Auckland">Pacific/Auckland</option>
-                  </select>
+                  <option value="Europe/London">United Kingdom - London</option>
+                  <option value="Europe/Dublin">Ireland - Dublin</option>
+                  <option value="America/New_York">US/Canada - Eastern</option>
+                  <option value="America/Chicago">US/Canada - Central</option>
+                  <option value="America/Denver">US/Canada - Mountain</option>
+                  <option value="America/Phoenix">US - Arizona</option>
+                  <option value="America/Los_Angeles">US/Canada - Pacific</option>
+                  <option value="Australia/Sydney">Australia - Sydney/Melbourne</option>
+                  <option value="Australia/Brisbane">Australia - Brisbane</option>
+                  <option value="Australia/Adelaide">Australia - Adelaide</option>
+                  <option value="Australia/Perth">Australia - Perth</option>
+                  <option value="Pacific/Auckland">New Zealand - Auckland</option>
+                  <option value="Africa/Johannesburg">South Africa - Johannesburg</option>
+                </select>
                 </label>
 
               </div>
@@ -1792,11 +1852,11 @@
                 </p>
 
                 <h2>
-                  Email provider
+                  Email
                 </h2>
 
                 <p class="es-muted-copy">
-                  Connect a Google account so Eselram can send confirmations, reminders and other client emails through Gmail. No website or sending domain is required.
+                  Eselram automatically sends booking confirmations, reminders, forms, aftercare and other client emails for your business. No Google account or sending domain is required.
                 </p>
               </div>
 
@@ -1826,74 +1886,20 @@
             </div>
 
             <div class="es-email-provider-grid">
-              <article
-                id="gmailProviderCard"
-                class="es-email-provider-card"
-              >
+              <article id="gmailProviderCard" class="es-email-provider-card is-active">
                 <div>
                   <span class="es-email-provider-kicker">Email sending</span>
-                  <h3>Gmail / Google</h3>
-                  <p>
-                    No domain required. Connect your Google account and start sending.
-                  </p>
-                  <strong id="gmailConnectedAccount">Not connected</strong>
+                  <h3>Eselram Email</h3>
+                  <p>Automated client emails are securely sent by Eselram. Replies go directly to your business contact email.</p>
+                  <strong id="gmailConnectedAccount">Ready</strong>
                 </div>
-
-                <div class="es-settings-actions">
-                  <a
-                    id="connectGmailButton"
-                    class="es-button"
-                    href="/api/integrations/email/gmail/start"
-                  >
-                    Connect Gmail
-                  </a>
-                  <button
-                    id="useGmailButton"
-                    class="es-secondary-button"
-                    type="button"
-                    hidden
-                  >
-                    Use Gmail
-                  </button>
-                  <button
-                    id="disconnectGmailButton"
-                    class="es-secondary-button"
-                    type="button"
-                    hidden
-                  >
-                    Disconnect
-                  </button>
-                </div>
+                <div class="es-settings-actions"><a class="es-secondary-button" href="#business">Change reply email</a></div>
               </article>
-
-              <article
-                id="resendProviderCard"
-                class="es-email-provider-card"
-                hidden
-              >
-                <div>
-                  <span class="es-email-provider-kicker">Professional branded email</span>
-                  <h3>Resend</h3>
-                  <p>
-                    Send from your business domain. Eselram will guide you through setup.
-                  </p>
-                  <strong id="resendProviderState">Resend account connected</strong>
-                </div>
-
-                <div class="es-settings-actions">
-                  <button
-                    id="useResendButton"
-                    class="es-secondary-button"
-                    type="button"
-                  >
-                    Use Resend
-                  </button>
-                </div>
-              </article>
+              <article id="resendProviderCard" hidden></article>
+              <a id="connectGmailButton" hidden></a><button id="useGmailButton" type="button" hidden></button><button id="disconnectGmailButton" type="button" hidden></button><button id="useResendButton" type="button" hidden></button><strong id="resendProviderState" hidden></strong>
             </div>
 
-
-            <div id="resendSettingsSection" hidden>
+            <div id="resendSettingsSection" hidden aria-hidden="true">
               <div class="es-panel-header es-email-subheader">
                 <div>
                   <p class="es-eyebrow">Resend settings</p>
@@ -2070,7 +2076,7 @@
                 </h3>
 
                 <p class="es-muted-copy">
-                  Send a test email through the connected Gmail account to confirm email delivery is working.
+                  Send a test email through Eselram Email to confirm email delivery is working.
                 </p>
               </div>
 
@@ -2375,7 +2381,7 @@
                 </h2>
 
                 <p class="es-muted-copy">
-                  Choose which automatic emails this installation sends using the business's own connected email provider.
+                  Choose which automatic emails this installation sends through Eselram Email.
                 </p>
               </div>
             </div>
@@ -2532,7 +2538,7 @@
               <div>
                 <p class="es-eyebrow">Eselram updates</p>
                 <h2>Keep Eselram up to date</h2>
-                <p class="es-muted-copy">Install protected Eselram updates without replacing your business database, file storage, email provider or payment settings.</p>
+                <p class="es-muted-copy">Install protected Eselram updates without replacing your business database, file storage, business email settings or payment settings.</p>
               </div>
             </div>
 
@@ -2606,6 +2612,34 @@
               or contact
               <a href="mailto:eselram.support@gmail.com">Eselram Support</a>.
             </p>
+          </div>
+
+
+          <div id="tab-integrations" class="es-settings-panel" hidden>
+            <div class="es-panel-header"><div>
+              <p class="es-eyebrow">Integrations</p>
+              <h2>Google Analytics</h2>
+              <p class="es-muted-copy">Optionally connect this business's own GA4 property to the public booking journey. Eselram's built-in Analytics continues to work whether GA4 is connected or not.</p>
+            </div></div>
+            <div class="es-service-card" style="margin-top:18px;">
+              <div style="width:100%;">
+                <h3>Google Analytics 4 (Optional)</h3>
+                <p class="es-muted-copy">Connect your own Google Analytics account for additional visitor insights in Google Analytics.</p>
+                <p class="es-muted-copy" style="margin-top:8px;"><strong>Your Eselram Analytics dashboard works automatically and does not require Google Analytics.</strong></p>
+                <p class="es-muted-copy" style="margin-top:8px;">Enter the GA4 Measurement ID for this business. Google Analytics is loaded on the public booking page only after the visitor accepts analytics cookies.</p>
+                <form id="googleAnalyticsForm" style="margin-top:16px;">
+                  <label for="googleAnalyticsMeasurementId">GA4 Measurement ID</label>
+                  <input id="googleAnalyticsMeasurementId" class="es-input" type="text" autocomplete="off" spellcheck="false" placeholder="G-XXXXXXXXXX" style="margin-top:6px; max-width:420px; text-transform:uppercase;" />
+                  <p class="es-muted-copy" style="margin-top:8px;">Eselram sends booking journey events only. Names, email addresses, phone numbers, clinical records and form answers are not sent to Google Analytics.</p>
+                  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+                    <button id="saveGoogleAnalyticsButton" class="es-button" type="submit">Save Google Analytics</button>
+                    <button id="disconnectGoogleAnalyticsButton" class="es-button es-button-secondary" type="button" hidden>Disconnect</button>
+                    <a id="viewGoogleAnalyticsButton" class="es-button es-button-secondary" href="https://analytics.google.com/analytics/web/" target="_blank" rel="noopener noreferrer" hidden>View Google Analytics →</a>
+                  </div>
+                </form>
+                <div id="googleAnalyticsStatus" class="es-status" hidden style="margin-top:14px;"></div>
+              </div>
+            </div>
           </div>
 
           <div

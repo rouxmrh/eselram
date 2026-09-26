@@ -39,12 +39,18 @@ async function getUserContext(
     .prepare(`
       SELECT
         u.id AS user_id,
-        u.business_id
+        u.business_id,
+        b.currency,
+        b.locale,
+        b.timezone
 
       FROM user_sessions s
 
       JOIN users u
         ON u.id = s.user_id
+
+      JOIN businesses b
+        ON b.id = u.business_id
 
       WHERE
         s.token_hash = ?
@@ -633,13 +639,21 @@ export async function onRequestGet({
                 AND NOT (
                   p.provider = 'stripe'
                   AND p.status IN ('pending', 'failed')
-                  AND EXISTS (
-                    SELECT 1
-                    FROM package_sales ps_public_checkout
-                    WHERE ps_public_checkout.payment_id = p.id
-                      AND ps_public_checkout.business_id = p.business_id
-                      AND ps_public_checkout.source = 'public'
-                      AND ps_public_checkout.status IN ('pending', 'failed')
+                  AND (
+                    EXISTS (
+                      SELECT 1
+                      FROM package_sales ps_public_checkout
+                      WHERE ps_public_checkout.payment_id = p.id
+                        AND ps_public_checkout.business_id = p.business_id
+                        AND ps_public_checkout.source = 'public'
+                        AND ps_public_checkout.status IN ('pending', 'failed')
+                    )
+                    OR EXISTS (
+                      SELECT 1
+                      FROM customer_package_payments cpp_pending
+                      WHERE cpp_pending.payment_id = p.id
+                    )
+                    OR COALESCE(p.notes, '') LIKE 'Package balance:%'
                   )
                 )
 
@@ -1473,6 +1487,9 @@ export async function onRequestGet({
 
       return Response.json({
         ok: true,
+        currency: user.currency || "GBP",
+        locale: user.locale || "en-GB",
+        timezone: user.timezone || "Europe/London",
 
         customer: {
           ...customer,
@@ -1679,7 +1696,10 @@ export async function onRequestGet({
 
       customers:
         customers.results ||
-        []
+        [],
+
+      currency: user.currency || "GBP",
+      locale: user.locale || "en-GB"
     });
 
 

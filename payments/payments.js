@@ -38,6 +38,13 @@ const paymentMethod =
     "paymentMethod"
   );
 
+const recordPaymentDeductionType = document.getElementById("recordPaymentDeductionType");
+const recordPaymentDeductionValueWrap = document.getElementById("recordPaymentDeductionValueWrap");
+const recordPaymentDeductionValue = document.getElementById("recordPaymentDeductionValue");
+const recordPaymentVoucherWrap = document.getElementById("recordPaymentVoucherWrap");
+const recordPaymentVoucher = document.getElementById("recordPaymentVoucher");
+const recordPaymentDeductionSummary = document.getElementById("recordPaymentDeductionSummary");
+
 const paymentFormStatus =
   document.getElementById(
     "paymentFormStatus"
@@ -165,6 +172,8 @@ const takePaymentDeductionValueWrap = document.getElementById("takePaymentDeduct
 const takePaymentDeductionValue = document.getElementById("takePaymentDeductionValue");
 const takePaymentVoucherWrap = document.getElementById("takePaymentVoucherWrap");
 const takePaymentVoucher = document.getElementById("takePaymentVoucher");
+const takePaymentCollectAmountWrap = document.getElementById("takePaymentCollectAmountWrap");
+const takePaymentCollectAmount = document.getElementById("takePaymentCollectAmount");
 const prepareTakePayment = document.getElementById("prepareTakePayment");
 const manageVouchersButton = document.getElementById("manageVouchersButton");
 const vouchersDialog = document.getElementById("vouchersDialog");
@@ -174,6 +183,10 @@ const addVoucherButton = document.getElementById("addVoucherButton");
 const saveVouchersButton = document.getElementById("saveVouchersButton");
 const voucherStatus = document.getElementById("voucherStatus");
 
+
+let businessCurrency = "GBP";
+let businessLocale = "en-GB";
+let businessTimezone = "Europe/London";
 
 let payments = [];
 let outstanding = [];
@@ -187,6 +200,8 @@ let activeTakePaymentAppointment = null;
 let activeTakePaymentPackage = null;
 let activeTakePaymentPaymentId = null;
 let activeRecordPackage = null;
+let recordPaymentGrossAmountMinor = null;
+let updatingRecordPaymentAmount = false;
 let paymentVouchers = [];
 
 
@@ -212,7 +227,7 @@ function renderVoucherRows() {
     <div class="es-voucher-row" data-voucher-index="${i}">
       <input class="voucher-code" value="${escapeVoucherHtml(v.code)}" placeholder="CODE" aria-label="Voucher code">
       <select class="voucher-type" aria-label="Voucher type">
-        <option value="amount" ${v.discount_type === "amount" ? "selected" : ""}>Amount (£)</option>
+        <option value="amount" ${v.discount_type === "amount" ? "selected" : ""} data-currency-amount-option>Amount</option>
         <option value="percent" ${v.discount_type === "percent" ? "selected" : ""}>Discount (%)</option>
       </select>
       <input class="voucher-value" type="number" min="0.01" step="0.01" value="${Number(v.value || 0)}" aria-label="Voucher value">
@@ -281,8 +296,15 @@ async function prepareActiveTakePaymentCheckout() {
 
   try {
     const endpoint = isPackage ? "/api/payments/stripe/package-checkout" : "/api/payments/stripe/checkout";
+    const collectAmountMinor = isPackage
+      ? Math.round(Number(takePaymentCollectAmount?.value || 0) * 100)
+      : 0;
     const body = isPackage
-      ? {customer_package_id:item.id, deduction:currentDeductionPayload()}
+      ? {
+          customer_package_id:item.id,
+          deduction:currentDeductionPayload(),
+          ...(collectAmountMinor > 0 ? {collect_amount_minor:collectAmountMinor} : {})
+        }
       : {appointment_id:item.id, deduction:currentDeductionPayload()};
     const response = await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body)});
     handleAuthentication(response); const data = await response.json();
@@ -473,6 +495,7 @@ recordTakePaymentManually
 
       paymentCustomer.value =
         appointment.customer_id;
+      paymentCustomer.disabled = true;
 
       renderAppointmentOptions();
 
@@ -599,6 +622,11 @@ async function loadPayments() {
     }
 
 
+    businessCurrency = String(data.currency || "GBP").toUpperCase();
+    businessLocale = data.locale || "en-GB";
+    businessTimezone = data.timezone || "Europe/London";
+    applyCurrencyLabels();
+
     payments =
       data.payments ||
       [];
@@ -706,8 +734,10 @@ function renderStats(
 function openPaymentForm() {
 
   activeRecordPackage = null;
+  recordPaymentGrossAmountMinor = null;
 
   paymentForm.reset();
+  paymentCustomer.disabled = false;
 
   paymentFormStatus.hidden =
     true;
@@ -749,6 +779,7 @@ function openPaymentFormForAppointment(
 
   paymentCustomer.value =
     appointment.customer_id;
+  paymentCustomer.disabled = true;
 
   renderAppointmentOptions();
 
@@ -1026,6 +1057,119 @@ function prefillOutstandingAmount() {
 }
 
 
+function recordPaymentDeductionPayload() {
+  const type = recordPaymentDeductionType?.value || "none";
+  if (type === "amount") return { type, amount_minor: Math.round(Number(recordPaymentDeductionValue.value || 0) * 100) };
+  if (type === "percent") return { type, percent: Number(recordPaymentDeductionValue.value || 0) };
+  if (type === "voucher") return { type, voucher_id: recordPaymentVoucher.value };
+  return { type: "none" };
+}
+
+function recordPaymentDeductionPreviewMinor() {
+  const type = recordPaymentDeductionType?.value || "none";
+  if (type === "none") return 0;
+
+  const appointment = appointments.find(item => item.id === paymentAppointment.value);
+  const outstandingMinor = activeRecordPackage
+    ? Math.max(0, Number(activeRecordPackage.balance_minor || 0))
+    : Math.max(0, Number(appointment?.balance_minor || 0));
+  const fullValueMinor = activeRecordPackage
+    ? Math.max(0, Number(activeRecordPackage.price_minor || 0))
+    : Math.max(0, Number(appointment?.price_minor || 0));
+
+  if (!outstandingMinor) return 0;
+
+  if (type === "amount") {
+    return Math.min(outstandingMinor, Math.max(0, Math.round(Number(recordPaymentDeductionValue?.value || 0) * 100)));
+  }
+
+  let percent = 0;
+  if (type === "percent") {
+    percent = Number(recordPaymentDeductionValue?.value || 0);
+  } else if (type === "voucher") {
+    const voucher = paymentVouchers.find(item => item.id === recordPaymentVoucher?.value);
+    if (!voucher) return 0;
+    if (voucher.discount_type === "amount") {
+      return Math.min(outstandingMinor, Math.max(0, Math.round(Number(voucher.value || 0) * 100)));
+    }
+    percent = Number(voucher.value || 0);
+  }
+
+  if (!Number.isFinite(percent) || percent <= 0 || percent > 100) return 0;
+  return Math.min(outstandingMinor, Math.round(fullValueMinor * percent / 100));
+}
+
+function refreshRecordPaymentAmountForDeduction() {
+  const type = recordPaymentDeductionType?.value || "none";
+  const appointment = appointments.find(item => item.id === paymentAppointment.value);
+  const outstandingMinor = activeRecordPackage
+    ? Math.max(0, Number(activeRecordPackage.balance_minor || 0))
+    : Math.max(0, Number(appointment?.balance_minor || 0));
+
+  if (!outstandingMinor) {
+    recordPaymentGrossAmountMinor = null;
+    return;
+  }
+
+  const discountMinor = recordPaymentDeductionPreviewMinor();
+  const netMinor = type === "none"
+    ? outstandingMinor
+    : Math.max(0, outstandingMinor - discountMinor);
+
+  recordPaymentGrossAmountMinor = type === "none" ? null : outstandingMinor;
+  updatingRecordPaymentAmount = true;
+  paymentAmount.value = (netMinor / 100).toFixed(2);
+  updatingRecordPaymentAmount = false;
+
+  if (recordPaymentDeductionSummary) {
+    recordPaymentDeductionSummary.hidden = type === "none";
+    recordPaymentDeductionSummary.textContent = type === "none"
+      ? ""
+      : `${formatMoney(discountMinor)} deduction applied · ${formatMoney(netMinor)} to record.`;
+  }
+}
+
+paymentAmount?.addEventListener("input", () => {
+  if (!updatingRecordPaymentAmount) recordPaymentGrossAmountMinor = null;
+});
+
+function updateRecordPaymentDeductionUi() {
+  if (!recordPaymentDeductionType) return;
+  const type = recordPaymentDeductionType.value;
+  recordPaymentDeductionValueWrap.hidden = !["amount", "percent"].includes(type);
+  recordPaymentVoucherWrap.hidden = type !== "voucher";
+  if (type === "percent") {
+    recordPaymentDeductionValue.step = "1";
+    recordPaymentDeductionValue.max = "100";
+  } else {
+    recordPaymentDeductionValue.step = "0.01";
+    recordPaymentDeductionValue.removeAttribute("max");
+  }
+  if (recordPaymentDeductionSummary) {
+    recordPaymentDeductionSummary.hidden = type === "none";
+    recordPaymentDeductionSummary.textContent = type === "none"
+      ? ""
+      : "The deduction reduces the balance without being recorded as money received.";
+  }
+}
+
+recordPaymentDeductionType?.addEventListener("change", updateRecordPaymentDeductionUi);
+recordPaymentDeductionType?.addEventListener("change", async () => {
+  if (recordPaymentDeductionType.value === "voucher") {
+    try {
+      await loadPaymentVouchers();
+      if (recordPaymentVoucher) {
+        recordPaymentVoucher.innerHTML = takePaymentVoucher?.innerHTML || '<option value="">No active vouchers</option>';
+      }
+    } catch (error) {
+      showFormError(error.message || "Unable to load vouchers.");
+    }
+  }
+  refreshRecordPaymentAmountForDeduction();
+});
+recordPaymentDeductionValue?.addEventListener("input", refreshRecordPaymentAmountForDeduction);
+recordPaymentVoucher?.addEventListener("change", refreshRecordPaymentAmountForDeduction);
+
 paymentForm.addEventListener(
   "submit",
   async (event) => {
@@ -1033,12 +1177,20 @@ paymentForm.addEventListener(
     event.preventDefault();
 
 
-    const amountMinor =
+    const displayedAmountMinor =
       Math.round(
         Number(
           paymentAmount.value
         ) * 100
       );
+
+    // The Amount field shows the money actually being received. The existing
+    // API expects the pre-deduction outstanding amount and subtracts the
+    // deduction server-side, so preserve that gross amount only for submission.
+    const amountMinor =
+      recordPaymentGrossAmountMinor != null
+        ? recordPaymentGrossAmountMinor
+        : displayedAmountMinor;
 
 
     if (
@@ -1054,9 +1206,9 @@ paymentForm.addEventListener(
 
 
     if (
-      !Number.isFinite(
-        amountMinor
-      ) ||
+      !Number.isFinite(displayedAmountMinor) ||
+      displayedAmountMinor <= 0 ||
+      !Number.isFinite(amountMinor) ||
       amountMinor <= 0
     ) {
 
@@ -1116,6 +1268,9 @@ paymentForm.addEventListener(
 
                 amount_minor:
                   amountMinor,
+
+                deduction:
+                  recordPaymentDeductionPayload(),
 
                 payment_type:
                   paymentType.value,
@@ -1679,6 +1834,7 @@ function renderOutstanding() {
 
             paymentCustomer.value =
               appointment.customer_id;
+            paymentCustomer.disabled = true;
 
             renderAppointmentOptions();
             paymentAppointment.value =
@@ -1714,6 +1870,7 @@ function renderOutstanding() {
 
             paymentCustomer.value =
               item.customer_id;
+            paymentCustomer.disabled = true;
 
             renderAppointmentOptions();
             paymentAppointment.value = "";
@@ -1799,6 +1956,8 @@ async function createPackagePaymentCheckout(
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
   takePaymentVoucherWrap.hidden = true;
+  takePaymentCollectAmountWrap.hidden = false;
+  takePaymentCollectAmount.value = "";
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
   try { await loadPaymentVouchers(); } catch {}
@@ -1870,6 +2029,8 @@ async function createTakePaymentCheckout(
   takePaymentDeductionValue.value = "";
   takePaymentDeductionValueWrap.hidden = true;
   takePaymentVoucherWrap.hidden = true;
+  takePaymentCollectAmountWrap.hidden = true;
+  takePaymentCollectAmount.value = "";
   takePaymentResult.hidden = true;
   activeTakePaymentPaymentId = null;
   try { await loadPaymentVouchers(); } catch {}
@@ -1984,7 +2145,7 @@ function cleanPaymentNotes(notes) {
     .filter(Boolean)
     .filter(part => !/^(discount_minor|deduction_type|voucher|label)=/i.test(part))
     .filter(part => part !== "discount_balance_applied=1")
-    .filter(part => !/^£[\d,.]+\s+(?:voucher discount|discount|deduction)/i.test(part))
+    .filter(part => !/^(?:[£$€]|GBP|USD|EUR|AUD|NZD|ZAR)\s*[\d,.]+\s+(?:voucher discount|discount|deduction)/i.test(part))
     .join(" · ")
     .trim();
 
@@ -1995,8 +2156,138 @@ function discountDetailMarkup(payment) {
   const discount = paymentDiscountDetails(payment);
   if (!discount) return "";
 
+  const packageItem =
+    payment.customer_package_id
+      ? packageBalances.find(
+          item => item.id === payment.customer_package_id
+        )
+      : null;
+
+  if (packageItem) {
+    const consultationCreditMinor = Math.max(
+      0,
+      Number(packageItem.consultation_credit_minor || 0)
+    );
+    const discountedPackageValueMinor = Math.max(
+      0,
+      Number(packageItem.price_minor || 0)
+    );
+    const packageValueBeforeDiscountMinor =
+      discountedPackageValueMinor + discount.discountMinor;
+    const discountedAmountDueMinor = Math.max(
+      discountedPackageValueMinor - consultationCreditMinor,
+      0
+    );
+    const currentRemainingMinor = Math.max(
+      0,
+      Number(packageItem.balance_minor || 0)
+    );
+
+    return `
+      ${detailItem("Package value", formatMoney(packageValueBeforeDiscountMinor))}
+      ${
+        consultationCreditMinor > 0
+          ? detailItem("Consultation credit", formatMoney(consultationCreditMinor))
+          : ""
+      }
+      ${detailItem(
+        discount.type === "voucher" ? "Voucher discount" : "Discount amount",
+        formatMoney(discount.discountMinor)
+      )}
+      ${detailItem("Amount due after deduction", formatMoney(discountedAmountDueMinor))}
+      ${detailItem("This payment", formatMoney(payment.amount_minor))}
+      ${detailItem("Current remaining package balance", formatMoney(currentRemainingMinor))}
+      ${detailItem("Discount type", discount.typeLabel)}
+      ${
+        discount.type === "percent" && discount.percent !== null
+          ? detailItem("Percentage", `${discount.percent}%`)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.voucherCode
+          ? detailItem("Voucher code", discount.voucherCode)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.percent !== null
+          ? detailItem("Voucher value", `${discount.percent}%`)
+          : ""
+      }
+    `;
+  }
+
+  const appointmentItem =
+    payment.appointment_id
+      ? appointments.find(item => item.id === payment.appointment_id)
+      : null;
+
+  if (appointmentItem) {
+    const consultationCreditMinor = Math.max(
+      0,
+      Number(appointmentItem.consultation_credit_minor || 0)
+    );
+    const currentServiceValueMinor = Math.max(
+      0,
+      Number(appointmentItem.price_minor || 0)
+    );
+    const serviceValueBeforeDiscountMinor =
+      currentServiceValueMinor + discount.discountMinor;
+    const totalPaidMinor = Math.max(
+      0,
+      Number(appointmentItem.paid_minor || 0)
+    );
+    const paidBeforeThisPaymentMinor = Math.max(
+      0,
+      totalPaidMinor - Number(payment.amount_minor || 0)
+    );
+    const amountDueAfterDeductionMinor = Math.max(
+      0,
+      currentServiceValueMinor - consultationCreditMinor
+    );
+    const currentRemainingMinor = Math.max(
+      0,
+      Number(appointmentItem.balance_minor || 0)
+    );
+
+    return `
+      ${detailItem("Service value", formatMoney(serviceValueBeforeDiscountMinor))}
+      ${
+        paidBeforeThisPaymentMinor > 0
+          ? detailItem("Deposit / previously paid", formatMoney(paidBeforeThisPaymentMinor))
+          : ""
+      }
+      ${
+        consultationCreditMinor > 0
+          ? detailItem("Consultation credit", formatMoney(consultationCreditMinor))
+          : ""
+      }
+      ${detailItem(
+        discount.type === "voucher" ? "Voucher discount" : "Discount amount",
+        formatMoney(discount.discountMinor)
+      )}
+      ${detailItem("Amount due after deduction", formatMoney(amountDueAfterDeductionMinor))}
+      ${detailItem("This payment", formatMoney(payment.amount_minor))}
+      ${detailItem("Current remaining balance", formatMoney(currentRemainingMinor))}
+      ${detailItem("Discount type", discount.typeLabel)}
+      ${
+        discount.type === "percent" && discount.percent !== null
+          ? detailItem("Percentage", `${discount.percent}%`)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.voucherCode
+          ? detailItem("Voucher code", discount.voucherCode)
+          : ""
+      }
+      ${
+        discount.type === "voucher" && discount.percent !== null
+          ? detailItem("Voucher value", `${discount.percent}%`)
+          : ""
+      }
+    `;
+  }
+
   return `
-    ${detailItem("Original amount", formatMoney(discount.originalMinor))}
     ${detailItem("Amount paid", formatMoney(payment.amount_minor))}
     ${detailItem("Discount amount", formatMoney(discount.discountMinor))}
     ${detailItem("Discount type", discount.typeLabel)}
@@ -2465,21 +2756,27 @@ function paymentDateValue(
 function formatMoney(
   amountMinor
 ) {
-
   return new Intl.NumberFormat(
-    "en-GB",
-    {
-      style:
-        "currency",
-      currency:
-        "GBP"
-    }
-  ).format(
-    Number(
-      amountMinor ||
-      0
-    ) / 100
-  );
+    businessLocale || "en-GB",
+    { style: "currency", currency: businessCurrency || "GBP" }
+  ).format(Number(amountMinor || 0) / 100);
+}
+
+function currencySymbol() {
+  try {
+    return new Intl.NumberFormat(businessLocale || "en-GB", {
+      style: "currency", currency: businessCurrency || "GBP", currencyDisplay: "narrowSymbol"
+    }).formatToParts(0).find(part => part.type === "currency")?.value || businessCurrency;
+  } catch { return businessCurrency; }
+}
+
+function applyCurrencyLabels() {
+  const symbol = currencySymbol();
+  document.querySelectorAll('[data-currency-amount-option]').forEach(el => el.textContent = `Amount (${symbol})`);
+  document.querySelectorAll('[data-currency-amount-label]').forEach(el => {
+    const text = el.dataset.currencyAmountLabel || "Amount";
+    el.childNodes[0].textContent = `${text} (${symbol}) `;
+  });
 }
 
 
@@ -2493,7 +2790,8 @@ function formatShortDate(
       day:
         "numeric",
       month:
-        "short"
+        "short",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
@@ -2505,17 +2803,31 @@ function formatFullDateTime(
   value
 ) {
 
+  // D1 CURRENT_TIMESTAMP is UTC but may arrive as "YYYY-MM-DD HH:mm:ss"
+  // without a timezone suffix. Browsers otherwise treat that as local time,
+  // which makes payment times wrong when the business is in another zone.
+  const raw = String(value || "").trim();
+  const utcValue =
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(raw)
+      ? `${raw.replace(" ", "T")}Z`
+      : raw;
+
+  const date = new Date(utcValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return raw || "—";
+  }
+
   return new Intl.DateTimeFormat(
-    "en-GB",
+    businessLocale || "en-GB",
     {
       dateStyle:
         "medium",
       timeStyle:
-        "short"
+        "short",
+      timeZone: businessTimezone || "Europe/London"
     }
-  ).format(
-    new Date(value)
-  );
+  ).format(date);
 }
 
 
@@ -2529,7 +2841,8 @@ function formatTime(
       hour:
         "2-digit",
       minute:
-        "2-digit"
+        "2-digit",
+      timeZone: businessTimezone
     }
   ).format(
     new Date(value)
