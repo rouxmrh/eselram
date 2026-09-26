@@ -1,0 +1,94 @@
+name: Sync Tested Release to Main
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Tested release version (for example 1.0.28-beta.7)"
+        required: true
+        type: string
+      confirmation:
+        description: "Type PROMOTED to confirm this release passed QA and was promoted"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync tested QA source to main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate confirmation
+        shell: bash
+        run: |
+          if [ "${{ inputs.confirmation }}" != "PROMOTED" ]; then
+            echo "Release has not been confirmed as promoted."
+            echo "Run the workflow again and type PROMOTED."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch tested branch
+        run: |
+          git fetch origin subscription-billing-test
+
+      - name: Verify branches
+        run: |
+          echo "Main:"
+          git rev-parse main
+
+          echo "Tested source:"
+          git rev-parse origin/subscription-billing-test
+
+      - name: Merge tested source
+        run: |
+          git checkout main
+
+          if ! git merge \
+            --no-ff \
+            --no-edit \
+            origin/subscription-billing-test; then
+
+            echo "Merge conflict detected."
+            echo "Main has NOT been updated."
+            git merge --abort
+            exit 1
+          fi
+
+      - name: Verify tested files
+        shell: bash
+        run: |
+          git diff \
+            --exit-code \
+            origin/subscription-billing-test \
+            -- . \
+            ':(exclude)assets/eselram-demo.mov' \
+            ':(exclude).github/workflows/sync-tested-release-to-main.yml' \
+          || {
+            echo "Verification failed."
+            echo "Main does not match the tested source."
+            exit 1
+          }
+
+      - name: Record release sync
+        shell: bash
+        run: |
+          git commit --allow-empty \
+            -m "Sync tested ${{ inputs.release_version }} to main"
+
+      - name: Push main
+        run: |
+          git push origin main
