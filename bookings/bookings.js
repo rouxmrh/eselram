@@ -3680,6 +3680,18 @@ function openBookingForm(
   booking = null
 ) {
 
+  // The booking form lives in the Manage bookings workspace.
+  // If this is opened from Calendar/upcoming-booking details,
+  // switch out of Calendar mode before revealing the form.
+  if (
+    typeof window.setBookingsWorkspaceView ===
+      "function"
+  ) {
+    window.setBookingsWorkspaceView(
+      "bookings"
+    );
+  }
+
   resetBookingForm(
     false
   );
