@@ -14,21 +14,6 @@ async function hmacHex(secret, message) {
   return [...signed].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function createWebhook(accessToken, origin, businessId, installationId) {
-  const params = new URLSearchParams();
-  params.set("url", `${origin}/api/payments/stripe/webhook?business_id=${encodeURIComponent(businessId)}`);
-  for (const event of ["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired", "refund.created", "refund.updated", "refund.failed"]) params.append("enabled_events[]", event);
-  params.set("description", "Eselram payment events");
-  const response = await fetch("https://api.stripe.com/v1/webhook_endpoints", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `eselram-settings-webhook-${String(installationId).slice(0, 100)}` },
-    body: params
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data?.id || !data?.secret) throw new Error(data?.error?.message || "Stripe webhook setup failed.");
-  return data;
-}
-
 export async function onRequestPost({ request, env }) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -39,11 +24,14 @@ export async function onRequestPost({ request, env }) {
     const stripeUserId = String(body.stripe_user_id || "").trim();
     const publishableKey = String(body.publishable_key || "").trim();
     const livemode = body.livemode === true;
+    const webhookId = String(body.webhook_id || "").trim();
+    const webhookSecret = String(body.webhook_secret || "").trim();
+    const webhookUrl = String(body.webhook_url || "").trim();
     const signature = String(body.signature || "").trim().toLowerCase();
     const secret = String(env.ESELRAM_UPDATE_HANDOFF_SECRET || env.ESELRAM_UPDATE_SECRET || "").trim();
-    if (!installationId || installationId !== expectedInstallationId || !accessToken || !secret || !/^[a-f0-9]{64}$/.test(signature)) return Response.json({ ok: false, error: "Invalid Stripe connection handoff." }, { status: 401 });
+    if (!installationId || installationId !== expectedInstallationId || !accessToken || !webhookId || !webhookSecret || !webhookUrl || !secret || !/^[a-f0-9]{64}$/.test(signature)) return Response.json({ ok: false, error: "Invalid Stripe connection handoff." }, { status: 401 });
     if (!Number.isFinite(timestamp) || Math.abs(Date.now() - timestamp) > 5 * 60 * 1000) return Response.json({ ok: false, error: "Stripe connection handoff expired." }, { status: 401 });
-    const message = [installationId, String(timestamp), stripeUserId, accessToken, publishableKey, livemode ? "1" : "0"].join("\n");
+    const message = [installationId, String(timestamp), stripeUserId, accessToken, publishableKey, livemode ? "1" : "0", webhookId, webhookSecret, webhookUrl].join("\n");
     const expected = await hmacHex(secret, message);
     if (!safeEqual(expected, signature)) return Response.json({ ok: false, error: "Stripe connection handoff could not be verified." }, { status: 401 });
 
@@ -55,11 +43,8 @@ export async function onRequestPost({ request, env }) {
     if (!balanceResponse.ok) throw new Error(balance?.error?.message || "Stripe could not verify the connected account.");
     const mode = balance?.livemode === true || livemode || accessToken.includes("_live_") ? "live" : "sandbox";
     const currency = String(balance?.available?.[0]?.currency || business.currency || "GBP").toUpperCase();
-    const origin = new URL(request.url).origin;
-    const webhook = await createWebhook(accessToken, origin, business.id, installationId);
-
-    const encrypted = await encryptIntegrationSecret(JSON.stringify({ secret_key: accessToken, webhook_secret: webhook.secret, credential_source: "stripe_connect_oauth" }), String(env.ESELRAM_ENCRYPTION_KEY || ""));
-    const config = JSON.stringify({ publishable_key: publishableKey, currency, mode, has_webhook_secret: true, webhook_endpoint_id: webhook.id, webhook_url: webhook.url || `${origin}/api/payments/stripe/webhook?business_id=${encodeURIComponent(business.id)}`, connected_account_id: stripeUserId || null, connected_via: "provisioner", verified_during_installation: false, connected_from_settings: true });
+    const encrypted = await encryptIntegrationSecret(JSON.stringify({ secret_key: accessToken, webhook_secret: webhookSecret, credential_source: "stripe_connect_oauth" }), String(env.ESELRAM_ENCRYPTION_KEY || ""));
+    const config = JSON.stringify({ publishable_key: publishableKey, currency, mode, has_webhook_secret: true, webhook_endpoint_id: webhookId, webhook_url: webhookUrl, connected_account_id: stripeUserId || null, connected_via: "provisioner", verified_during_installation: false, connected_from_settings: true, webhook_scope: "connect" });
 
     await env.DB.prepare(`INSERT INTO business_integrations (id, business_id, integration_type, provider, encrypted_credentials, config_json, status, last_tested_at, last_error)
       VALUES (?, ?, 'payments', 'stripe', ?, ?, 'verified', CURRENT_TIMESTAMP, NULL)
