@@ -895,6 +895,9 @@ const makeManualDefaultButton =
     "makeManualDefaultButton"
   );
 
+const stripeConnectAccountPanel = document.getElementById("stripeConnectAccountPanel");
+const connectStripeAccountButton = document.getElementById("connectStripeAccountButton");
+
 
 async function loadStripeIntegration() {
 
@@ -1112,6 +1115,9 @@ async function loadStripeIntegration() {
     disconnectStripeIntegrationButton.hidden =
       !integration.has_secret_key;
 
+    const stripeConnected = integration.provisioned_connection || integration.connection_status === "connected" || integration.status === "verified";
+    if (stripeConnectAccountPanel) stripeConnectAccountPanel.hidden = stripeConnected;
+
 
     stripeEncryptionWarning.hidden =
       data.encryption_ready;
@@ -1190,6 +1196,34 @@ makeManualDefaultButton
     }
   );
 
+
+connectStripeAccountButton?.addEventListener("click", async () => {
+  connectStripeAccountButton.disabled = true;
+  stripeIntegrationMessage.hidden = false;
+  stripeIntegrationMessage.className = "es-status";
+  stripeIntegrationMessage.textContent = "Opening secure Stripe connection…";
+  try {
+    const response = await fetch("/api/integrations/payments/stripe/connect", { method: "POST", headers: { Accept: "application/json" } });
+    const data = await response.json();
+    if (!response.ok || !data.ok || !data.connect_url) throw new Error(data.error || "Unable to start Stripe connection.");
+    window.location.href = data.connect_url;
+  } catch (error) {
+    stripeIntegrationMessage.className = "es-status error";
+    stripeIntegrationMessage.textContent = error.message || "Unable to start Stripe connection.";
+    connectStripeAccountButton.disabled = false;
+  }
+});
+
+const stripeReturnParams = new URLSearchParams(window.location.search);
+if (stripeReturnParams.get("stripe") === "connected") {
+  setTimeout(() => {
+    if (stripeIntegrationMessage) {
+      stripeIntegrationMessage.hidden = false;
+      stripeIntegrationMessage.className = "es-status success";
+      stripeIntegrationMessage.textContent = "Stripe account connected successfully.";
+    }
+  }, 0);
+}
 
 document
   .getElementById(
