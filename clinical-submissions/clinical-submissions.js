@@ -139,7 +139,7 @@ function renderSections(){
         if(field.field_type==="signature"){
           const sig=signatureMap.get(field.field_key);
           const signedAt=showClientSignatureTimestamp&&sig?.created_at?formatDateTime(sig.created_at):"";
-          return `<div class="es-clinical-record-answer"><span>${escapeHtml(field.label)}</span>${sig?`<div class="es-clinical-record-signature"><strong>Signed</strong><img src="${sig.signature_data_url}" alt="${escapeHtml(field.label)}">${signedAt?`<span class="es-clinical-signature-stamp">Signed: ${escapeHtml(signedAt)}</span>`:""}</div>`:"<strong>Not signed</strong>"}</div>`;
+          return `<div class="es-clinical-record-answer"><span>${escapeHtml(field.label)}</span>${sig?`<div class="es-clinical-record-signature"><img src="${sig.signature_data_url}" alt="${escapeHtml(field.label)}">${signedAt?`<span class="es-clinical-signature-stamp">Signed: ${escapeHtml(signedAt)}</span>`:""}</div>`:"<strong>Not signed</strong>"}</div>`;
         }
         return `<div class="es-clinical-record-answer"><span>${escapeHtml(field.label)}</span><strong>${escapeHtml(field.value||"—")}</strong></div>`;
       }).join("")}
