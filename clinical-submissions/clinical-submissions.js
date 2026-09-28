@@ -130,14 +130,16 @@ function renderMeta(){
 }
 
 function renderSections(){
-  const signatureMap=new Map((activeSubmission.signatures||[]).map(sig=>[sig.field_key,sig.signature_data_url]));
+  const signatureMap=new Map((activeSubmission.signatures||[]).map(sig=>[sig.field_key,sig]));
+  const showClientSignatureTimestamp=["consultation","patch_test","patch-test","patch test"].includes(String(activeSubmission.template_type||"").toLowerCase());
   recordSections.innerHTML=(activeSubmission.sections||[]).map(section=>`
     <section class="es-clinical-record-section">
       <h3>${escapeHtml(section.title)}</h3>
       ${(section.fields||[]).map(field=>{
         if(field.field_type==="signature"){
           const sig=signatureMap.get(field.field_key);
-          return `<div class="es-clinical-record-answer"><span>${escapeHtml(field.label)}</span>${sig?`<div class="es-clinical-record-signature"><strong>Signed</strong><img src="${sig}" alt="${escapeHtml(field.label)}"></div>`:"<strong>Not signed</strong>"}</div>`;
+          const signedAt=showClientSignatureTimestamp&&sig?.created_at?formatDateTime(sig.created_at):"";
+          return `<div class="es-clinical-record-answer"><span>${escapeHtml(field.label)}</span>${sig?`<div class="es-clinical-record-signature"><strong>Signed</strong><img src="${sig.signature_data_url}" alt="${escapeHtml(field.label)}">${signedAt?`<span class="es-clinical-signature-stamp">Signed: ${escapeHtml(signedAt)}</span>`:""}</div>`:"<strong>Not signed</strong>"}</div>`;
         }
         return `<div class="es-clinical-record-answer"><span>${escapeHtml(field.label)}</span><strong>${escapeHtml(field.value||"—")}</strong></div>`;
       }).join("")}
